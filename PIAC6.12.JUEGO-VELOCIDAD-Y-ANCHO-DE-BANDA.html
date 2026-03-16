@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Velocidad en Telecomunicaciones</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;overflow:hidden;background:#07090f;color:#e2e8f0;font-family:'Space Grotesk',sans-serif;}
+
+/* NAV */
+#nav{display:flex;gap:8px;padding:12px 20px;background:#0a0d18;border-bottom:1px solid #1a2240;flex-shrink:0;flex-wrap:wrap;align-items:center;}
+#nav .logo{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:3px;color:#3b82f6;margin-right:6px;}
+.tab{padding:8px 16px;border-radius:8px;border:1px solid #1a2240;background:transparent;color:#64748b;cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;transition:all .2s;}
+.tab:hover{border-color:#3b82f6;color:#93c5fd;}
+.tab.active{background:#1e3a5f;border-color:#3b82f6;color:#60a5fa;}
+
+#app{flex:1;overflow:hidden;display:flex;flex-direction:column;height:calc(100vh - 52px);}
+.screen{display:none;flex:1;overflow-y:auto;}
+.screen.show{display:flex;flex-direction:column;}
+
+/* ══════════════════════════════════════════════
+   SCREEN 1 — CALCULADORA
+══════════════════════════════════════════════ */
+#s1{background:#07090f;padding:24px;gap:20px;}
+#s1 h2{font-size:18px;font-weight:700;color:#f1f5f9;}
+#s1 .sub{font-size:12px;color:#475569;font-family:'JetBrains Mono',monospace;letter-spacing:2px;margin-bottom:4px;}
+
+.calc-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.calc-panel{background:#0d1117;border:1px solid #1a2240;border-radius:12px;padding:20px;}
+.calc-panel h3{font-size:13px;font-weight:700;color:#94a3b8;letter-spacing:2px;margin-bottom:14px;font-family:'JetBrains Mono',monospace;}
+
+.pick-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.pick-btn{padding:10px 8px;border-radius:8px;border:1px solid #1a2240;background:#0f1520;cursor:pointer;transition:all .2s;text-align:center;}
+.pick-btn:hover{border-color:#3b82f6;}
+.pick-btn.sel{background:#1e3a5f;border-color:#3b82f6;}
+.pick-btn .pic-icon{font-size:22px;display:block;margin-bottom:4px;}
+.pick-btn .pic-name{font-size:11px;color:#94a3b8;font-weight:600;}
+.pick-btn .pic-size{font-size:10px;color:#475569;font-family:'JetBrains Mono',monospace;}
+
+.speed-btn{width:100%;padding:10px 12px;border-radius:8px;border:1px solid #1a2240;background:#0f1520;cursor:pointer;transition:all .2s;display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.speed-btn:hover{border-color:#3b82f6;}
+.speed-btn.sel{background:#1e3a5f;border-color:#3b82f6;}
+.speed-btn .sp-name{font-size:12px;color:#e2e8f0;font-weight:600;}
+.speed-btn .sp-val{font-size:11px;color:#60a5fa;font-family:'JetBrains Mono',monospace;}
+
+.result-box{background:#0a1525;border:2px solid #1e3a5f;border-radius:12px;padding:20px;text-align:center;}
+.result-box.ready{border-color:#3b82f6;box-shadow:0 0 24px #3b82f622;}
+.result-time{font-size:52px;font-weight:700;color:#60a5fa;font-family:'JetBrains Mono',monospace;line-height:1;}
+.result-unit{font-size:14px;color:#475569;margin-top:4px;}
+.result-detail{margin-top:16px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+.result-chip{background:#0f1520;border:1px solid #1a2240;border-radius:8px;padding:8px 14px;font-size:11px;font-family:'JetBrains Mono',monospace;}
+.result-chip span{color:#60a5fa;font-weight:700;}
+
+.formula-box{background:#040810;border:1px solid #0f1a30;border-radius:8px;padding:14px;font-size:11px;color:#64748b;line-height:1.7;font-family:'JetBrains Mono',monospace;}
+.formula-box b{color:#93c5fd;}
+
+/* ══════════════════════════════════════════════
+   SCREEN 2 — ORDENAR VELOCIDADES
+══════════════════════════════════════════════ */
+#s2{background:#07090f;padding:24px;gap:20px;align-items:center;}
+#s2 .s2-header{text-align:center;width:100%;}
+#s2-status{font-size:13px;color:#475569;font-family:'JetBrains Mono',monospace;margin-top:6px;}
+
+#s2-area{width:100%;max-width:860px;display:flex;flex-direction:column;gap:10px;}
+.s2-slot{background:#0d1117;border:2px dashed #1a2240;border-radius:10px;padding:14px 18px;min-height:58px;display:flex;align-items:center;justify-content:space-between;transition:all .2s;position:relative;}
+.s2-slot.drag-over{border-color:#3b82f6;background:#0f1a30;}
+.s2-slot.correct{border-color:#22c55e;background:#052e16;}
+.s2-slot.wrong{border-color:#ef4444;background:#2d0a0a;}
+.s2-slot .slot-num{font-size:11px;color:#334155;font-family:'JetBrains Mono',monospace;width:24px;flex-shrink:0;}
+.s2-slot .slot-label{font-size:12px;color:#475569;font-family:'JetBrains Mono',monospace;flex:1;text-align:right;padding-left:8px;}
+.s2-slot.correct .slot-label{color:#4ade80;}
+.s2-slot.wrong .slot-label{color:#f87171;}
+
+.s2-card{background:#1e293b;border:1px solid #334155;border-radius:8px;padding:10px 14px;cursor:grab;display:flex;align-items:center;gap:10px;transition:all .2s;user-select:none;}
+.s2-card:hover{border-color:#60a5fa;background:#1e3a5f;}
+.s2-card.dragging{opacity:.4;}
+.s2-card .c-icon{font-size:20px;flex-shrink:0;}
+.s2-card .c-name{font-size:12px;font-weight:700;color:#e2e8f0;}
+.s2-card .c-type{font-size:10px;color:#64748b;}
+
+#s2-bank{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;width:100%;max-width:860px;min-height:60px;background:#0a0d18;border-radius:12px;padding:12px;border:1px dashed #1a2240;}
+
+#s2-btns{display:flex;gap:10px;}
+.s2-btn{padding:10px 22px;border-radius:8px;border:1px solid #1e3a5f;background:#0f172a;color:#60a5fa;cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:700;transition:all .2s;}
+.s2-btn:hover{background:#1e3a5f;}
+.s2-btn.green{border-color:#166534;color:#4ade80;}
+.s2-btn.green:hover{background:#052e16;}
+
+/* ══════════════════════════════════════════════
+   SCREEN 3 — SIMULADOR SPEEDTEST
+══════════════════════════════════════════════ */
+#s3{background:#07090f;padding:24px;gap:20px;align-items:center;overflow-y:auto;}
+.st-wrap{width:100%;max-width:820px;display:flex;flex-direction:column;gap:20px;align-items:center;}
+
+.st-conn-grid{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;}
+.st-conn-btn{padding:9px 16px;border-radius:8px;border:1px solid #1a2240;background:#0f1520;cursor:pointer;font-size:11px;font-weight:700;color:#94a3b8;transition:all .2s;font-family:'Space Grotesk',sans-serif;}
+.st-conn-btn:hover{border-color:#3b82f6;color:#93c5fd;}
+.st-conn-btn.sel{background:#1e3a5f;border-color:#3b82f6;color:#60a5fa;}
+
+.st-gauge-row{display:flex;gap:20px;justify-content:center;flex-wrap:wrap;}
+.st-gauge{display:flex;flex-direction:column;align-items:center;gap:8px;}
+.st-gauge-label{font-size:11px;font-family:'JetBrains Mono',monospace;letter-spacing:2px;color:#475569;}
+.st-gauge-val{font-size:36px;font-weight:700;font-family:'JetBrains Mono',monospace;color:#60a5fa;min-width:140px;text-align:center;}
+.st-gauge-unit{font-size:12px;color:#475569;}
+.st-gauge-bar{width:140px;height:6px;background:#1a2240;border-radius:3px;overflow:hidden;}
+.st-gauge-fill{height:100%;border-radius:3px;transition:width .15s linear;}
+
+#st-start-btn{padding:14px 40px;border-radius:12px;border:none;background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:1px;transition:all .2s;box-shadow:0 0 24px #3b82f644;}
+#st-start-btn:hover{box-shadow:0 0 40px #3b82f666;}
+#st-start-btn:disabled{opacity:.4;cursor:not-allowed;}
+
+.st-quiz-box{width:100%;background:#0d1117;border:1px solid #1a2240;border-radius:12px;padding:20px;}
+.st-quiz-q{font-size:14px;font-weight:600;color:#f1f5f9;margin-bottom:14px;line-height:1.5;}
+.st-quiz-opts{display:flex;flex-direction:column;gap:8px;}
+.st-qopt{padding:10px 14px;border-radius:8px;border:1px solid #1a2240;background:#0f1520;cursor:pointer;font-size:12px;color:#94a3b8;transition:all .2s;text-align:left;}
+.st-qopt:hover:not(:disabled){border-color:#3b82f6;color:#e2e8f0;}
+.st-qopt.correct{background:#052e16;border-color:#22c55e;color:#4ade80;}
+.st-qopt.wrong{background:#2d0a0a;border-color:#ef4444;color:#f87171;text-decoration:line-through;opacity:.7;}
+.st-feedback{margin-top:12px;padding:12px;border-radius:8px;font-size:12px;line-height:1.6;}
+.st-feedback.ok{background:#052e16;border:1px solid #166534;color:#86efac;}
+.st-feedback.hint{background:#1c1400;border:1px solid #854d0e;color:#fcd34d;}
+
+.st-score-row{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;}
+.st-score-chip{background:#0d1117;border:1px solid #1a2240;border-radius:10px;padding:10px 18px;text-align:center;}
+.st-score-chip .sc-val{font-size:24px;font-weight:700;color:#60a5fa;font-family:'JetBrains Mono',monospace;}
+.st-score-chip .sc-lbl{font-size:10px;color:#475569;letter-spacing:2px;font-family:'JetBrains Mono',monospace;}
+
+/* ══════════════════════════════════════════════
+   SCREEN 4 — QUIZ BITS VS BYTES
+══════════════════════════════════════════════ */
+#s4{background:#07090f;padding:24px;gap:20px;}
+#s4 .s4-header{text-align:center;}
+#s4-progress{font-size:11px;color:#3b82f6;font-family:'JetBrains Mono',monospace;margin-top:4px;}
+
+#s4-cards-area{display:flex;flex-wrap:wrap;gap:16px;justify-content:center;}
+.fc4-wrap{width:calc(33.33% - 12px);min-width:220px;perspective:900px;cursor:pointer;}
+.fc4-inner{width:100%;position:relative;transform-style:preserve-3d;transition:transform .55s cubic-bezier(.4,0,.2,1);display:grid;}
+.fc4-wrap.flipped .fc4-inner{transform:rotateY(180deg);}
+.fc4-face{grid-area:1/1;border-radius:14px;backface-visibility:hidden;border:1px solid #1a2240;display:flex;flex-direction:column;padding:18px;background:#0d1117;transition:border-color .3s,box-shadow .3s;}
+.fc4-face.back{transform:rotateY(180deg);background:#0a1525;}
+.fc4-wrap:hover .fc4-face{border-color:var(--ac);box-shadow:0 4px 20px color-mix(in srgb,var(--ac) 20%,transparent);}
+.fc4-icon{font-size:28px;margin-bottom:8px;}
+.fc4-tag{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:3px;color:var(--ac);margin-bottom:4px;}
+.fc4-title{font-size:15px;font-weight:700;color:#f1f5f9;margin-bottom:6px;}
+.fc4-example{font-family:'JetBrains Mono',monospace;font-size:12px;color:#60a5fa;background:#040810;padding:5px 9px;border-radius:6px;margin-bottom:6px;}
+.fc4-desc{font-size:11px;color:#64748b;line-height:1.5;flex:1;}
+.fc4-hint{font-size:9px;color:#1e3a5f;text-align:right;margin-top:6px;letter-spacing:1px;}
+.fc4-back-tag{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:3px;color:var(--ac);margin-bottom:8px;}
+.fc4-question{font-size:12px;font-weight:600;color:#e2e8f0;margin-bottom:10px;line-height:1.5;}
+.fc4-opts{display:flex;flex-direction:column;gap:5px;flex:1;}
+.fc4-opt{padding:6px 10px;border-radius:8px;border:1px solid #1a2240;background:#0f172a;font-size:11px;color:#94a3b8;cursor:pointer;transition:all .2s;text-align:left;}
+.fc4-opt:hover:not(.correct):not(.wrong):not(.reveal){border-color:var(--ac);color:#e2e8f0;}
+.fc4-opt.correct{background:#052e16;border-color:#22c55e;color:#4ade80;pointer-events:none;}
+.fc4-opt.wrong{background:#2d0a0a;border-color:#ef4444;color:#f87171;pointer-events:none;}
+.fc4-opt.reveal{background:#1e3a5f;border-color:#3b82f6;color:#93c5fd;pointer-events:none;}
+.fc4-result{font-family:'JetBrains Mono',monospace;font-size:10px;text-align:center;margin-top:4px;min-height:14px;}
+
+#s4-top{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:4px;}
+#s4-top .s4-prog{font-family:'JetBrains Mono',monospace;font-size:11px;color:#3b82f6;margin-left:auto;}
+#s4-reset{padding:7px 16px;border-radius:8px;border:1px solid #1e3a5f;background:#0f172a;color:#60a5fa;cursor:pointer;font-size:11px;font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body style="display:flex;flex-direction:column;height:100vh;">
+<div id="nav">
+  <span class="logo">TELECOM</span>
+  <button class="tab active" onclick="showScreen(1)">🔢 Calculadora</button>
+  <button class="tab" onclick="showScreen(2)">📊 Ordena Velocidades</button>
+  <button class="tab" onclick="showScreen(3)">🎮 Simulador Speedtest</button>
+  <button class="tab" onclick="showScreen(4)">🃏 Quiz Bits vs Bytes</button>
+</div>
+<div id="app">
+
+<!-- ══ SCREEN 1: CALCULADORA ══ -->
+<div class="screen show" id="s1">
+  <div class="sub">CALCULADORA DE DESCARGA</div>
+  <h2>¿Cuánto tarda en descargarse tu archivo?</h2>
+  <div class="calc-grid">
+    <div class="calc-panel">
+      <h3>1. ELIGE EL ARCHIVO</h3>
+      <div class="pick-grid" id="file-grid"></div>
+    </div>
+    <div class="calc-panel">
+      <h3>2. ELIGE TU CONEXIÓN</h3>
+      <div id="speed-list"></div>
+    </div>
+  </div>
+  <div class="result-box" id="result-box">
+    <div style="font-size:13px;color:#475569;margin-bottom:8px;font-family:'JetBrains Mono',monospace;letter-spacing:2px;">TIEMPO DE DESCARGA</div>
+    <div class="result-time" id="res-time">—</div>
+    <div class="result-unit" id="res-unit">selecciona archivo y conexión</div>
+    <div class="result-detail" id="res-detail"></div>
+  </div>
+  <div class="formula-box">
+    <b>Fórmula:</b> Tiempo = Tamaño (bits) ÷ Velocidad (bits/s)<br>
+    <b>Recuerda:</b> 1 Byte = 8 bits · La velocidad de la fibra se da en <b>Megabits/s (Mb/s)</b>, pero los archivos se miden en <b>Megabytes (MB)</b><br>
+    Ej: Fibra 600 Mb/s = 600 ÷ 8 = <b>75 MB/s</b> de transferencia real
+  </div>
+</div>
+
+<!-- ══ SCREEN 2: ORDENAR ══ -->
+<div class="screen" id="s2">
+  <div class="s2-header">
+    <div class="sub">ARRASTRA Y SUELTA</div>
+    <h2 style="font-size:18px;font-weight:700;color:#f1f5f9;">Ordena de más lento a más rápido</h2>
+    <div id="s2-status">Arrastra cada tecnología al hueco correcto (1 = más lento, 7 = más rápido)</div>
+  </div>
+  <div id="s2-area"></div>
+  <div id="s2-bank"></div>
+  <div id="s2-btns">
+    <button class="s2-btn green" onclick="s2_updateStatus()">📊 PROGRESO</button>
+    <button class="s2-btn" onclick="s2_reset()">↺ REINICIAR</button>
+    <button class="s2-btn" onclick="s2_reveal()">👁 VER SOLUCIÓN</button>
+  </div>
+</div>
+
+<!-- ══ SCREEN 3: SPEEDTEST ══ -->
+<div class="screen" id="s3">
+  <div class="st-wrap">
+    <div style="text-align:center;">
+      <div class="sub">SIMULADOR</div>
+      <h2 style="font-size:18px;font-weight:700;color:#f1f5f9;">Speedtest Interactivo</h2>
+    </div>
+    <div class="st-conn-grid" id="st-conns"></div>
+    <div class="st-gauge-row">
+      <div class="st-gauge">
+        <div class="st-gauge-label">⬇ BAJADA</div>
+        <div class="st-gauge-val" id="st-down">—</div>
+        <div class="st-gauge-unit">Mb/s</div>
+        <div class="st-gauge-bar"><div class="st-gauge-fill" id="st-down-bar" style="width:0;background:#3b82f6;"></div></div>
+      </div>
+      <div class="st-gauge">
+        <div class="st-gauge-label">⬆ SUBIDA</div>
+        <div class="st-gauge-val" id="st-up">—</div>
+        <div class="st-gauge-unit">Mb/s</div>
+        <div class="st-gauge-bar"><div class="st-gauge-fill" id="st-up-bar" style="width:0;background:#10b981;"></div></div>
+      </div>
+      <div class="st-gauge">
+        <div class="st-gauge-label">🏓 LATENCIA</div>
+        <div class="st-gauge-val" id="st-ping">—</div>
+        <div class="st-gauge-unit">ms (ping)</div>
+        <div class="st-gauge-bar"><div class="st-gauge-fill" id="st-ping-bar" style="width:0;background:#f59e0b;"></div></div>
+      </div>
+    </div>
+    <button id="st-start-btn" onclick="stStart()">▶ INICIAR TEST</button>
+    <div class="st-score-row">
+      <div class="st-score-chip"><div class="sc-val" id="st-score">0</div><div class="sc-lbl">PUNTOS</div></div>
+      <div class="st-score-chip"><div class="sc-val" id="st-correct">0</div><div class="sc-lbl">ACIERTOS</div></div>
+      <div class="st-score-chip"><div class="sc-val" id="st-qnum">0/6</div><div class="sc-lbl">PREGUNTAS</div></div>
+    </div>
+    <div class="st-quiz-box" id="st-quiz" style="display:none;"></div>
+  </div>
+</div>
+
+<!-- ══ SCREEN 4: QUIZ BITS VS BYTES ══ -->
+<div class="screen" id="s4">
+  <div id="s4-top">
+    <div>
+      <div class="sub">TARJETAS INTERACTIVAS</div>
+      <h2 style="font-size:18px;font-weight:700;color:#f1f5f9;">Quiz: Bits vs Bytes</h2>
+    </div>
+    <span class="s4-prog" id="s4-prog">✓ 0 / 8</span>
+    <button id="s4-reset" onclick="s4_reset()">↺ Reiniciar</button>
+  </div>
+  <div id="s4-cards-area"></div>
+</div>
+
+</div><!-- #app -->
+
+<script>
+// ══════════════════════════════════════════════════
+// NAV
+// ══════════════════════════════════════════════════
+function showScreen(n){
+  document.querySelectorAll('.screen').forEach((s,i)=>s.classList.toggle('show',i===n-1));
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',i===n-1));
+}
+
+// ══════════════════════════════════════════════════
+// SCREEN 1 — CALCULADORA
+// ══════════════════════════════════════════════════
+const FILES=[
+  {icon:'🎬',name:'Película 4K',size:50*1024,unit:'50 GB'},
+  {icon:'🎬',name:'Película HD',size:4*1024,unit:'4 GB'},
+  {icon:'🎮',name:'Videojuego AAA',size:80*1024,unit:'80 GB'},
+  {icon:'🎵',name:'Álbum de música',size:100,unit:'100 MB'},
+  {icon:'📸',name:'Foto RAW',size:25,unit:'25 MB'},
+  {icon:'📄',name:'Documento PDF',size:5,unit:'5 MB'},
+  {icon:'💿',name:'App móvil',size:500,unit:'500 MB'},
+  {icon:'📦',name:'Backup 1TB',size:1024*1024,unit:'1 TB'},
+];
+const SPEEDS=[
+  {name:'Par cobre (RTC voz)',mbps:.0003,label:'~0.3 Kbps'},
+  {name:'ADSL2+ (cobre)',mbps:24,label:'24 Mbps'},
+  {name:'4G LTE (móvil)',mbps:100,label:'100 Mbps'},
+  {name:'Fibra residencial 300',mbps:300,label:'300 Mbps'},
+  {name:'Fibra residencial 600',mbps:600,label:'600 Mbps'},
+  {name:'Fibra 1 Gbps',mbps:1000,label:'1 Gbps'},
+  {name:'Fibra 10 Gbps',mbps:10000,label:'10 Gbps'},
+];
+
+let selFile=null, selSpeed=null;
+
+const fg=document.getElementById('file-grid');
+FILES.forEach((f,i)=>{
+  const b=document.createElement('button');
+  b.className='pick-btn'; b.dataset.i=i;
+  b.innerHTML=`<span class="pic-icon">${f.icon}</span><span class="pic-name">${f.name}</span><span class="pic-size">${f.unit}</span>`;
+  b.onclick=()=>{selFile=i;document.querySelectorAll('.pick-btn').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');calcResult();};
+  fg.appendChild(b);
+});
+
+const sl=document.getElementById('speed-list');
+SPEEDS.forEach((s,i)=>{
+  const b=document.createElement('button');
+  b.className='speed-btn'; b.dataset.i=i;
+  b.innerHTML=`<span class="sp-name">${s.name}</span><span class="sp-val">${s.label}</span>`;
+  b.onclick=()=>{selSpeed=i;document.querySelectorAll('.speed-btn').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');calcResult();};
+  sl.appendChild(b);
+});
+
+function calcResult(){
+  if(selFile===null||selSpeed===null) return;
+  const f=FILES[selFile], s=SPEEDS[selSpeed];
+  const sizeMB=f.size; // in MB
+  const speedMBs=s.mbps/8; // convert Mbps to MB/s
+  const secs=sizeMB/speedMBs;
+  const rb=document.getElementById('result-box');
+  rb.classList.add('ready');
+  // Format time
+  let timeStr, unitStr;
+  if(secs<0.001){timeStr=(secs*1000*1000).toFixed(1);unitStr='microsegundos';}
+  else if(secs<1){timeStr=(secs*1000).toFixed(0);unitStr='milisegundos';}
+  else if(secs<60){timeStr=secs.toFixed(1);unitStr='segundos';}
+  else if(secs<3600){const m=Math.floor(secs/60),sc=Math.round(secs%60);timeStr=`${m}m ${sc}s`;unitStr='minutos y segundos';}
+  else if(secs<86400){const h=Math.floor(secs/3600),m=Math.round((secs%3600)/60);timeStr=`${h}h ${m}m`;unitStr='horas';}
+  else{const d=Math.floor(secs/86400);timeStr=d.toFixed(1);unitStr='días';}
+  document.getElementById('res-time').textContent=timeStr;
+  document.getElementById('res-unit').textContent=unitStr;
+  const speedMBsDisp=speedMBs>=1?speedMBs.toFixed(1):(speedMBs*1000).toFixed(0);
+  const speedMBsUnit=speedMBs>=1?'MB/s':'KB/s';
+  document.getElementById('res-detail').innerHTML=`
+    <div class="result-chip">Archivo: <span>${f.unit}</span></div>
+    <div class="result-chip">Velocidad: <span>${s.label}</span> = <span>${speedMBsDisp} ${speedMBsUnit}</span></div>
+    <div class="result-chip">${sizeMB>=1024?(sizeMB/1024).toFixed(1)+' GB':sizeMB+' MB'} ÷ ${speedMBsDisp} ${speedMBsUnit} = <span>${secs>=60?Math.round(secs)+'s':secs.toFixed(2)+'s'}</span></div>
+  `;
+}
+
+// ══════════════════════════════════════════════════
+// SCREEN 2 — ORDENAR VELOCIDADES
+// ══════════════════════════════════════════════════
+const TECHS=[
+  {id:'rtc',icon:'📞',name:'Par cobre — RTC voz',type:'Analógico',speed:'3.1 kHz',order:1},
+  {id:'adsl',icon:'🔌',name:'Par cobre — ADSL2+',type:'Digital',speed:'24 Mbps',order:2},
+  {id:'eth',icon:'🖥',name:'Par cobre — Ethernet Cat8',type:'Digital',speed:'40 Gbps / 30m',order:3},
+  {id:'ftth',icon:'🏠',name:'Fibra óptica — Residencial',type:'Digital',speed:'hasta 10 Gbps',order:4},
+  {id:'mmf',icon:'💾',name:'Fibra multimodo (MMF)',type:'Digital',speed:'100 Gbps / corta dist.',order:5},
+  {id:'smf',icon:'🌐',name:'Fibra monomodo (SMF)',type:'Digital',speed:'400 Gbps / canal',order:6},
+  {id:'lab',icon:'🔬',name:'Fibra monomodo — Laboratorio',type:'Experimental',speed:'100 Tbps',order:7},
+];
+
+let s2Slots={}, s2DragId=null;
+
+function s2_build(){
+  const area=document.getElementById('s2-area');
+  area.innerHTML='';
+  s2Slots={};
+  for(let i=1;i<=7;i++){
+    const slot=document.createElement('div');
+    slot.className='s2-slot';
+    slot.dataset.slot=i;
+    slot.innerHTML=`<span class="slot-num">${i}</span><div id="s2-slot-${i}" style="flex:1;"></div><span class="slot-label" id="s2-lbl-${i}">← arrastra aquí</span>`;
+    slot.addEventListener('dragover',e=>{e.preventDefault();slot.classList.add('drag-over');});
+    slot.addEventListener('dragleave',()=>slot.classList.remove('drag-over'));
+    slot.addEventListener('drop',e=>{e.preventDefault();slot.classList.remove('drag-over');if(s2DragId) s2_place(s2DragId,i);});
+    area.appendChild(slot);
+  }
+  // Build bank — fixed positions, one placeholder per tech (shuffled visually but stable)
+  const bank=document.getElementById('s2-bank');
+  bank.innerHTML='';
+  // Shuffle order for display but each gets a fixed placeholder by id
+  const shuffled=[...TECHS].sort(()=>Math.random()-.5);
+  shuffled.forEach(t=>{
+    const placeholder=document.createElement('div');
+    placeholder.id='s2-bank-'+t.id;
+    placeholder.style.display='inline-block';
+    placeholder.appendChild(s2_makeCard(t));
+    bank.appendChild(placeholder);
+  });
+  document.getElementById('s2-status').textContent='Arrastra cada tecnología al hueco correcto (1 = más lento, 7 = más rápido)';
+}
+
+function s2_makeCard(t){
+  const card=document.createElement('div');
+  card.className='s2-card'; card.draggable=true; card.dataset.id=t.id;
+  card.innerHTML=`<span class="c-icon">${t.icon}</span><div><div class="c-name">${t.name}</div><div class="c-type">${t.type}</div></div>`;
+  card.addEventListener('dragstart',()=>{s2DragId=t.id;card.classList.add('dragging');});
+  card.addEventListener('dragend',()=>card.classList.remove('dragging'));
+  return card;
+}
+
+// Return a card to its fixed slot in the bank (show it, never reorder)
+function s2_returnToBank(techId){
+  const placeholder=document.getElementById('s2-bank-'+techId);
+  if(!placeholder) return;
+  placeholder.innerHTML=''; // clear "empty" state
+  const t=TECHS.find(t=>t.id===techId);
+  placeholder.appendChild(s2_makeCard(t));
+  placeholder.style.opacity='1';
+}
+
+// Hide a card from the bank (keep its space)
+function s2_removeFromBank(techId){
+  const placeholder=document.getElementById('s2-bank-'+techId);
+  if(!placeholder) return;
+  placeholder.innerHTML='';
+  placeholder.style.opacity='0';
+}
+
+function s2_place(techId, slotNum){
+  const t=TECHS.find(t=>t.id===techId);
+  const isCorrect=t.order===slotNum;
+
+  // Hide card from its fixed bank slot
+  s2_removeFromBank(techId);
+
+  // Remove from any previous incorrect slot
+  Object.keys(s2Slots).forEach(sl=>{
+    if(s2Slots[sl]===techId){
+      delete s2Slots[sl];
+      document.getElementById('s2-slot-'+sl).innerHTML='';
+      document.getElementById('s2-lbl-'+sl).textContent='← arrastra aquí';
+      const slotEl=document.querySelector(`.s2-slot[data-slot="${sl}"]`);
+      slotEl.classList.remove('correct','wrong');
+    }
+  });
+
+  // If target slot is already correctly filled — don't overwrite it
+  if(s2Slots[slotNum]){
+    const existTech=TECHS.find(t=>t.id===s2Slots[slotNum]);
+    if(existTech&&existTech.order===slotNum){
+      // Slot is locked (correct), send dragged card back to bank
+      s2_returnToBank(techId);
+      s2_updateStatus();
+      return;
+    }
+    // Slot had a wrong card — evict it back to its fixed bank slot
+    const oldTech=TECHS.find(t=>t.id===s2Slots[slotNum]);
+    s2_returnToBank(oldTech.id);
+    document.getElementById('s2-slot-'+slotNum).innerHTML='';
+    delete s2Slots[slotNum];
+  }
+
+  if(isCorrect){
+    // Lock slot permanently
+    s2Slots[slotNum]=techId;
+    const slotInner=document.getElementById('s2-slot-'+slotNum);
+    // Correct: card stays, not draggable
+    slotInner.innerHTML=`<div class="s2-card" style="cursor:default;border-color:#22c55e;" draggable="false"><span class="c-icon">${t.icon}</span><div><div class="c-name">${t.name}</div><div class="c-type">${t.type}</div></div></div>`;
+    document.getElementById('s2-lbl-'+slotNum).textContent=t.speed;
+    const slotEl=document.querySelector(`.s2-slot[data-slot="${slotNum}"]`);
+    slotEl.classList.add('correct');
+    slotEl.classList.remove('wrong');
+  } else {
+    // Incorrect: flash red, then send back to bank after 700ms
+    const slotEl=document.querySelector(`.s2-slot[data-slot="${slotNum}"]`);
+    const slotInner=document.getElementById('s2-slot-'+slotNum);
+    slotEl.classList.add('wrong');
+    slotInner.innerHTML=`<div class="s2-card" style="cursor:default;opacity:.7;" draggable="false"><span class="c-icon">${t.icon}</span><div><div class="c-name">${t.name}</div><div class="c-type">${t.type}</div></div></div>`;
+    document.getElementById('s2-lbl-'+slotNum).textContent='✗ incorrecto';
+    document.getElementById('s2-status').textContent=`✗ ${t.name} no va en la posición ${slotNum}. Vuelve a intentarlo.`;
+    setTimeout(()=>{
+      slotEl.classList.remove('wrong');
+      slotInner.innerHTML='';
+      document.getElementById('s2-lbl-'+slotNum).textContent='← arrastra aquí';
+      s2_returnToBank(techId);
+      s2_updateStatus();
+    },700);
+    return;
+  }
+  s2_updateStatus();
+}
+
+function s2_updateStatus(){
+  const correct=Object.keys(s2Slots).length;
+  if(correct===7){
+    document.getElementById('s2-status').textContent='🎉 ¡Perfecto! Has ordenado todas correctamente.';
+  } else {
+    document.getElementById('s2-status').textContent=`${correct}/7 correctos — arrastra las ${7-correct} que quedan al hueco correcto`;
+  }
+}
+
+function s2_check(){
+  // No longer needed — feedback is instant. Keep for button backward compat.
+  s2_updateStatus();
+}
+
+function s2_reveal(){
+  TECHS.forEach(t=>{s2_place(t.id,t.order);});
+  setTimeout(()=>s2_updateStatus(),100);
+}
+function s2_reset(){s2_build();}
+s2_build();
+
+// ══════════════════════════════════════════════════
+// SCREEN 3 — SIMULADOR SPEEDTEST
+// ══════════════════════════════════════════════════
+const ST_CONNS=[
+  {name:'ADSL2+',down:24,up:1.4,ping:12},
+  {name:'4G LTE',down:100,up:20,ping:25},
+  {name:'5G',down:800,up:200,ping:8},
+  {name:'Fibra 300',down:300,up:300,ping:5},
+  {name:'Fibra 600',down:600,up:600,ping:4},
+  {name:'Fibra 1 Gbps',down:1000,up:1000,ping:3},
+  {name:'Satélite GEO',down:50,up:10,ping:600},
+];
+
+const ST_QS=[
+  {q:'¿Qué mide la velocidad de BAJADA (descarga)?',opts:['La velocidad a la que recibes datos de Internet (ver vídeos, descargar archivos)','La velocidad a la que envías datos a Internet','El tiempo que tarda un paquete en llegar al servidor','La capacidad máxima del cable de fibra'],ans:0,ok:'La bajada (download) es la velocidad a la que recibes datos. Es la más importante para ver Netflix, YouTube o descargar archivos.'},
+  {q:'¿Qué mide la velocidad de SUBIDA (upload)?',opts:['La velocidad a la que envías datos (videollamadas, subir fotos a la nube)','La velocidad a la que recibes datos de Internet','El número de dispositivos conectados','La latencia de la red'],ans:0,ok:'La subida (upload) es la velocidad a la que tú envías datos. Es crucial para videollamadas, Zoom o subir vídeos a YouTube.'},
+  {q:'¿Qué es la LATENCIA que aparece en el Speedtest?',opts:['El tiempo en ms que tarda un paquete en ir al servidor y volver (como un eco de red)','La velocidad máxima de bajada','La cantidad de datos descargados por segundo','El número de dispositivos conectados'],ans:0,ok:'La latencia (ping) mide el RETARDO de la red en milisegundos. Cuanto más baja (<20ms) más fluida la experiencia. Alta latencia (>200ms) produce lag en videojuegos y videollamadas.'},
+  {q:'¿Por qué el satélite GEO tiene un ping tan alto (~600ms)?',opts:['Porque la señal recorre 72.000 km (ida y vuelta a 36.000 km de altura)','Porque los satélites procesan los datos más lento','Porque la fibra óptica es más rápida que las ondas de radio','Porque los satélites usan tecnología antigua'],ans:0,ok:'El satélite geoestacionario orbita a 36.000 km. La señal sube y baja = 72.000 km a la velocidad de la luz, lo que supone ~240ms solo de retardo físico.'},
+  {q:'Con fibra 600 Mbps, ¿cuántos MB/s reales obtienes al descargar?',opts:['75 MB/s  (600 ÷ 8)','600 MB/s','300 MB/s (600 ÷ 2)','7,5 MB/s (600 ÷ 80)'],ans:0,ok:'1 Byte = 8 bits, por eso 600 Mbps ÷ 8 = 75 MB/s. Los operadores anuncian en Megabits pero los archivos se miden en Megabytes.'},
+  {q:'¿Qué actividad necesita MÁS velocidad de bajada?',opts:['Streaming de vídeo 4K (~25 Mbps por pantalla)','Videollamada HD (~4 Mbps)','Navegar por redes sociales (~1-3 Mbps)','Escuchar música en streaming (~0,5 Mbps)'],ans:0,ok:'El streaming 4K necesita ~25 Mbps por pantalla. Con fibra de 600 Mbps puedes tener varias pantallas en 4K a la vez sin problemas.'},
+];
+
+// ── Single state object — no stale closures possible ──
+const ST = { conn:null, qi:0, score:0, correct:0, answered:false };
+
+const stConnsEl=document.getElementById('st-conns');
+ST_CONNS.forEach((c,i)=>{
+  const b=document.createElement('button');
+  b.className='st-conn-btn'; b.textContent=c.name;
+  b.onclick=()=>{
+    ST.conn=i;
+    document.querySelectorAll('.st-conn-btn').forEach(x=>x.classList.remove('sel'));
+    b.classList.add('sel');
+    document.getElementById('st-start-btn').disabled=false;
+  };
+  stConnsEl.appendChild(b);
+});
+document.getElementById('st-start-btn').disabled=true;
+
+function stStart(){
+  if(ST.conn===null) return;
+  // Hard reset state
+  ST.qi=0; ST.score=0; ST.correct=0; ST.answered=false;
+  document.getElementById('st-score').textContent=0;
+  document.getElementById('st-correct').textContent=0;
+  document.getElementById('st-qnum').textContent='–';
+  document.getElementById('st-quiz').style.display='none';
+  document.getElementById('st-quiz').innerHTML='';
+
+  const c=ST_CONNS[ST.conn];
+  const btn=document.getElementById('st-start-btn');
+  btn.disabled=true;
+  let t=0;
+  const maxDown=Math.max(...ST_CONNS.map(x=>x.down));
+  const maxUp=Math.max(...ST_CONNS.map(x=>x.up));
+  const maxPing=Math.max(...ST_CONNS.map(x=>x.ping));
+  const iv=setInterval(()=>{
+    t+=0.04; const p=Math.min(1,t); const e=1-Math.pow(1-p,3);
+    document.getElementById('st-down').textContent=Math.round(c.down*e);
+    document.getElementById('st-up').textContent=Math.round(c.up*e);
+    document.getElementById('st-ping').textContent=Math.round(c.ping*e);
+    document.getElementById('st-down-bar').style.width=(c.down/maxDown*100*e)+'%';
+    document.getElementById('st-up-bar').style.width=(c.up/maxUp*100*e)+'%';
+    document.getElementById('st-ping-bar').style.width=(c.ping/maxPing*100*e)+'%';
+    if(p>=1){ clearInterval(iv); btn.disabled=false; stShowQ(); }
+  },30);
+}
+
+function stShowQ(){
+  const box=document.getElementById('st-quiz');
+  box.style.display='block';
+  if(ST.qi>=ST_QS.length){
+    box.innerHTML='<div style="text-align:center;padding:20px;">'
+      +'<div style="font-size:32px;margin-bottom:8px;">🏆</div>'
+      +'<div style="font-size:16px;font-weight:700;color:#f1f5f9;">¡Cuestionario completado!</div>'
+      +'<div style="font-size:13px;color:#94a3b8;margin-top:6px;">'+ST.score+' puntos · '+ST.correct+'/'+ST_QS.length+' aciertos a la primera</div>'
+      +'<button id="st-repeat-btn" style="margin-top:16px;padding:10px 24px;border-radius:8px;border:1px solid #1e3a5f;background:#0f172a;color:#60a5fa;cursor:pointer;font-size:13px;">↺ Nuevo test</button>'
+      +'</div>';
+    document.getElementById('st-repeat-btn').onclick=()=>{
+      document.getElementById('st-quiz').style.display='none';
+      ['st-down','st-up','st-ping'].forEach(id=>document.getElementById(id).textContent='—');
+      ['st-down-bar','st-up-bar','st-ping-bar'].forEach(id=>document.getElementById(id).style.width='0');
+    };
+    return;
+  }
+  const q=ST_QS[ST.qi];
+  ST.answered=false;
+  const shuffled=q.opts.map((o,oi)=>({text:o,correct:oi===q.ans})).sort(()=>Math.random()-.5);
+  box.innerHTML=
+    '<div style="font-size:10px;font-family:JetBrains Mono,monospace;letter-spacing:2px;color:#475569;margin-bottom:8px;">PREGUNTA '+(ST.qi+1)+' DE '+ST_QS.length+'</div>'
+    +'<div class="st-quiz-q">❓ '+q.q+'</div>'
+    +'<div class="st-quiz-opts" id="st-opts">'
+    +shuffled.map(o=>'<button class="st-qopt" data-c="'+o.correct+'">'+o.text+'</button>').join('')
+    +'</div><div id="st-fb"></div>';
+  document.getElementById('st-qnum').textContent=(ST.qi+1)+'/'+ST_QS.length;
+  // Attach handlers — capture qi at this moment
+  const qiSnapshot=ST.qi;
+  document.querySelectorAll('#st-opts .st-qopt').forEach(btn=>{
+    btn.addEventListener('click',function(){
+      if(ST.answered) return;
+      const isCorrect=this.dataset.c==='true';
+      const firstTry=!document.querySelector('#st-opts .st-qopt.wrong');
+      if(isCorrect){
+        ST.answered=true;
+        this.classList.add('correct');
+        document.querySelectorAll('#st-opts .st-qopt').forEach(b=>b.disabled=true);
+        const pts=firstTry?100:50;
+        ST.score+=pts;
+        if(firstTry) ST.correct++;
+        document.getElementById('st-score').textContent=ST.score;
+        document.getElementById('st-correct').textContent=ST.correct;
+        const isLast=ST.qi+1>=ST_QS.length;
+        const fb=document.getElementById('st-fb');
+        fb.innerHTML='<div class="st-feedback ok">✓ '+ST_QS[ST.qi].ok+'</div>';
+        // Next button
+        const nextBtn=document.createElement('button');
+        nextBtn.textContent=isLast?'Ver resultado →':'Siguiente pregunta →';
+        nextBtn.style.cssText='margin-top:10px;padding:8px 20px;border-radius:8px;border:1px solid #166534;background:#052e16;color:#4ade80;cursor:pointer;font-size:12px;display:block;';
+        nextBtn.onclick=()=>{ ST.qi++; stShowQ(); };
+        fb.querySelector('.st-feedback.ok').appendChild(nextBtn);
+      } else {
+        this.classList.add('wrong'); this.disabled=true;
+        ST.score=Math.max(0,ST.score-10);
+        document.getElementById('st-score').textContent=ST.score;
+        document.getElementById('st-fb').innerHTML='<div class="st-feedback hint">💡 Incorrecto — sigue intentando.</div>';
+      }
+    });
+  });
+}
+
+// ══════════════════════════════════════════════════
+// SCREEN 4 — QUIZ BITS VS BYTES
+// ══════════════════════════════════════════════════
+const FC4_DATA=[
+  {icon:'📡',tag:'VELOCIDAD DE RED',accent:'#3b82f6',title:'Velocidad de fibra',example:'600 Mb/s',
+   desc:'La velocidad de tu línea de Internet. Se mide en Megabits por segundo. No es lo mismo que Megabytes.',
+   quiz:{q:'¿Qué son los 600 Mb/s de tu fibra?',opts:['La velocidad máxima de transmisión de datos en bits por segundo','El espacio de almacenamiento del router','El número de dispositivos que puedes conectar','La velocidad de subida exclusivamente'],ans:0}},
+  {icon:'📱',tag:'BONO MÓVIL',accent:'#f59e0b',title:'Bono de datos móvil',example:'100 GB / mes',
+   desc:'La cantidad máxima de datos que puedes usar al mes en la red 4G/5G. Se mide en Gigabytes (con B mayúscula).',
+   quiz:{q:'¿Por qué el bono de datos se mide en GB y no en Gb/s?',opts:['Porque mide una cantidad total de datos, no una velocidad','Porque GB es más grande que Gb','Porque los operadores usan las dos unidades indistintamente','Porque GB es la unidad de velocidad del móvil'],ans:0}},
+  {icon:'🧠',tag:'MEMORIA RAM',accent:'#10b981',title:'RAM del móvil',example:'8 GB RAM',
+   desc:'La memoria de trabajo del procesador. Se mide en Gigabytes. A más RAM, más apps puedes tener abiertas a la vez.',
+   quiz:{q:'¿Para qué sirve la RAM del móvil?',opts:['Memoria temporal para ejecutar apps en segundo plano','Almacenamiento permanente de fotos y vídeos','La velocidad del procesador','La batería del dispositivo'],ans:0}},
+  {icon:'💾',tag:'ALMACENAMIENTO',accent:'#8b5cf6',title:'Almacenamiento interno',example:'256 GB SSD',
+   desc:'El espacio permanente donde se guardan tus fotos, vídeos, apps y el sistema operativo.',
+   quiz:{q:'Si tienes 256 GB de almacenamiento, ¿cuántas fotos de 25 MB caben aproximadamente?',opts:['~10.000 fotos (256.000 MB ÷ 25 MB)','~256 fotos (1 por cada GB)','~2.560 fotos','~1.000.000 fotos'],ans:0}},
+  {icon:'💻',tag:'MEMORIA RAM PC',accent:'#06b6d4',title:'RAM del portátil',example:'16 GB RAM',
+   desc:'A más RAM, el sistema puede ejecutar más programas simultáneamente sin ralentizarse.',
+   quiz:{q:'¿Qué diferencia hay entre la RAM y el SSD?',opts:['La RAM es memoria temporal (se borra al apagar), el SSD es almacenamiento permanente','La RAM almacena fotos y el SSD ejecuta programas','Son lo mismo, solo nombres distintos','La RAM es más lenta que el SSD'],ans:0}},
+  {icon:'🔄',tag:'CONVERSIÓN',accent:'#ef4444',title:'1 Byte = 8 bits',example:'600 Mb/s ÷ 8 = 75 MB/s',
+   desc:'Para convertir la velocidad del operador (en bits) a descarga real (en bytes) hay que dividir entre 8.',
+   quiz:{q:'Tu fibra es de 600 Mb/s. ¿A qué velocidad real en MB/s descargas archivos?',opts:['75 MB/s (600 ÷ 8)','600 MB/s','300 MB/s','4.800 MB/s (600 × 8)'],ans:0}},
+  {icon:'📊',tag:'COMPARACIÓN',accent:'#f97316',title:'GB vs Gb',example:'1 GB = 8 Gb',
+   desc:'G mayúscula = Giga. B mayúscula = Byte (almacenamiento). b minúscula = bit (velocidad). ¡No confundirlos!',
+   quiz:{q:'¿Cuál de estas es una velocidad de red y cuál es una capacidad de almacenamiento?',opts:['1 Gb/s es velocidad · 1 GB es almacenamiento','1 GB/s es velocidad · 1 Gb es almacenamiento','Son exactamente lo mismo','Depende del fabricante'],ans:0}},
+  {icon:'🎬',tag:'APLICACIÓN PRÁCTICA',accent:'#22c55e',title:'¿Cuánto tarda en descargarse?',example:'Película 4K = 50 GB',
+   desc:'Con fibra de 600 Mb/s (= 75 MB/s): 50 GB ÷ 75 MB/s = ~680 segundos ≈ 11 minutos.',
+   quiz:{q:'Con una conexión ADSL de 24 Mb/s (= 3 MB/s), ¿cuánto tarda en descargar una película de 3 GB?',opts:['1.000 segundos (~17 min)','3 segundos','24 segundos','3.000 segundos (~50 min)'],ans:0}},
+];
+
+let s4Solved=0;
+function s4_updateProg(){document.getElementById('s4-prog').textContent=`✓ ${s4Solved} / ${FC4_DATA.length}`;}
+
+function s4_build(){
+  const area=document.getElementById('s4-cards-area');
+  area.innerHTML=''; s4Solved=0; s4_updateProg();
+  FC4_DATA.forEach((d,i)=>{
+    const q=d.quiz;
+    const pairs=q.opts.map((o,j)=>({text:o,correct:j===q.ans}));
+    const wrap=document.createElement('div');
+    wrap.className='fc4-wrap'; wrap.style.setProperty('--ac',d.accent);
+    const optsHTML=pairs.map((p,j)=>`<button class="fc4-opt" data-correct="${p.correct}">${p.text}</button>`).join('');
+    wrap.innerHTML=`<div class="fc4-inner">
+      <div class="fc4-face front">
+        <div class="fc4-icon">${d.icon}</div>
+        <div class="fc4-tag">${d.tag}</div>
+        <div class="fc4-title">${d.title}</div>
+        <div class="fc4-example">${d.example}</div>
+        <div class="fc4-desc">${d.desc}</div>
+        <div class="fc4-hint">↻ TOCA PARA EL QUIZ</div>
+      </div>
+      <div class="fc4-face back">
+        <div class="fc4-back-tag">QUIZ · ${d.tag}</div>
+        <div class="fc4-question">${q.q}</div>
+        <div class="fc4-opts">${optsHTML}</div>
+        <div class="fc4-result"></div>
+      </div>
+    </div>`;
+    wrap.querySelector('.fc4-face.front').addEventListener('click',()=>wrap.classList.add('flipped'));
+    wrap.querySelectorAll('.fc4-opt').forEach(btn=>{
+      btn.addEventListener('click',e=>{
+        e.stopPropagation();
+        if(wrap.dataset.answered) return;
+        const isCorrect=btn.dataset.correct==='true';
+        if(isCorrect){
+          wrap.dataset.answered='1';
+          wrap.querySelectorAll('.fc4-opt').forEach(b=>{
+            if(b.dataset.correct==='true') b.classList.add('correct');
+            else b.classList.add('reveal');
+          });
+          const res=wrap.querySelector('.fc4-result');
+          res.textContent='✓ ¡CORRECTO!'; res.style.color='#4ade80';
+          s4Solved=Math.min(FC4_DATA.length,s4Solved+1); s4_updateProg();
+        } else {
+          btn.classList.add('wrong');
+          const res=wrap.querySelector('.fc4-result');
+          res.textContent='✗ Incorrecto — busca la respuesta verde';
+          res.style.color='#f87171';
+        }
+      });
+    });
+    wrap.querySelector('.fc4-face.back').addEventListener('click',e=>{
+      if(e.target.classList.contains('fc4-opt')) return;
+      if(!wrap.dataset.answered) wrap.classList.remove('flipped');
+    });
+    area.appendChild(wrap);
+  });
+}
+function s4_reset(){s4_build();}
+s4_build();
+</script>
+</body>
+</html>

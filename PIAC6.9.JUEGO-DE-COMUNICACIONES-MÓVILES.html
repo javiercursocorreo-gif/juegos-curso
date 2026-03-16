@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Telecomunicaciones — Red Móvil</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;overflow:hidden;background:#070d1a;color:#e2e8f0;font-family:'Space Grotesk',sans-serif;}
+
+/* ── NAV ── */
+#nav{display:flex;gap:8px;padding:14px 20px;background:#0a1020;border-bottom:1px solid #1e2d4a;flex-shrink:0;flex-wrap:wrap;}
+#nav .logo{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:3px;color:#3b82f6;margin-right:8px;align-self:center;}
+.tab{padding:8px 18px;border-radius:8px;border:1px solid #1e2d4a;background:transparent;color:#64748b;
+  cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;letter-spacing:.5px;
+  transition:all .2s;}
+.tab:hover{border-color:#3b82f6;color:#93c5fd;}
+.tab.active{background:#1e3a5f;border-color:#3b82f6;color:#60a5fa;}
+
+/* ── SCREENS ── */
+#app{flex:1;overflow:hidden;display:flex;flex-direction:column;}
+.screen{display:none;flex:1;overflow:hidden;}
+.screen.show{display:flex;flex-direction:column;}
+
+/* ══════════════════════════════════════
+   SCREEN 1 — HANDOVER SIMULATOR
+══════════════════════════════════════ */
+#s1{background:#060c18;}
+#s1 canvas{display:block;}
+#s1-info{padding:12px 20px;background:#0a1020;border-top:1px solid #1e2d4a;
+  display:flex;gap:24px;align-items:center;flex-wrap:wrap;}
+.info-block{display:flex;flex-direction:column;gap:3px;}
+.info-label{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:3px;color:#334155;}
+.info-val{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:#60a5fa;}
+#sig-bar-wrap{flex:1;min-width:150px;}
+#sig-bar{height:8px;border-radius:4px;background:#1e293b;overflow:hidden;margin-top:4px;}
+#sig-fill{height:100%;border-radius:4px;transition:width .3s,background .3s;}
+#handover-badge{padding:6px 16px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:2px;
+  background:#0f172a;border:1px solid #1e2d4a;color:#475569;transition:all .3s;}
+#handover-badge.active{background:#1e3a5f;border-color:#3b82f6;color:#60a5fa;
+  box-shadow:0 0 16px #3b82f644;}
+#s1-ctrl{display:flex;gap:8px;align-items:center;}
+#s1-ctrl button{padding:7px 16px;border-radius:8px;border:1px solid #1e3a5f;background:#0f172a;
+  color:#60a5fa;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:11px;transition:all .2s;}
+#s1-ctrl button:hover{background:#1e3a5f;}
+
+/* ══════════════════════════════════════
+   SCREEN 2 — INTERACTIVE CELL MAP
+══════════════════════════════════════ */
+#s2{background:#060c18;flex-direction:row;}
+#s2-canvas-wrap{flex:1;position:relative;overflow:hidden;}
+#s2 canvas{display:block;width:100%;height:100%;}
+#s2-panel{width:280px;background:#0a1020;border-left:1px solid #1e2d4a;padding:20px;
+  display:flex;flex-direction:column;gap:16px;overflow-y:auto;}
+#s2-panel .ptitle{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:4px;color:#334155;margin-bottom:4px;}
+#s2-panel .pname{font-size:17px;font-weight:700;color:#f1f5f9;}
+.signal-ring{position:relative;width:80px;height:80px;margin:0 auto;}
+.signal-ring svg{width:80px;height:80px;}
+.ring-val{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:#60a5fa;}
+.prop-row{display:flex;justify-content:space-between;align-items:center;
+  padding:8px 0;border-bottom:1px solid #0f172a;}
+.prop-key{font-size:11px;color:#475569;}
+.prop-val{font-family:'JetBrains Mono',monospace;font-size:11px;color:#94a3b8;}
+.bsc-badge{padding:8px 12px;border-radius:8px;background:#0f172a;border:1px solid #1e3a5f;
+  font-size:11px;color:#60a5fa;text-align:center;}
+#s2-hint{font-size:11px;color:#334155;text-align:center;padding:10px;}
+
+/* ══════════════════════════════════════
+   SCREEN 3 — MOBILE ID CARDS
+══════════════════════════════════════ */
+#s3{background:#070d1a;overflow:hidden;flex-direction:column;}
+#s3-top{padding:16px 24px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap;flex-shrink:0;}
+#s3-top .s3-title{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:4px;color:#334155;margin-right:auto;}
+#s3-progress{font-family:'JetBrains Mono',monospace;font-size:11px;color:#3b82f6;}
+#s3-cards-area{flex:1;overflow-y:auto;padding:16px 24px 24px;display:flex;flex-wrap:wrap;gap:16px;align-content:flex-start;}
+.fc-wrap{width:calc(33.33% - 12px);min-width:230px;perspective:900px;cursor:pointer;}
+.fc-inner{width:100%;position:relative;transform-style:preserve-3d;
+  transition:transform .55s cubic-bezier(.4,0,.2,1);
+  display:grid;}  /* grid makes both faces occupy the same rows */
+.fc-wrap.flipped .fc-inner{transform:rotateY(180deg);}
+/* Both faces sit in the same grid cell, stacked */
+.fc-face{grid-area:1/1;border-radius:16px;backface-visibility:hidden;
+  border:1px solid #1e2d4a;display:flex;flex-direction:column;padding:18px;
+  background:#0a1425;transition:border-color .3s,box-shadow .3s;}
+.fc-face.back{transform:rotateY(180deg);background:#0d1830;}
+.fc-wrap:hover .fc-face{border-color:var(--accent);box-shadow:0 6px 28px var(--glow);}
+.fc-icon{font-size:28px;margin-bottom:6px;}
+.fc-tag{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:4px;color:var(--accent);margin-bottom:3px;}
+.fc-title{font-size:14px;font-weight:700;color:#f1f5f9;margin-bottom:6px;}
+.fc-example{font-family:'JetBrains Mono',monospace;font-size:11px;color:#60a5fa;
+  background:#0f172a;padding:4px 8px;border-radius:6px;margin-bottom:5px;word-break:break-all;}
+.fc-desc{font-size:10px;color:#64748b;line-height:1.5;flex:1;}
+.fc-hint{font-size:9px;color:#1e3a5f;text-align:right;margin-top:4px;letter-spacing:1px;}
+.fc-back-tag{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:4px;color:var(--accent);margin-bottom:8px;}
+.fc-question{font-size:12px;font-weight:600;color:#e2e8f0;margin-bottom:10px;line-height:1.5;}
+.fc-options{display:flex;flex-direction:column;gap:5px;flex:1;}
+.fc-opt{padding:6px 10px;border-radius:8px;border:1px solid #1e2d4a;background:#0f172a;
+  font-size:11px;color:#94a3b8;cursor:pointer;transition:all .2s;text-align:left;}
+.fc-opt:hover:not(.correct):not(.wrong):not(.reveal){border-color:var(--accent);color:#e2e8f0;}
+.fc-opt.correct{background:#052e16;border-color:#22c55e;color:#4ade80;pointer-events:none;}
+.fc-opt.wrong{background:#2d0a0a;border-color:#ef4444;color:#f87171;pointer-events:none;}
+.fc-opt.reveal{background:#1e3a5f;border-color:#3b82f6;color:#93c5fd;pointer-events:none;}
+.fc-result{font-family:'JetBrains Mono',monospace;font-size:10px;text-align:center;margin-top:4px;min-height:14px;}
+
+/* ══════════════════════════════════════
+   SCREEN 4 — DRIVE GAME
+══════════════════════════════════════ */
+#s4{background:#060c18;position:relative;}
+#s4 canvas{display:block;}
+#s4-hud{position:absolute;top:0;left:0;right:0;padding:12px 20px;
+  display:flex;gap:20px;align-items:center;pointer-events:none;
+  background:linear-gradient(180deg,#000000bb,transparent);}
+#score-display{font-family:'JetBrains Mono',monospace;font-size:13px;color:#60a5fa;}
+#life-bar{display:flex;gap:4px;}
+.life-pip{width:12px;height:12px;border-radius:3px;background:#1e3a5f;transition:background .3s;}
+.life-pip.alive{background:#3b82f6;box-shadow:0 0 6px #3b82f6;}
+#game-signal{flex:1;}
+#game-sig-bar{height:6px;border-radius:3px;background:#0f172a;overflow:hidden;margin-top:3px;}
+#game-sig-fill{height:100%;border-radius:3px;transition:width .2s,background .2s;}
+#s4-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;background:#000000cc;backdrop-filter:blur(4px);}
+#s4-overlay h2{font-size:28px;font-weight:700;color:#f1f5f9;margin-bottom:8px;}
+#s4-overlay p{color:#64748b;font-size:14px;margin-bottom:24px;text-align:center;max-width:340px;line-height:1.6;}
+#s4-overlay .start-btn{padding:14px 36px;border-radius:12px;border:none;
+  background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;
+  font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;
+  cursor:pointer;letter-spacing:1px;box-shadow:0 0 30px #3b82f644;transition:all .2s;}
+#s4-overlay .start-btn:hover{box-shadow:0 0 50px #3b82f666;transform:scale(1.03);}
+#s4-ctrl-hint{position:absolute;bottom:16px;left:0;right:0;text-align:center;
+  font-size:11px;color:#334155;pointer-events:none;font-family:'JetBrains Mono',monospace;letter-spacing:2px;}
+
+@keyframes handover-flash{0%,100%{opacity:1;}50%{opacity:.4;}}
+.flash{animation:handover-flash .15s ease 3;}
+</style>
+</head>
+<body style="display:flex;flex-direction:column;height:100vh;">
+
+<!-- NAV -->
+<div id="nav">
+  <span class="logo">TELECOM</span>
+  <button class="tab active" onclick="showScreen(1)">🚗 Simulador Handover</button>
+  <button class="tab" onclick="showScreen(2)">📡 Mapa de Celdas</button>
+  <button class="tab" onclick="showScreen(3)">🔐 Identificadores</button>
+  <button class="tab" onclick="showScreen(4)">🎮 Juego: Conduce</button>
+</div>
+
+<div id="app">
+
+<!-- ══ SCREEN 1: HANDOVER ══ -->
+<div class="screen show" id="s1">
+  <canvas id="c1" style="flex:1;"></canvas>
+  <div id="s1-info">
+    <div class="info-block">
+      <span class="info-label">CELDA ACTIVA</span>
+      <span class="info-val" id="cell-name">—</span>
+    </div>
+    <div class="info-block">
+      <span class="info-label">ANTENA</span>
+      <span class="info-val" id="ant-id">—</span>
+    </div>
+    <div class="info-block sig-bar-wrap" id="sig-bar-wrap" style="flex:1;min-width:140px;">
+      <span class="info-label">POTENCIA DE SEÑAL</span>
+      <div id="sig-bar"><div id="sig-fill"></div></div>
+    </div>
+    <div id="handover-badge">HANDOVER</div>
+    <div id="s1-ctrl">
+      <button onclick="s1_toggleAuto()">⏸ AUTO</button>
+      <button onclick="s1_reset()">↺ RESET</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SCREEN 2: CELL MAP ══ -->
+<div class="screen" id="s2">
+  <div id="s2-canvas-wrap"><canvas id="c2"></canvas></div>
+  <div id="s2-panel">
+    <div>
+      <div class="ptitle">SELECCIONA UNA ANTENA</div>
+      <div class="pname" id="p2-name">— Ninguna —</div>
+    </div>
+    <div class="signal-ring">
+      <svg viewBox="0 0 80 80">
+        <circle cx="40" cy="40" r="32" fill="none" stroke="#0f172a" stroke-width="7"/>
+        <circle id="sig-ring-arc" cx="40" cy="40" r="32" fill="none" stroke="#3b82f6" stroke-width="7"
+          stroke-linecap="round" stroke-dasharray="201" stroke-dashoffset="201"
+          transform="rotate(-90 40 40)" style="transition:stroke-dashoffset .5s,stroke .5s"/>
+      </svg>
+      <div class="ring-val" id="sig-ring-val">—</div>
+    </div>
+    <div id="p2-props"></div>
+    <div class="bsc-badge" id="p2-bsc">BSC — no conectada</div>
+    <div id="s2-hint">👆 Haz clic en cualquier antena del mapa</div>
+  </div>
+</div>
+
+<!-- ══ SCREEN 3: ID CARDS ══ -->
+<div class="screen" id="s3">
+  <div id="s3-top">
+    <span class="s3-title">IDENTIFICADORES DEL MÓVIL — TOCA PARA GIRAR · RESPONDE EL QUIZ</span>
+    <span id="s3-progress">✓ 0 / 6</span>
+    <button onclick="s3_reset()" style="padding:6px 14px;border-radius:8px;border:1px solid #1e3a5f;background:#0f172a;color:#60a5fa;cursor:pointer;font-size:11px;font-family:'JetBrains Mono',monospace;">↺ Reiniciar</button>
+  </div>
+  <div id="s3-cards-area"></div>
+</div>
+
+<!-- ══ SCREEN 4: GAME ══ -->
+<div class="screen" id="s4">
+  <canvas id="c4" style="flex:1;width:100%;"></canvas>
+  <div id="s4-hud">
+    <div id="score-display">SCORE: <span id="score-val">0</span></div>
+    <div id="life-bar"></div>
+    <div id="game-signal" style="flex:1;max-width:200px;">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:3px;color:#334155;">SEÑAL</div>
+      <div id="game-sig-bar"><div id="game-sig-fill" style="width:100%;background:#3b82f6;"></div></div>
+    </div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#334155;" id="cell-indicator">CELDA: —</div>
+  </div>
+  <div id="s4-overlay">
+    <h2>🎮 Conduce sin perder señal</h2>
+    <p>Mueve el ratón para conducir el coche. La señal es máxima en el <b>centro de cada celda</b> y cae al acercarte al borde. ¡Si llegas a 0% pierdes una vida!</p>
+    <button class="start-btn" onclick="startGame()">▶ COMENZAR</button>
+  </div>
+  <div id="s4-ctrl-hint">🖱 MUEVE EL RATÓN para conducir · Mantente dentro de las celdas · Señal máxima en el centro</div>
+</div>
+
+</div><!-- #app -->
+
+<script>
+// ════════════════════════════════════════════════════
+// NAV
+// ════════════════════════════════════════════════════
+let currentScreen=1;
+function showScreen(n){
+  currentScreen=n;
+  document.querySelectorAll('.screen').forEach((s,i)=>s.classList.toggle('show',i===n-1));
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',i===n-1));
+  if(n===1) s1_init();
+  if(n===2) s2_init();
+  if(n===4 && gameRunning) resizeGame();
+}
+window.addEventListener('resize',()=>{
+  if(currentScreen===1) s1_draw();
+  if(currentScreen===2) s2_draw();
+  if(currentScreen===4 && gameRunning) resizeGame();
+});
+
+// ════════════════════════════════════════════════════
+// SHARED HEX MATH
+// ════════════════════════════════════════════════════
+function hexCorners(cx,cy,r){
+  const pts=[];
+  for(let i=0;i<6;i++){
+    const a=Math.PI/180*(60*i-30);
+    pts.push([cx+r*Math.cos(a),cy+r*Math.sin(a)]);
+  }
+  return pts;
+}
+function hexPath(ctx,cx,cy,r){
+  const p=hexCorners(cx,cy,r);
+  ctx.beginPath(); ctx.moveTo(p[0][0],p[0][1]);
+  for(let i=1;i<6;i++) ctx.lineTo(p[i][0],p[i][1]);
+  ctx.closePath();
+}
+function dist(ax,ay,bx,by){return Math.hypot(ax-bx,ay-by);}
+
+// ════════════════════════════════════════════════════
+// SCREEN 1 — HANDOVER SIMULATOR
+// ════════════════════════════════════════════════════
+const c1=document.getElementById('c1');
+const ctx1=c1.getContext('2d');
+let s1_cells=[], s1_car={x:0,y:0,vx:0,vy:0,angle:0}, s1_auto=true, s1_raf=null;
+let s1_activeCell=null, s1_handover=false, s1_handoverTimer=0;
+let s1_path=[], s1_pathIdx=0, s1_pathT=0;
+
+function s1_buildGrid(W,H){
+  // Use flat-top hex grid with axial coords (q,r)
+  // Choose r so 3 columns of 3 fit nicely inside the canvas
+  const r=Math.min(W/7.5, H/6.5);
+  const cells=[];
+  const dx=r*Math.sqrt(3);   // horizontal distance between col centres
+  const dy=r*1.5;            // vertical distance between row centres
+
+  // Explicit list of (col, row) axial positions for a clean 3×3+edges hex grid
+  // Using offset coords: each odd row shifts right by dx/2
+  const layout=[
+    [0,0],[1,0],[2,0],
+    [0,1],[1,1],[2,1],[3,1],
+    [0,2],[1,2],[2,2],
+    [0,3],[1,3],[2,3],[3,3],
+    [0,4],[1,4],[2,4],
+  ];
+
+  // Centre the whole grid
+  const cols=layout.map(([c])=>c);
+  const rows=layout.map(([,rv])=>rv);
+  const maxX=(Math.max(...cols)+1)*dx + (Math.max(...rows)%2===1?dx/2:0);
+  const maxY=(Math.max(...rows)+1)*dy;
+  const offX=(W-maxX)/2 + r*.5;
+  const offY=(H-maxY)/2 + r*.5;
+
+  layout.forEach(([col,row])=>{
+    const x=offX + col*dx + (row%2===1?dx/2:0);
+    const y=offY + row*dy;
+    cells.push({
+      x, y, r,
+      id:`ANT-${String(cells.length+1).padStart(2,'0')}`,
+      freq:(800+Math.floor(Math.random()*1200))+'MHz',
+      power:(20+Math.floor(Math.random()*30))+'dBm',
+      bsc:'BSC-'+(Math.floor(cells.length/3)+1),
+      color:`hsl(${200+cells.length*22},70%,55%)`
+    });
+  });
+  return cells;
+}
+
+function s1_buildPath(cells,W,H){
+  // Waypoints that wind through all cells
+  const wps=cells.map(c=>({x:c.x+(Math.random()-.5)*c.r*.6,y:c.y+(Math.random()-.5)*c.r*.6}));
+  // Add start=end for loop
+  wps.push(wps[0]);
+  return wps;
+}
+
+function s1_init(){
+  const W=c1.offsetWidth, H=c1.offsetHeight;
+  c1.width=W; c1.height=H;
+  s1_cells=s1_buildGrid(W,H);
+  s1_path=s1_buildPath(s1_cells,W,H);
+  s1_pathIdx=0; s1_pathT=0;
+  s1_car={x:s1_path[0].x,y:s1_path[0].y,angle:0};
+  s1_auto=true;
+  if(s1_raf) cancelAnimationFrame(s1_raf);
+  s1_loop();
+}
+
+function s1_getSignal(car,cell){
+  const d=dist(car.x,car.y,cell.x,cell.y);
+  return Math.max(0,1-d/(cell.r*1.8));
+}
+
+function s1_getNearestCell(car){
+  let best=null,bestSig=0;
+  s1_cells.forEach(c=>{
+    const sig=s1_getSignal(car,c);
+    if(sig>bestSig){bestSig=sig;best=c;}
+  });
+  return {cell:best,sig:bestSig};
+}
+
+let s1_t=0;
+function s1_loop(){
+  s1_t+=0.008;
+  if(s1_auto){
+    // Move car along path
+    s1_pathT+=0.004;
+    if(s1_pathT>=1){s1_pathT-=1;s1_pathIdx=(s1_pathIdx+1)%(s1_path.length-1);}
+    const a=s1_path[s1_pathIdx], b=s1_path[(s1_pathIdx+1)%(s1_path.length)];
+    const nx=a.x+(b.x-a.x)*s1_pathT, ny=a.y+(b.y-a.y)*s1_pathT;
+    s1_car.angle=Math.atan2(ny-s1_car.y,nx-s1_car.x);
+    s1_car.x=nx; s1_car.y=ny;
+  }
+  const {cell,sig}=s1_getNearestCell(s1_car);
+  if(cell!==s1_activeCell){
+    if(s1_activeCell!==null){
+      s1_handover=true; s1_handoverTimer=60;
+    }
+    s1_activeCell=cell;
+  }
+  if(s1_handoverTimer>0) s1_handoverTimer--;
+  else s1_handover=false;
+  s1_updateHUD(cell,sig);
+  s1_draw();
+  s1_raf=requestAnimationFrame(s1_loop);
+}
+
+function s1_updateHUD(cell,sig){
+  if(!cell) return;
+  document.getElementById('cell-name').textContent=cell.bsc;
+  document.getElementById('ant-id').textContent=cell.id;
+  const pct=Math.round(sig*100);
+  const fill=document.getElementById('sig-fill');
+  fill.style.width=pct+'%';
+  fill.style.background=pct>60?'#22c55e':pct>30?'#f59e0b':'#ef4444';
+  const badge=document.getElementById('handover-badge');
+  badge.classList.toggle('active',s1_handover);
+}
+
+function s1_draw(){
+  const W=c1.width,H=c1.height;
+  ctx1.clearRect(0,0,W,H);
+  ctx1.fillStyle='#060c18'; ctx1.fillRect(0,0,W,H);
+
+  // Draw cells
+  s1_cells.forEach((cell,i)=>{
+    const isActive=cell===s1_activeCell;
+    const sig=s1_getSignal(s1_car,cell);
+
+    // Hex fill
+    hexPath(ctx1,cell.x,cell.y,cell.r*.97);
+    const grad=ctx1.createRadialGradient(cell.x,cell.y,0,cell.x,cell.y,cell.r);
+    if(isActive){
+      grad.addColorStop(0,`hsla(${210},80%,${20+sig*20}%,0.8)`);
+      grad.addColorStop(1,`hsla(${210},60%,8%,0.4)`);
+    } else {
+      grad.addColorStop(0,`rgba(15,23,42,0.6)`);
+      grad.addColorStop(1,`rgba(6,12,24,0.3)`);
+    }
+    ctx1.fillStyle=grad; ctx1.fill();
+
+    // Hex border
+    hexPath(ctx1,cell.x,cell.y,cell.r*.97);
+    ctx1.strokeStyle=isActive?`rgba(96,165,250,${0.6+sig*.4})`:'rgba(30,45,74,0.8)';
+    ctx1.lineWidth=isActive?2:1; ctx1.stroke();
+
+    // Signal coverage pulse (active only)
+    if(isActive && sig>0.1){
+      const pulsR=cell.r*(0.4+sig*.5)*(1+0.05*Math.sin(s1_t*8));
+      ctx1.beginPath(); ctx1.arc(cell.x,cell.y,pulsR,0,Math.PI*2);
+      ctx1.strokeStyle=`rgba(96,165,250,${sig*0.25})`; ctx1.lineWidth=2; ctx1.stroke();
+    }
+
+    // Antenna tower icon
+    s1_drawTower(ctx1,cell.x,cell.y-cell.r*.35,cell.r*.22,isActive,sig);
+
+    // Cell ID
+    ctx1.font=`bold ${Math.max(9,cell.r*.12)}px 'JetBrains Mono',monospace`;
+    ctx1.fillStyle=isActive?'rgba(148,197,255,0.9)':'rgba(51,65,85,0.8)';
+    ctx1.textAlign='center';
+    ctx1.fillText(cell.id,cell.x,cell.y+cell.r*.7);
+  });
+
+  // Draw path (faint)
+  ctx1.beginPath(); ctx1.moveTo(s1_path[0].x,s1_path[0].y);
+  s1_path.forEach(p=>ctx1.lineTo(p.x,p.y));
+  ctx1.strokeStyle='rgba(59,130,246,0.12)'; ctx1.lineWidth=1.5;
+  ctx1.setLineDash([4,8]); ctx1.stroke(); ctx1.setLineDash([]);
+
+  // Draw handover signal line
+  if(s1_handover && s1_activeCell){
+    ctx1.beginPath();
+    ctx1.moveTo(s1_car.x,s1_car.y);
+    ctx1.lineTo(s1_activeCell.x,s1_activeCell.y);
+    ctx1.strokeStyle=`rgba(96,165,250,${s1_handoverTimer/60*0.8})`;
+    ctx1.lineWidth=2; ctx1.setLineDash([6,4]); ctx1.stroke(); ctx1.setLineDash([]);
+  }
+
+  // Draw car
+  s1_drawCar(ctx1,s1_car.x,s1_car.y,s1_car.angle,22);
+}
+
+function s1_drawTower(ctx,x,y,size,active,sig){
+  ctx.save(); ctx.translate(x,y);
+  const col=active?`rgba(96,165,250,${0.7+sig*.3})`:'rgba(51,65,85,0.6)';
+  // Mast
+  ctx.strokeStyle=col; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(0,size); ctx.lineTo(0,-size); ctx.stroke();
+  // Arms
+  [-1,0,1].forEach(i=>{
+    const yy=-size*.1+i*size*.35;
+    ctx.beginPath(); ctx.moveTo(-size*.5,yy); ctx.lineTo(size*.5,yy); ctx.stroke();
+  });
+  // Signal waves
+  if(active){
+    [.4,.7,1.0].forEach((r,i)=>{
+      const opacity=sig*(0.5-i*.12)*(0.7+0.3*Math.sin(s1_t*6+i*1.5));
+      ctx.beginPath(); ctx.arc(0,-size,size*r,-.8,.8);
+      ctx.strokeStyle=`rgba(96,165,250,${opacity})`; ctx.lineWidth=1.2; ctx.stroke();
+      ctx.beginPath(); ctx.arc(0,-size,size*r,Math.PI-.8,Math.PI+.8);
+      ctx.strokeStyle=`rgba(96,165,250,${opacity})`; ctx.lineWidth=1.2; ctx.stroke();
+    });
+  }
+  ctx.restore();
+}
+
+function s1_drawCar(ctx,x,y,angle,size){
+  ctx.save(); ctx.translate(x,y); ctx.rotate(angle+Math.PI/2);
+  // Glow
+  const g=ctx.createRadialGradient(0,0,0,0,0,size*1.2);
+  g.addColorStop(0,'rgba(59,130,246,0.3)'); g.addColorStop(1,'transparent');
+  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(0,0,size*1.2,0,Math.PI*2); ctx.fill();
+  // Body
+  ctx.fillStyle='#1d4ed8';
+  ctx.beginPath(); ctx.roundRect(-size*.38,-size*.55,size*.76,size*1.1,4);
+  ctx.fill();
+  ctx.fillStyle='#2563eb';
+  ctx.beginPath(); ctx.roundRect(-size*.3,-size*.3,size*.6,size*.5,3);
+  ctx.fill();
+  // Windshield
+  ctx.fillStyle='rgba(147,197,253,0.6)';
+  ctx.beginPath(); ctx.roundRect(-size*.22,-size*.22,size*.44,size*.28,2); ctx.fill();
+  // Headlights
+  ctx.fillStyle='rgba(255,240,180,0.9)';
+  ctx.beginPath(); ctx.arc(-size*.25,-size*.48,size*.07,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc( size*.25,-size*.48,size*.07,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+function s1_toggleAuto(){
+  s1_auto=!s1_auto;
+  document.querySelector('#s1-ctrl button').textContent=s1_auto?'⏸ AUTO':'▶ AUTO';
+}
+function s1_reset(){ s1_pathIdx=0; s1_pathT=0; }
+
+// Mouse/touch move car manually
+c1.addEventListener('mousemove',e=>{
+  if(s1_auto) return;
+  const r=c1.getBoundingClientRect();
+  s1_car.angle=Math.atan2(e.clientY-r.top-s1_car.y,e.clientX-r.left-s1_car.x);
+  s1_car.x=e.clientX-r.left; s1_car.y=e.clientY-r.top;
+});
+c1.addEventListener('click',()=>{ s1_auto=false; document.querySelector('#s1-ctrl button').textContent='▶ AUTO'; });
+
+// ════════════════════════════════════════════════════
+// SCREEN 2 — INTERACTIVE CELL MAP
+// ════════════════════════════════════════════════════
+const c2=document.getElementById('c2');
+const ctx2=c2.getContext('2d');
+let s2_cells=[], s2_selected=null, s2_hover=null;
+
+function s2_buildCells(W,H){
+  const r=Math.min(W,H)/5.2;
+  const cells=[];
+  const layout=[
+    [{q:0,r:-2},{q:1,r:-2},{q:2,r:-2}],
+    [{q:-1,r:-1},{q:0,r:-1},{q:1,r:-1},{q:2,r:-1}],
+    [{q:-1,r:0},{q:0,r:0},{q:1,r:0}],
+    [{q:-2,r:1},{q:-1,r:1},{q:0,r:1},{q:1,r:1}],
+    [{q:-2,r:2},{q:-1,r:2},{q:0,r:2}],
+  ];
+  const freqs=['800MHz','900MHz','1800MHz','2100MHz','2600MHz','3500MHz'];
+  const pows=['20dBm','23dBm','26dBm','30dBm','33dBm'];
+  const bscMap={};
+  layout.forEach(row=>row.forEach(({q,r:rv})=>{
+    const x=W/2+(q+rv*.5)*r*Math.sqrt(3);
+    const y=H/2+rv*r*1.5;
+    const id=cells.length+1;
+    const bscN=Math.floor(cells.length/3)+1;
+    cells.push({
+      x,y,r,
+      id:`ANT-${String(id).padStart(2,'0')}`,
+      freq:freqs[id%freqs.length],
+      power:pows[id%pows.length],
+      bsc:`BSC-${bscN}`,
+      bscN,
+      users:Math.floor(Math.random()*80+10),
+      uptime:'99.'+(Math.floor(Math.random()*9)+1)+'%',
+      hue:200+bscN*30,
+    });
+  }));
+  return cells;
+}
+
+function s2_init(){
+  const wrap=document.getElementById('s2-canvas-wrap');
+  const W=wrap.offsetWidth, H=wrap.offsetHeight;
+  c2.width=W; c2.height=H; c2.style.width=W+'px'; c2.style.height=H+'px';
+  s2_cells=s2_buildCells(W,H);
+  s2_draw();
+}
+
+let s2_t=0;
+function s2_draw(){
+  s2_t+=0.02;
+  const W=c2.width,H=c2.height;
+  ctx2.clearRect(0,0,W,H);
+  ctx2.fillStyle='#060c18'; ctx2.fillRect(0,0,W,H);
+
+  // Group cells by BSC — draw connecting lines first
+  const bscGroups={};
+  s2_cells.forEach(c=>{
+    if(!bscGroups[c.bscN]) bscGroups[c.bscN]=[];
+    bscGroups[c.bscN].push(c);
+  });
+  Object.values(bscGroups).forEach(group=>{
+    const cx=group.reduce((s,c)=>s+c.x,0)/group.length;
+    const cy=group.reduce((s,c)=>s+c.y,0)/group.length;
+    group.forEach(cell=>{
+      const isSel=s2_selected&&(cell===s2_selected||group.includes(s2_selected));
+      ctx2.beginPath(); ctx2.moveTo(cell.x,cell.y); ctx2.lineTo(cx,cy);
+      ctx2.strokeStyle=isSel?`hsla(${cell.hue},70%,55%,0.5)`:'rgba(30,45,74,0.4)';
+      ctx2.lineWidth=isSel?1.5:1; ctx2.setLineDash([4,6]); ctx2.stroke();
+    });
+    ctx2.setLineDash([]);
+    // BSC node
+    ctx2.beginPath(); ctx2.arc(cx,cy,8,0,Math.PI*2);
+    ctx2.fillStyle=s2_selected&&bscGroups[s2_selected.bscN]===group?`hsl(${group[0].hue},70%,50%)`:'#1e2d4a';
+    ctx2.fill();
+    ctx2.strokeStyle='#334155'; ctx2.lineWidth=1.5; ctx2.stroke();
+    ctx2.font='bold 8px JetBrains Mono,monospace'; ctx2.fillStyle='#94a3b8';
+    ctx2.textAlign='center'; ctx2.fillText('BSC',cx,cy-13);
+  });
+
+  s2_cells.forEach(cell=>{
+    const isSel=cell===s2_selected, isHov=cell===s2_hover;
+    // Coverage wave
+    if(isSel){
+      const wr=cell.r*(.7+.1*Math.sin(s2_t*3));
+      ctx2.beginPath(); ctx2.arc(cell.x,cell.y,wr,0,Math.PI*2);
+      ctx2.strokeStyle=`hsla(${cell.hue},70%,55%,0.2)`; ctx2.lineWidth=20; ctx2.stroke();
+    }
+    // Hex
+    hexPath(ctx2,cell.x,cell.y,cell.r*.96);
+    const g2=ctx2.createRadialGradient(cell.x,cell.y,0,cell.x,cell.y,cell.r);
+    if(isSel){
+      g2.addColorStop(0,`hsla(${cell.hue},60%,18%,0.9)`);
+      g2.addColorStop(1,`hsla(${cell.hue},40%,8%,0.5)`);
+    } else if(isHov){
+      g2.addColorStop(0,'rgba(20,30,50,0.9)');
+      g2.addColorStop(1,'rgba(6,12,24,0.5)');
+    } else {
+      g2.addColorStop(0,'rgba(10,16,32,0.6)');
+      g2.addColorStop(1,'rgba(6,12,24,0.3)');
+    }
+    ctx2.fillStyle=g2; ctx2.fill();
+    hexPath(ctx2,cell.x,cell.y,cell.r*.96);
+    ctx2.strokeStyle=isSel?`hsl(${cell.hue},70%,55%)`:isHov?'rgba(96,130,180,0.5)':'rgba(20,40,74,0.6)';
+    ctx2.lineWidth=isSel?2.5:1.5; ctx2.stroke();
+
+    // Tower
+    s2_drawTower(ctx2,cell,isSel,s2_t);
+
+    // Label
+    ctx2.font=`${Math.max(8,cell.r*.1)}px 'JetBrains Mono',monospace`;
+    ctx2.fillStyle=isSel?`hsl(${cell.hue},70%,70%)`:'rgba(51,65,85,0.8)';
+    ctx2.textAlign='center'; ctx2.fillText(cell.id,cell.x,cell.y+cell.r*.72);
+  });
+  requestAnimationFrame(s2_draw);
+}
+
+function s2_drawTower(ctx,cell,active,t){
+  const {x,y,r,hue}=cell;
+  const s=r*.25, ty=y-r*.3;
+  ctx.save(); ctx.translate(x,ty);
+  const col=active?`hsl(${hue},70%,60%)`:'rgba(51,65,85,0.7)';
+  ctx.strokeStyle=col; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(0,s); ctx.lineTo(0,-s); ctx.stroke();
+  [-s*.6,0,s*.6].forEach(yy=>{
+    ctx.beginPath(); ctx.moveTo(-s*.5,yy-s*.1); ctx.lineTo(s*.5,yy-s*.1); ctx.stroke();
+  });
+  if(active){
+    [.35,.65,1].forEach((rr,i)=>{
+      const op=(.45-i*.1)*(0.6+0.4*Math.sin(t*5+i*2));
+      ctx.beginPath(); ctx.arc(0,-s,s*rr,-.9,.9);
+      ctx.strokeStyle=`hsla(${hue},70%,60%,${op})`; ctx.lineWidth=1.5; ctx.stroke();
+    });
+  }
+  ctx.restore();
+}
+
+c2.addEventListener('click',e=>{
+  const rect=c2.getBoundingClientRect();
+  const mx=e.clientX-rect.left, my=e.clientY-rect.top;
+  let hit=null;
+  s2_cells.forEach(c=>{ if(dist(mx,my,c.x,c.y)<c.r*.9) hit=c; });
+  s2_selected=hit;
+  s2_updatePanel(hit);
+});
+c2.addEventListener('mousemove',e=>{
+  const rect=c2.getBoundingClientRect();
+  const mx=e.clientX-rect.left, my=e.clientY-rect.top;
+  let hit=null;
+  s2_cells.forEach(c=>{ if(dist(mx,my,c.x,c.y)<c.r*.9) hit=c; });
+  s2_hover=hit;
+  c2.style.cursor=hit?'pointer':'default';
+});
+
+function s2_updatePanel(cell){
+  if(!cell){
+    document.getElementById('p2-name').textContent='— Ninguna —';
+    document.getElementById('p2-props').innerHTML='';
+    document.getElementById('sig-ring-arc').setAttribute('stroke-dashoffset',201);
+    document.getElementById('sig-ring-val').textContent='—';
+    document.getElementById('p2-bsc').textContent='BSC — no conectada';
+    return;
+  }
+  const sigPct=Math.floor(60+Math.random()*40);
+  document.getElementById('p2-name').textContent=cell.id;
+  document.getElementById('sig-ring-arc').setAttribute('stroke-dashoffset',201*(1-sigPct/100));
+  document.getElementById('sig-ring-arc').setAttribute('stroke',`hsl(${cell.hue},70%,55%)`);
+  document.getElementById('sig-ring-val').textContent=sigPct+'%';
+  document.getElementById('sig-ring-val').style.color=`hsl(${cell.hue},70%,60%)`;
+  document.getElementById('p2-bsc').textContent=`Conectada a ${cell.bsc}`;
+  document.getElementById('p2-bsc').style.borderColor=`hsl(${cell.hue},60%,40%)`;
+  const rows=[
+    ['Frecuencia',cell.freq],['Potencia',cell.power],
+    ['Usuarios activos',cell.users],['Uptime',cell.uptime],
+    ['Tecnología',['4G LTE','5G NR','4G+','5G mmWave'][cell.bscN%4]],
+  ];
+  document.getElementById('p2-props').innerHTML=rows.map(([k,v])=>
+    `<div class="prop-row"><span class="prop-key">${k}</span><span class="prop-val">${v}</span></div>`
+  ).join('');
+}
+
+// ════════════════════════════════════════════════════
+// SCREEN 3 — ID CARDS (flip + quiz)
+// ════════════════════════════════════════════════════
+const idData=[
+  {icon:'📱',tag:'IDENTIFICADOR',title:'Número de teléfono',
+   example:'+34 612 345 678',accent:'#3b82f6',glow:'rgba(59,130,246,0.15)',
+   desc:'Identifica al usuario en la red móvil. Asociado a la SIM, no al dispositivo.',
+   quiz:{q:'¿A qué está asociado el número de teléfono?',
+     opts:['Al dispositivo físico','A la tarjeta SIM','A la dirección IP','Al IMEI'],correct:1}},
+  {icon:'🔢',tag:'HARDWARE',title:'IMEI',
+   example:'359753 09876543 2',accent:'#8b5cf6',glow:'rgba(139,92,246,0.15)',
+   desc:'Identifica de forma única el dispositivo físico. Sirve para bloquear móviles robados.',
+   quiz:{q:'¿Para qué sirve el IMEI?',
+     opts:['Identificar la SIM','Identificar el dispositivo físico','Desbloquear la SIM','Conectarse a Wi-Fi'],correct:1}},
+  {icon:'🔐',tag:'SEGURIDAD',title:'PIN de acceso',
+   example:'1 2 3 4',accent:'#f59e0b',glow:'rgba(245,158,11,0.15)',
+   desc:'Protege el acceso al teléfono. Lo configura el propio usuario.',
+   quiz:{q:'¿Quién configura el PIN de acceso?',
+     opts:['El operador móvil','El fabricante','El propio usuario','La red'],correct:2}},
+  {icon:'📲',tag:'SIM',title:'PIN de la SIM',
+   example:'0 0 0 0',accent:'#10b981',glow:'rgba(16,185,129,0.15)',
+   desc:'Protege la tarjeta SIM. Tres errores la bloquean: necesitarás el PUK.',
+   quiz:{q:'¿Qué pasa si introduces mal el PIN de la SIM 3 veces?',
+     opts:['El teléfono se apaga','Se borra la SIM','La SIM queda bloqueada','Nada'],correct:2}},
+  {icon:'🌐',tag:'RED',title:'Dirección IP',
+   example:'192.168.1.34',accent:'#06b6d4',glow:'rgba(6,182,212,0.15)',
+   desc:'Dirección asignada por la red. Puede cambiar en cada conexión.',
+   quiz:{q:'¿Dónde encuentras tu dirección IP en el móvil?',
+     opts:['Ajustes → Pantalla','Ajustes → Wi-Fi → Red actual','Marcando *#06#','Tarjeta SIM'],correct:1}},
+  {icon:'🆘',tag:'EMERGENCIA',title:'PUK',
+   example:'4 5 6 7 8 9 0 1',accent:'#ef4444',glow:'rgba(239,68,68,0.15)',
+   desc:'Desbloquea la SIM tras 3 errores de PIN. ¡Apúntalo y guárdalo en lugar seguro!',
+   quiz:{q:'¿Dónde puedes encontrar el PUK?',
+     opts:['Marcando *#06#','Ajustes → Wi-Fi','Tarjeta original de la SIM','En la dirección IP'],correct:2}},
+];
+
+let s3_solved=0;
+function s3_updateProgress(){
+  document.getElementById('s3-progress').textContent=`✓ ${s3_solved} / ${idData.length}`;
+}
+window.s3_reset=function(){
+  s3_solved=0; s3_updateProgress();
+  document.querySelectorAll('.fc-wrap').forEach(w=>{
+    w.classList.remove('flipped');
+    w.querySelectorAll('.fc-opt').forEach(o=>o.className='fc-opt');
+    w.querySelectorAll('.fc-result').forEach(r=>r.textContent='');
+    w.dataset.answered='';
+  });
+};
+
+(function buildCards(){
+  const area=document.getElementById('s3-cards-area');
+  idData.forEach((d,i)=>{
+    const q=d.quiz;
+    // Shuffle options keeping correct index
+    const pairs=q.opts.map((o,j)=>({text:o,isCorrect:j===q.correct}));
+    // keep order, just store which is correct
+    const wrap=document.createElement('div');
+    wrap.className='fc-wrap';
+    wrap.style.setProperty('--accent',d.accent);
+    wrap.style.setProperty('--glow',d.glow);
+
+    const optsHTML=pairs.map((p,j)=>
+      `<button class="fc-opt" data-idx="${j}" data-correct="${p.isCorrect}">${p.text}</button>`
+    ).join('');
+
+    wrap.innerHTML=`
+      <div class="fc-inner">
+        <div class="fc-face front">
+          <div class="fc-icon">${d.icon}</div>
+          <div class="fc-tag">${d.tag}</div>
+          <div class="fc-title">${d.title}</div>
+          <div class="fc-example">${d.example}</div>
+          <div class="fc-desc">${d.desc}</div>
+          <div class="fc-hint">↻ TOCA PARA EL QUIZ</div>
+        </div>
+        <div class="fc-face back">
+          <div class="fc-back-tag">QUIZ — ${d.title.toUpperCase()}</div>
+          <div class="fc-question">${q.q}</div>
+          <div class="fc-options">${optsHTML}</div>
+          <div class="fc-result"></div>
+        </div>
+      </div>`;
+
+    // Flip on click (front only)
+    wrap.querySelector('.fc-face.front').addEventListener('click',()=>{
+      wrap.classList.add('flipped');
+    });
+
+    // Quiz answer buttons (stop propagation)
+    wrap.querySelectorAll('.fc-opt').forEach(btn=>{
+      btn.addEventListener('click',e=>{
+        e.stopPropagation();
+        if(wrap.dataset.answered) return;
+        wrap.dataset.answered='1';
+        const isCorrect=btn.dataset.correct==='true';
+        // Mark all options
+        wrap.querySelectorAll('.fc-opt').forEach(b=>{
+          if(b.dataset.correct==='true') b.classList.add('correct');
+          else if(b===btn) b.classList.add('wrong');
+          else b.classList.add('reveal');
+        });
+        const res=wrap.querySelector('.fc-result');
+        if(isCorrect){
+          res.textContent='✓ ¡CORRECTO!'; res.style.color='#4ade80';
+          s3_solved=Math.min(idData.length,s3_solved+1);
+          s3_updateProgress();
+        } else {
+          res.textContent='✗ Incorrecto — mira la respuesta verde';
+          res.style.color='#f87171';
+        }
+      });
+    });
+
+    // Flip back on back face click (not on buttons)
+    wrap.querySelector('.fc-face.back').addEventListener('click',e=>{
+      if(e.target.classList.contains('fc-opt')) return;
+      if(!wrap.dataset.answered) wrap.classList.remove('flipped');
+    });
+
+    area.appendChild(wrap);
+  });
+  s3_updateProgress();
+})();
+
+// ════════════════════════════════════════════════════
+// SCREEN 4 — DRIVE GAME  (mouse control, real signal)
+// ════════════════════════════════════════════════════
+const c4=document.getElementById('c4');
+const ctx4=c4.getContext('2d');
+let gameRunning=false;
+let car={x:0,y:0,angle:0};
+let cells4=[], activeCell4=null;
+let signal=100, score=0, lives=5, hiScore=0;
+let g_raf=null, g_t=0;
+let mouse4={x:-999,y:-999}; // mouse position in canvas coords
+const CELL_R_FACTOR=0.165;
+const CAR_SPEED=2.8;
+
+function resizeGame(){
+  const w=c4.offsetWidth||innerWidth, h=c4.offsetHeight||(innerHeight-46);
+  c4.width=w; c4.height=h;
+  buildCells4(w,h);
+  updateLives();
+}
+
+function buildCells4(W,H){
+  const r=Math.min(W,H)*CELL_R_FACTOR;
+  cells4=[];
+  // Hex grid: offset layout centred on screen
+  const layout=[
+    [0,-2],[1,-2],[2,-2],
+    [-1,-1],[0,-1],[1,-1],[2,-1],
+    [-1,0],[0,0],[1,0],
+    [-1,1],[0,1],[1,1],
+  ];
+  const cx=W/2-r*.5, cy=H/2;
+  layout.forEach(([q,rv],i)=>{
+    const x=cx+(q+rv*.5)*r*Math.sqrt(3);
+    const y=cy+rv*r*1.5;
+    cells4.push({x,y,r,id:i+1,hue:200+i*18});
+  });
+  const mid=cells4[Math.floor(cells4.length/2)];
+  car.x=mid.x; car.y=mid.y; car.angle=0;
+  mouse4={x:mid.x,y:mid.y};
+}
+
+function updateLives(){
+  const lb=document.getElementById('life-bar');
+  lb.innerHTML='';
+  for(let i=0;i<5;i++){
+    const pip=document.createElement('div');
+    pip.className='life-pip'+(i<lives?' alive':'');
+    lb.appendChild(pip);
+  }
+}
+
+window.startGame=function(){
+  document.getElementById('s4-overlay').style.display='none';
+  resizeGame();
+  signal=100; score=0; lives=5; gameRunning=true;
+  updateLives();
+  if(g_raf) cancelAnimationFrame(g_raf);
+  gameLoop();
+};
+
+// ── Mouse tracking ──
+c4.addEventListener('mousemove',e=>{
+  if(!gameRunning) return;
+  const r=c4.getBoundingClientRect();
+  mouse4.x=e.clientX-r.left;
+  mouse4.y=e.clientY-r.top;
+});
+c4.addEventListener('touchmove',e=>{
+  if(!gameRunning) return;
+  e.preventDefault();
+  const r=c4.getBoundingClientRect();
+  mouse4.x=e.touches[0].clientX-r.left;
+  mouse4.y=e.touches[0].clientY-r.top;
+},{passive:false});
+
+function gameLoop(){
+  g_t+=0.016;
+  const W=c4.width, H=c4.height;
+
+  // ── Move car toward mouse ──
+  const dx=mouse4.x-car.x, dy=mouse4.y-car.y;
+  const dMouse=Math.hypot(dx,dy);
+  if(dMouse>4){
+    // Store raw atan2 — s1_drawCar adds PI/2 internally to align car front
+    car.angle=Math.atan2(dy,dx);
+    const step=Math.min(CAR_SPEED, dMouse*.1);
+    car.x+=dx/dMouse*step;
+    car.y+=dy/dMouse*step;
+  }
+
+  // Clamp to canvas
+  const margin=20;
+  car.x=Math.max(margin,Math.min(W-margin,car.x));
+  car.y=Math.max(margin,Math.min(H-margin,car.y));
+
+  // ── Find nearest cell ──
+  let best=null, bestD=Infinity;
+  cells4.forEach(c=>{
+    const d=dist(car.x,car.y,c.x,c.y);
+    if(d<bestD){bestD=d;best=c;}
+  });
+
+  // ── Signal = 100% at cell centre, 0% at cell edge ──
+  // Cells have radius r. Beyond 0.92*r = out of range
+  const cellR=best?best.r:80;
+  const normalised=Math.max(0, 1 - bestD/(cellR*0.95));
+  const sigTarget=Math.round(normalised*100);
+
+  // Smooth signal
+  signal+=(sigTarget-signal)*0.08;
+  signal=Math.max(0,Math.min(100,signal));
+
+  // Handover event
+  if(best!==activeCell4){
+    if(activeCell4!==null && sigTarget>10){ score+=15; }
+    activeCell4=best;
+  }
+
+  // Score trickle for staying in coverage
+  if(signal>50) score+=signal/5000;
+  document.getElementById('score-val').textContent=Math.floor(score);
+
+  // Life loss when signal drops to 0
+  if(signal<1 && lives>0){
+    lives--; updateLives();
+    if(lives<=0){ endGame(); return; }
+    signal=20;
+  }
+
+  // HUD
+  const fill=document.getElementById('game-sig-fill');
+  const s=Math.round(signal);
+  fill.style.width=s+'%';
+  fill.style.background=s>60?'#22c55e':s>30?'#f59e0b':'#ef4444';
+  document.getElementById('cell-indicator').textContent=
+    `CELDA: ${activeCell4?'ANT-'+String(activeCell4.id).padStart(2,'0'):'—'} · ${s}%`;
+
+  g_drawScene4(W,H,best,bestD,sigTarget);
+  g_raf=requestAnimationFrame(gameLoop);
+}
+
+function endGame(){
+  gameRunning=false;
+  if(score>hiScore) hiScore=score;
+  const ov=document.getElementById('s4-overlay');
+  ov.style.display='flex';
+  ov.querySelector('h2').textContent='📡 Señal Perdida';
+  ov.querySelector('p').innerHTML=
+    `Puntuación: <b>${Math.floor(score)}</b> pts<br>Mejor marca: <b>${Math.floor(hiScore)}</b> pts`;
+  ov.querySelector('.start-btn').textContent='↺ INTENTAR DE NUEVO';
+}
+
+function g_drawScene4(W,H,nearestCell,nearestDist,sigTarget){
+  ctx4.clearRect(0,0,W,H);
+  ctx4.fillStyle='#060c18'; ctx4.fillRect(0,0,W,H);
+
+  cells4.forEach(cell=>{
+    const isActive=cell===activeCell4;
+    const d=dist(car.x,car.y,cell.x,cell.y);
+    // per-cell signal for colouring
+    const cellSig=Math.max(0,1-d/(cell.r*0.95));
+
+    // Hex fill — gradient from cell centre
+    hexPath(ctx4,cell.x,cell.y,cell.r*.97);
+    const g=ctx4.createRadialGradient(cell.x,cell.y,0,cell.x,cell.y,cell.r);
+    if(isActive){
+      const bright=8+cellSig*20;
+      g.addColorStop(0,`hsla(${cell.hue},70%,${bright}%,0.9)`);
+      g.addColorStop(1,`hsla(${cell.hue},50%,5%,0.3)`);
+    } else {
+      g.addColorStop(0,`hsla(${cell.hue},25%,7%,0.5)`);
+      g.addColorStop(1,'rgba(6,12,24,0.2)');
+    }
+    ctx4.fillStyle=g; ctx4.fill();
+
+    // Hex border — thickness shows proximity
+    hexPath(ctx4,cell.x,cell.y,cell.r*.97);
+    const borderAlpha=isActive?0.5+cellSig*.5:0.15+cellSig*.2;
+    ctx4.strokeStyle=`hsla(${cell.hue},65%,55%,${borderAlpha})`;
+    ctx4.lineWidth=isActive?2:1; ctx4.stroke();
+
+    // Concentric range rings (show signal distance)
+    [0.33,0.66,1.0].forEach((ring,ri)=>{
+      const rr=cell.r*ring*0.93;
+      const inRing=d<rr;
+      ctx4.beginPath(); ctx4.arc(cell.x,cell.y,rr,0,Math.PI*2);
+      ctx4.strokeStyle=`hsla(${cell.hue},60%,55%,${isActive?0.12:0.05})`;
+      ctx4.lineWidth=1; ctx4.setLineDash([3,5]); ctx4.stroke(); ctx4.setLineDash([]);
+    });
+
+    // Signal strength label at cell centre
+    if(isActive){
+      const pct=Math.round(cellSig*100);
+      ctx4.font=`bold ${Math.max(10,cell.r*.13)}px 'JetBrains Mono',monospace`;
+      ctx4.textAlign='center';
+      ctx4.fillStyle=pct>60?'rgba(74,222,128,.8)':pct>30?'rgba(251,191,36,.8)':'rgba(248,113,113,.8)';
+      ctx4.fillText(pct+'%', cell.x, cell.y+cell.r*.45);
+    }
+
+    // Tower
+    s1_drawTower(ctx4,cell.x,cell.y-cell.r*.32,cell.r*.2,isActive,cellSig);
+
+    // Label
+    ctx4.font=`${Math.max(8,cell.r*.1)}px 'JetBrains Mono',monospace`;
+    ctx4.fillStyle=isActive?`hsla(${cell.hue},70%,65%,.8)`:'rgba(51,65,85,0.5)';
+    ctx4.textAlign='center';
+    ctx4.fillText('ANT-'+String(cell.id).padStart(2,'0'),cell.x,cell.y+cell.r*.72);
+  });
+
+  // Dashed line from car to active cell, coloured by signal
+  if(activeCell4){
+    ctx4.beginPath();
+    ctx4.moveTo(car.x,car.y); ctx4.lineTo(activeCell4.x,activeCell4.y);
+    const sc=Math.round(signal);
+    ctx4.strokeStyle=sc>60?`rgba(34,197,94,${sc/180})`:`rgba(239,68,68,${sc/150})`;
+    ctx4.lineWidth=1.5; ctx4.setLineDash([5,7]); ctx4.stroke(); ctx4.setLineDash([]);
+  }
+
+  // Mouse cursor target indicator
+  if(gameRunning){
+    const md=dist(car.x,car.y,mouse4.x,mouse4.y);
+    if(md>12){
+      ctx4.beginPath(); ctx4.arc(mouse4.x,mouse4.y,7,0,Math.PI*2);
+      ctx4.strokeStyle='rgba(148,163,184,0.4)'; ctx4.lineWidth=1.5; ctx4.stroke();
+      ctx4.beginPath(); ctx4.arc(mouse4.x,mouse4.y,2,0,Math.PI*2);
+      ctx4.fillStyle='rgba(148,163,184,0.5)'; ctx4.fill();
+    }
+  }
+
+  // Car  — angle: atan2(dy,dx)+PI/2 means car faces toward mouse
+  const carSize=Math.max(14,(cells4[0]?.r||70)*.19);
+  s1_drawCar(ctx4,car.x,car.y,car.angle,carSize);
+
+  // No-signal vignette
+  if(signal<35){
+    const vg=ctx4.createRadialGradient(W/2,H/2,H*.25,W/2,H/2,H*.7);
+    vg.addColorStop(0,'transparent');
+    vg.addColorStop(1,`rgba(239,68,68,${(35-signal)/90})`);
+    ctx4.fillStyle=vg; ctx4.fillRect(0,0,W,H);
+  }
+}
+// Init screen 1 on load
+s1_init();
+</script>
+</body>
+</html>

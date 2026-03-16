@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fenómenos Electromagnéticos</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cream:#faf6ed; --cream2:#f2ead8; --cream3:#e8dfc8;
+  --ink:#1a1208; --ink2:#3a2e18; --ink3:#6a5a3a;
+  --red:#c0392b; --red2:#e74c3c; --redlight:#fdeaea;
+  --blue:#1a5276; --blue2:#2980b9; --bluelight:#eaf4fb;
+  --gold:#d4950a; --gold2:#f0b429; --goldlight:#fef9e7;
+  --green:#1e8449; --green2:#27ae60; --greenlight:#eafaf1;
+  --purple:#6c3483; --purple2:#9b59b6; --purplelight:#f5eef8;
+  --orange:#ca6f1e; --orange2:#e67e22; --orangelight:#fef5e7;
+  --teal:#0e6655; --teal2:#1abc9c; --teallight:#e8f8f5;
+  --border:#d4c9aa; --shadow:0 2px 16px rgba(26,18,8,0.10);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background:var(--cream);
+  font-family:'DM Sans',sans-serif;
+  color:var(--ink);
+  min-height:100vh;
+  background-image:
+    radial-gradient(circle at 10% 20%, rgba(212,149,10,0.06) 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, rgba(26,82,118,0.06) 0%, transparent 40%);
+}
+.page { max-width:820px; margin:0 auto; padding:20px 16px 60px; }
+
+/* HEADER */
+header {
+  text-align:center; padding:26px 20px 20px;
+  border-bottom:2px solid var(--border);
+  margin-bottom:20px; position:relative;
+}
+header::after {
+  content:''; position:absolute; bottom:-2px; left:20%; right:20%; height:2px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent);
+}
+.htag { font-size:10px; letter-spacing:5px; color:var(--ink3); margin-bottom:8px; text-transform:uppercase; }
+h1 {
+  font-family:'Playfair Display',serif;
+  font-size:clamp(22px,4.5vw,38px);
+  color:var(--ink); margin-bottom:6px; line-height:1.15;
+}
+.hsub { font-size:13px; color:var(--ink3); font-weight:500; }
+
+/* SCORE BAR */
+.score-bar {
+  display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-bottom:18px;
+}
+.schip {
+  background:var(--cream2); border:1px solid var(--border);
+  border-radius:6px; padding:8px 16px;
+  display:flex; align-items:center; gap:8px;
+  font-size:14px; font-weight:700;
+}
+.schip .icon { font-size:16px; }
+.schip .val { color:var(--ink); }
+.schip .lbl { color:var(--ink3); font-size:11px; font-weight:500; }
+
+/* ROUND INDICATOR */
+.round-indicator {
+  display:flex; gap:0; justify-content:center; margin-bottom:20px;
+}
+.round-step {
+  flex:1; max-width:200px; padding:10px 14px; text-align:center;
+  background:var(--cream2); border:1px solid var(--border);
+  font-size:11px; letter-spacing:2px; color:var(--ink3);
+  font-weight:600; text-transform:uppercase; position:relative;
+}
+.round-step:first-child { border-radius:6px 0 0 6px; }
+.round-step:last-child { border-radius:0 6px 6px 0; }
+.round-step.active {
+  background:var(--ink); color:var(--cream);
+  border-color:var(--ink);
+}
+.round-step.done {
+  background:var(--green); color:#fff;
+  border-color:var(--green);
+}
+
+/* SECTION HEADER */
+.section-head {
+  background:var(--ink); color:var(--cream);
+  padding:16px 22px; border-radius:8px 8px 0 0;
+  margin-bottom:0;
+}
+.section-head .round-tag { font-size:10px; letter-spacing:4px; color:var(--gold2); margin-bottom:4px; }
+.section-head h2 { font-family:'Playfair Display',serif; font-size:clamp(16px,3vw,24px); }
+.section-head p { font-size:12px; color:rgba(250,246,237,0.7); margin-top:4px; }
+
+/* ══════════════════════════════════════════
+   RONDA 1 — ADIVINA EL FENÓMENO
+══════════════════════════════════════════ */
+.r1-card {
+  background:var(--cream); border:1px solid var(--border);
+  border-top:none; border-radius:0 0 8px 8px;
+  padding:24px 22px; margin-bottom:16px;
+  box-shadow:var(--shadow);
+}
+.r1-progress { font-size:11px; color:var(--ink3); letter-spacing:2px; margin-bottom:14px; }
+.r1-scenario {
+  display:flex; gap:18px; align-items:flex-start;
+  background:var(--cream2); border:1px solid var(--border);
+  border-radius:8px; padding:18px 20px; margin-bottom:18px;
+}
+.r1-emoji { font-size:48px; flex-shrink:0; }
+.r1-text h3 { font-family:'Playfair Display',serif; font-size:17px; margin-bottom:6px; color:var(--ink); }
+.r1-text p { font-size:13px; color:var(--ink2); line-height:1.6; }
+.r1-question { font-size:15px; font-weight:700; color:var(--ink); margin-bottom:14px; }
+.r1-options { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.r1-opt {
+  background:var(--cream2); border:2px solid var(--border);
+  border-radius:8px; padding:12px 14px; cursor:pointer;
+  font-family:'DM Sans',sans-serif; font-size:13px; font-weight:600;
+  color:var(--ink2); text-align:left; transition:all 0.18s;
+  display:flex; align-items:center; gap:10px;
+}
+.r1-opt:hover:not(:disabled) { border-color:var(--gold); color:var(--ink); background:var(--goldlight); }
+.r1-opt:disabled { cursor:default; }
+.r1-opt.correct { background:var(--greenlight); border-color:var(--green); color:var(--green); }
+.r1-opt.wrong { background:var(--redlight); border-color:var(--red); color:var(--red); text-decoration:line-through; opacity:0.6; }
+.r1-opt .oicon { font-size:20px; flex-shrink:0; }
+.feedback-box {
+  border-radius:8px; padding:12px 16px; margin-top:12px;
+  font-size:13px; font-weight:600; line-height:1.6;
+  display:none; animation:fadeSlide 0.3s ease;
+}
+.feedback-box.show { display:block; }
+.feedback-box.ok { background:var(--greenlight); border:1px solid var(--green2); color:var(--green); }
+.feedback-box.hint { background:var(--goldlight); border:1px solid var(--gold2); color:var(--orange); }
+@keyframes fadeSlide { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:translateY(0)} }
+.retry-btn {
+  display:inline-block; margin-top:10px;
+  background:var(--ink); color:var(--cream);
+  border:none; border-radius:6px; padding:8px 18px;
+  font-family:'DM Sans',sans-serif; font-size:13px; font-weight:700;
+  cursor:pointer; transition:all 0.18s;
+}
+.retry-btn:hover { background:var(--ink2); }
+
+/* ══════════════════════════════════════════
+   RONDA 2 — EMPAREJA
+══════════════════════════════════════════ */
+.r2-card {
+  background:var(--cream); border:1px solid var(--border);
+  border-top:none; border-radius:0 0 8px 8px;
+  padding:22px; margin-bottom:16px; box-shadow:var(--shadow);
+}
+.r2-grid {
+  display:grid; grid-template-columns:1fr 1fr; gap:12px; align-items:start;
+}
+.r2-col-title {
+  font-size:10px; letter-spacing:4px; color:var(--ink3);
+  text-transform:uppercase; font-weight:700;
+  margin-bottom:8px; text-align:center;
+}
+.r2-items { display:flex; flex-direction:column; gap:8px; }
+.r2-item {
+  border:2px solid var(--border); border-radius:8px;
+  padding:11px 14px; font-size:13px; font-weight:600;
+  cursor:grab; transition:all 0.18s; background:var(--cream2);
+  display:flex; align-items:center; gap:10px; color:var(--ink2);
+  user-select:none;
+}
+.r2-item:active { cursor:grabbing; }
+.r2-item.dragging { opacity:0.4; transform:scale(0.97); }
+.r2-item.matched-ok { background:var(--greenlight); border-color:var(--green); color:var(--green); cursor:default; }
+.r2-item.matched-wrong { background:var(--redlight); border-color:var(--red); color:var(--red); animation:shake 0.4s ease; }
+@keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+.r2-target {
+  border:2px dashed var(--border); border-radius:8px;
+  padding:11px 14px; font-size:13px; font-weight:600; color:var(--ink3);
+  min-height:46px; transition:all 0.18s; background:var(--cream);
+  display:flex; align-items:center; gap:10px;
+}
+.r2-target.drag-over { border-color:var(--gold); background:var(--goldlight); }
+.r2-target.matched-ok { background:var(--greenlight); border-color:var(--green); border-style:solid; color:var(--green); }
+.r2-score-line { text-align:center; margin-top:14px; font-size:13px; color:var(--ink3); font-weight:600; }
+
+/* ══════════════════════════════════════════
+   RONDA 3 — ¿QUÉ ME PROTEGE?
+══════════════════════════════════════════ */
+.r3-card {
+  background:var(--cream); border:1px solid var(--border);
+  border-top:none; border-radius:0 0 8px 8px;
+  padding:24px 22px; margin-bottom:16px; box-shadow:var(--shadow);
+}
+.r3-scene {
+  background:var(--ink); border-radius:10px;
+  padding:20px 22px; margin-bottom:18px; text-align:center;
+}
+.r3-scene-emoji { font-size:52px; display:block; margin-bottom:10px; }
+.r3-scene-title { font-family:'Playfair Display',serif; font-size:19px; color:var(--cream); margin-bottom:6px; }
+.r3-scene-desc { font-size:13px; color:rgba(250,246,237,0.75); line-height:1.6; }
+.r3-question { font-size:15px; font-weight:700; color:var(--ink); margin-bottom:14px; }
+.r3-options { display:flex; flex-direction:column; gap:10px; }
+.r3-opt {
+  background:var(--cream2); border:2px solid var(--border);
+  border-radius:8px; padding:13px 16px; cursor:pointer;
+  font-family:'DM Sans',sans-serif; font-size:13px; font-weight:600;
+  color:var(--ink2); text-align:left; transition:all 0.18s;
+  display:flex; align-items:center; gap:12px;
+}
+.r3-opt:hover:not(:disabled) { border-color:var(--blue); color:var(--ink); background:var(--bluelight); }
+.r3-opt:disabled { cursor:default; }
+.r3-opt.correct { background:var(--greenlight); border-color:var(--green); color:var(--green); }
+.r3-opt.wrong { background:var(--redlight); border-color:var(--red); color:var(--red); text-decoration:line-through; opacity:0.6; }
+.r3-opt .oicon { font-size:22px; flex-shrink:0; }
+
+/* NEXT / RESULTS */
+.next-wrap { text-align:center; margin-top:18px; }
+.next-btn {
+  background:var(--ink); color:var(--cream);
+  border:none; border-radius:6px; padding:13px 32px;
+  font-family:'Playfair Display',serif; font-size:17px;
+  cursor:pointer; transition:all 0.2s; display:none;
+  box-shadow:0 4px 16px rgba(26,18,8,0.2);
+}
+.next-btn:hover { background:var(--ink2); transform:translateY(-1px); }
+.next-btn.show { display:inline-block; }
+.round-next-btn {
+  background:var(--gold); color:var(--ink);
+  border:none; border-radius:6px; padding:13px 32px;
+  font-family:'Playfair Display',serif; font-size:17px; font-weight:700;
+  cursor:pointer; transition:all 0.2s; display:none;
+  box-shadow:0 4px 16px rgba(212,149,10,0.3);
+}
+.round-next-btn:hover { background:var(--gold2); transform:translateY(-1px); }
+.round-next-btn.show { display:inline-block; }
+
+/* RESULTS */
+.results-card {
+  background:var(--cream); border:2px solid var(--border);
+  border-radius:12px; padding:36px 28px; text-align:center;
+  display:none; box-shadow:var(--shadow);
+}
+.results-card.show { display:block; animation:fadeSlide 0.5s ease; }
+.results-dec {
+  width:80px; height:4px; margin:0 auto 20px;
+  background:linear-gradient(90deg,var(--gold),var(--red),var(--blue));
+  border-radius:2px;
+}
+.results-emoji { font-size:64px; display:block; margin-bottom:14px; }
+.results-title { font-family:'Playfair Display',serif; font-size:clamp(20px,4vw,32px); color:var(--ink); margin-bottom:6px; }
+.results-score { font-family:'Playfair Display',serif; font-size:clamp(36px,7vw,56px); color:var(--gold); margin-bottom:6px; }
+.results-sub { font-size:14px; color:var(--ink3); margin-bottom:22px; font-weight:500; }
+.results-stats { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-bottom:24px; }
+.rstat { background:var(--cream2); border:1px solid var(--border); border-radius:8px; padding:12px 18px; min-width:100px; }
+.rstat-v { font-family:'Playfair Display',serif; font-size:26px; color:var(--ink); }
+.rstat-l { font-size:11px; color:var(--ink3); font-weight:600; margin-top:2px; }
+.restart-btn {
+  background:var(--ink); color:var(--cream);
+  border:none; border-radius:6px; padding:13px 32px;
+  font-family:'Playfair Display',serif; font-size:17px;
+  cursor:pointer; transition:all 0.2s;
+  box-shadow:0 4px 16px rgba(26,18,8,0.2);
+}
+.restart-btn:hover { background:var(--ink2); transform:translateY(-1px); }
+
+/* POINTS POPUP */
+.pts-pop {
+  position:fixed; font-family:'Playfair Display',serif;
+  font-size:26px; font-weight:900; pointer-events:none; z-index:999;
+  animation:popUp 1.1s ease forwards;
+}
+@keyframes popUp { 0%{opacity:1;transform:translateY(0) scale(1)} 60%{opacity:1;transform:translateY(-44px) scale(1.15)} 100%{opacity:0;transform:translateY(-80px) scale(0.9)} }
+
+@media (max-width:560px) {
+  .r1-options { grid-template-columns:1fr; }
+  .r2-grid { grid-template-columns:1fr; }
+  .r1-scenario { flex-direction:column; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <div class="htag">// Telecomunicaciones · Material Auxiliar</div>
+  <h1>Fenómenos Electromagnéticos</h1>
+  <p class="hsub">Adivina · Empareja · Explica — 3 rondas de ciencia cotidiana</p>
+</header>
+
+<div class="score-bar">
+  <div class="schip"><span class="icon">⭐</span><span class="val" id="scoreVal">0</span><span class="lbl">puntos</span></div>
+  <div class="schip"><span class="icon">✅</span><span class="val" id="corrVal">0</span><span class="lbl">correctas</span></div>
+  <div class="schip"><span class="icon">🎯</span><span class="val" id="roundVal">Ronda 1</span><span class="lbl">de 3</span></div>
+</div>
+
+<div class="round-indicator">
+  <div class="round-step active" id="rstep1">1 · Adivina</div>
+  <div class="round-step" id="rstep2">2 · Empareja</div>
+  <div class="round-step" id="rstep3">3 · Protege</div>
+</div>
+
+<div id="gameArea"></div>
+
+<div class="next-wrap">
+  <button class="next-btn" id="nextBtn" onclick="nextQ()">Siguiente →</button>
+  <button class="round-next-btn" id="roundNextBtn" onclick="nextRound()">Siguiente ronda →</button>
+</div>
+
+<div class="results-card" id="resultsCard"></div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// DATA — RONDA 1
+// ═══════════════════════════════════════════════════
+const R1 = [
+  {
+    emoji:'🚗⚡',
+    title:'El rayo y el coche',
+    desc:'Durante una tormenta, un rayo cae sobre un coche. La electricidad fluye por la carrocería metálica hacia el suelo. Los pasajeros dentro están completamente a salvo.',
+    question:'¿Qué fenómeno físico protege a los pasajeros?',
+    options:[
+      {icon:'🛡',text:'Jaula de Faraday',correct:true},
+      {icon:'⚡',text:'Efecto Joule',correct:false},
+      {icon:'🔵',text:'Efecto Piezoeléctrico',correct:false},
+      {icon:'🌡',text:'Efecto Piroeléctrico',correct:false},
+    ],
+    ok:'✅ ¡Correcto! La carrocería metálica del coche actúa como una Jaula de Faraday. La electricidad circula por el exterior del metal hacia el suelo, sin penetrar en el interior donde están los pasajeros.',
+    hint:'💡 Piensa en un escudo que rodea a los pasajeros. La carrocería metálica conduce la electricidad por su superficie externa.',
+  },
+  {
+    emoji:'☀️🔋',
+    title:'La placa solar',
+    desc:'Una placa solar en el tejado de una casa convierte la luz del sol directamente en electricidad. Los fotones de luz golpean el material semiconductor y liberan electrones.',
+    question:'¿Qué efecto físico hace posible la energía solar fotovoltaica?',
+    options:[
+      {icon:'☀️',text:'Efecto Fotoeléctrico',correct:true},
+      {icon:'🔥',text:'Efecto Joule',correct:false},
+      {icon:'💎',text:'Efecto Piezoeléctrico',correct:false},
+      {icon:'🌊',text:'Efecto Doppler',correct:false},
+    ],
+    ok:'✅ ¡Perfecto! El Efecto Fotoeléctrico — descubierto por Einstein — explica cómo la luz puede liberar electrones de ciertos materiales. Es la base de todas las células fotovoltaicas.',
+    hint:'💡 La clave está en que la LUZ produce electricidad. ¿Qué efecto relaciona luz con electrones libres?',
+  },
+  {
+    emoji:'🍞🌡',
+    title:'La tostadora',
+    desc:'Metes el pan en la tostadora, pulsas la palanca y la resistencia eléctrica se pone al rojo vivo. El pan se tuesta porque la electricidad al pasar por el hilo metálico genera calor.',
+    question:'¿Qué efecto físico convierte la electricidad en calor en la resistencia?',
+    options:[
+      {icon:'🔥',text:'Efecto Joule',correct:true},
+      {icon:'☀️',text:'Efecto Fotoeléctrico',correct:false},
+      {icon:'🛡',text:'Jaula de Faraday',correct:false},
+      {icon:'🌡',text:'Efecto Piroeléctrico',correct:false},
+    ],
+    ok:'✅ ¡Correcto! El Efecto Joule: cuando la corriente eléctrica pasa por un conductor con resistencia, parte de la energía se transforma en calor. Es el principio de tostadoras, estufas y secadores.',
+    hint:'💡 Electricidad → calor. Un físico del siglo XIX da nombre a este efecto. Se usa en todo aparato de calefacción eléctrica.',
+  },
+  {
+    emoji:'🔥🖐',
+    title:'El encendedor de gas',
+    desc:'Aprietas el botón del encendedor y salta una chispa sin necesidad de pilas ni baterías. Al presionar el botón, un cristal especial genera electricidad con la presión mecánica.',
+    question:'¿Qué efecto físico genera la chispa al apretar el encendedor?',
+    options:[
+      {icon:'💎',text:'Efecto Piezoeléctrico',correct:true},
+      {icon:'🔥',text:'Efecto Joule',correct:false},
+      {icon:'🌡',text:'Efecto Piroeléctrico',correct:false},
+      {icon:'🛡',text:'Jaula de Faraday',correct:false},
+    ],
+    ok:'✅ ¡Muy bien! El Efecto Piezoeléctrico: ciertos cristales generan electricidad cuando se comprimen mecánicamente. Los encendedores, algunos micrófonos y los sensores de presión usan este principio.',
+    hint:'💡 La PRESIÓN genera electricidad. "Piezo" en griego significa presión. ¿Qué efecto convierte fuerza mecánica en electricidad?',
+  },
+  {
+    emoji:'🚨🚑',
+    title:'La sirena de la ambulancia',
+    desc:'Estás en la acera esperando. La ambulancia se acerca a toda velocidad y la sirena suena muy aguda. Cuando pasa y se aleja, el sonido de la sirena baja de tono aunque la ambulancia no cambie su volumen real.',
+    question:'¿Qué fenómeno físico explica el cambio de tono de la sirena?',
+    options:[
+      {icon:'🌊',text:'Efecto Doppler',correct:true},
+      {icon:'🛡',text:'Jaula de Faraday',correct:false},
+      {icon:'💎',text:'Efecto Piezoeléctrico',correct:false},
+      {icon:'☀️',text:'Efecto Fotoeléctrico',correct:false},
+    ],
+    ok:'✅ ¡Exacto! El Efecto Doppler: cuando una fuente de sonido se mueve, las ondas se comprimen (tono más agudo) al acercarse y se estiran (tono más grave) al alejarse. El radar de velocidad de la policía usa este mismo principio con ondas de radio.',
+    hint:'💡 El sonido cambia de tono según el movimiento. Al acercarse suena más agudo, al alejarse más grave. ¿Qué efecto relaciona movimiento y frecuencia de ondas?',
+  },
+  {
+    emoji:'🌡👁',
+    title:'El sensor de movimiento',
+    desc:'Al entrar en un garaje oscuro, la luz se enciende automáticamente aunque no hayas tocado nada. Un sensor invisible detecta el calor de tu cuerpo (37°C) y activa el interruptor.',
+    question:'¿Qué efecto físico detecta el calor corporal para activar el sensor?',
+    options:[
+      {icon:'🌡',text:'Efecto Piroeléctrico',correct:true},
+      {icon:'💎',text:'Efecto Piezoeléctrico',correct:false},
+      {icon:'🔥',text:'Efecto Joule',correct:false},
+      {icon:'☀️',text:'Efecto Fotoeléctrico',correct:false},
+    ],
+    ok:'✅ ¡Correcto! El Efecto Piroeléctrico: ciertos cristales generan electricidad cuando cambia su temperatura. Los sensores de presencia (PIR) detectan la radiación infrarroja del cuerpo humano usando este efecto.',
+    hint:'💡 El CALOR genera electricidad. "Pyro" en griego significa fuego/calor. Los sensores de presencia para luces automáticas usan este principio.',
+  },
+  {
+    emoji:'⚓🌩',
+    title:'El fuego azul en el mástil',
+    desc:'Un barco velero navega durante una tormenta eléctrica de noche. En las puntas de los mástiles aparece un brillo azulado o violáceo espectral. Los marineros lo llamaban "fuego de San Telmo".',
+    question:'¿Qué fenómeno físico produce ese brillo en las puntas metálicas?',
+    options:[
+      {icon:'⚡',text:'Fuego de San Telmo — ionización del aire por campos eléctricos intensos',correct:true},
+      {icon:'🛡',text:'Jaula de Faraday del barco',correct:false},
+      {icon:'🌡',text:'Efecto Piroeléctrico del mástil metálico',correct:false},
+      {icon:'🌊',text:'Efecto Doppler de las ondas del mar',correct:false},
+    ],
+    ok:'✅ ¡Perfecto! El Fuego de San Telmo es una descarga eléctrica en corona. Los campos eléctricos intensos durante la tormenta se concentran en las puntas metálicas (efecto de punta) e ionizan el aire, produciendo ese brillo azulado. ¡Completamente natural!',
+    hint:'💡 Las puntas metálicas concentran el campo eléctrico e ionizan el aire. El brillo es una descarga eléctrica luminosa, no una llama real.',
+  },
+  {
+    emoji:'💳🔒',
+    title:'La cartera anti-robo',
+    desc:'Existen carteras especiales con una capa metálica que impide que un lector externo pueda leer tu tarjeta de crédito sin contacto (RFID) ni tu DNI electrónico sin que tú lo sepas.',
+    question:'¿Qué principio físico usan estas carteras para bloquear las señales?',
+    options:[
+      {icon:'🛡',text:'Jaula de Faraday — la capa metálica bloquea las ondas electromagnéticas',correct:true},
+      {icon:'💎',text:'Efecto Piezoeléctrico',correct:false},
+      {icon:'🌊',text:'Efecto Doppler',correct:false},
+      {icon:'☀️',text:'Efecto Fotoeléctrico',correct:false},
+    ],
+    ok:'✅ ¡Correcto! La capa metálica de la cartera actúa como una mini Jaula de Faraday. Bloquea las ondas electromagnéticas de corta distancia (RFID/NFC) impidiendo que lectores externos accedan a tus tarjetas sin tu permiso.',
+    hint:'💡 Un escudo metálico que bloquea señales electromagnéticas. El mismo principio que protege a los pasajeros del coche durante un rayo.',
+  },
+];
+
+// ═══════════════════════════════════════════════════
+// DATA — RONDA 2 (EMPAREJA)
+// ═══════════════════════════════════════════════════
+const R2_PAIRS = [
+  { id:'p1', left:{icon:'🛡',text:'Jaula de Faraday'},  right:{icon:'📱',text:'Modo avión en zona de rayos'} },
+  { id:'p2', left:{icon:'☀️',text:'Efecto Fotoeléctrico'}, right:{icon:'🏡',text:'Panel solar en el tejado'} },
+  { id:'p3', left:{icon:'🔥',text:'Efecto Joule'},       right:{icon:'🌡',text:'Estufa eléctrica de casa'} },
+  { id:'p4', left:{icon:'💎',text:'Efecto Piezoeléctrico'}, right:{icon:'🎙',text:'Micrófono de cristal'} },
+  { id:'p5', left:{icon:'🌡',text:'Efecto Piroeléctrico'}, right:{icon:'💡',text:'Sensor de luz automático'} },
+  { id:'p6', left:{icon:'⚡',text:'Fuego de San Telmo'}, right:{icon:'⛵',text:'Brillo en el mástil del barco'} },
+  { id:'p7', left:{icon:'🌊',text:'Efecto Doppler'},     right:{icon:'🚔',text:'Radar de velocidad policial'} },
+  { id:'p8', left:{icon:'⚡',text:'Efecto de Punta'},    right:{icon:'🏢',text:'Pararrayos en un edificio'} },
+];
+
+// ═══════════════════════════════════════════════════
+// DATA — RONDA 3
+// ═══════════════════════════════════════════════════
+const R3 = [
+  {
+    emoji:'⛈🏠',
+    title:'Tormenta sobre la ciudad',
+    desc:'Hay una tormenta eléctrica intensa. Un rayo cae sobre un edificio de oficinas de 20 pisos. Los trabajadores dentro siguen trabajando tranquilamente.',
+    question:'¿Qué dos mecanismos protegen a las personas dentro del edificio?',
+    options:[
+      {icon:'⚡🛡',text:'El pararrayos (efecto de punta) conduce el rayo al suelo, y el edificio metálico actúa como Jaula de Faraday',correct:true},
+      {icon:'🌡',text:'El efecto Joule disipa el calor del rayo por las paredes',correct:false},
+      {icon:'🌊',text:'El efecto Doppler desvía el rayo hacia otra dirección',correct:false},
+    ],
+    ok:'✅ ¡Excelente! Doble protección: el pararrayos concentra el campo eléctrico en su punta e invita al rayo a descargar ahí, conduciéndolo al suelo. Y la estructura metálica del edificio actúa como Jaula de Faraday, protegiendo a quienes están dentro.',
+    hint:'💡 Piensa en DOS cosas: una que atrae al rayo y lo desvía, y otra que actúa como escudo electromagnético alrededor de las personas.',
+  },
+  {
+    emoji:'🎸🎤',
+    title:'El concierto de rock',
+    desc:'En un concierto, el cantante habla al micrófono. Los guitarristas tienen pastillas en sus guitarras que captan las vibraciones de las cuerdas. El sonido sale amplificado por los altavoces.',
+    question:'¿Qué fenómeno convierte las vibraciones mecánicas (sonido) en señal eléctrica?',
+    options:[
+      {icon:'💎',text:'Efecto Piezoeléctrico — la presión de las vibraciones genera corriente eléctrica',correct:true},
+      {icon:'🔥',text:'Efecto Joule — el calor del sonido produce electricidad',correct:false},
+      {icon:'☀️',text:'Efecto Fotoeléctrico — la luz del escenario activa los sensores',correct:false},
+    ],
+    ok:'✅ ¡Correcto! Las pastillas de guitarra y muchos micrófonos usan el efecto piezoeléctrico: los cristales presionados por las vibraciones sonoras generan pequeñas corrientes eléctricas que luego se amplifican.',
+    hint:'💡 Vibración = presión repetida sobre un material. ¿Qué efecto convierte presión mecánica en electricidad?',
+  },
+  {
+    emoji:'🌡🌙',
+    title:'La cámara de seguridad nocturna',
+    desc:'Son las 3 de la madrugada y está completamente oscuro. Una cámara de seguridad detecta a una persona que entra en el jardín aunque no haya ni un rayito de luz. La cámara "ve" el calor del cuerpo.',
+    question:'¿Qué combinación de fenómenos permite ver en la oscuridad total?',
+    options:[
+      {icon:'🌡☀️',text:'El efecto piroeléctrico detecta el infrarrojo corporal, y el efecto fotoeléctrico convierte esa radiación en señal eléctrica',correct:true},
+      {icon:'🌊',text:'El efecto Doppler detecta el movimiento de la persona',correct:false},
+      {icon:'💎',text:'El efecto piezoeléctrico detecta los pasos de la persona',correct:false},
+    ],
+    ok:'✅ ¡Brillante! Las cámaras térmicas combinan dos efectos: el piroeléctrico para detectar la radiación infrarroja (calor) del cuerpo humano, y el fotoeléctrico para convertir esa radiación en señal eléctrica procesable. Sin ninguna luz visible.',
+    hint:'💡 Dos efectos trabajan juntos: uno detecta el CALOR infrarrojo del cuerpo, y otro convierte esa radiación en electricidad para procesarla.',
+  },
+  {
+    emoji:'🏎🚔',
+    title:'El control de velocidad',
+    desc:'Un coche pasa a 180 km/h por una autopista. Un policía apunta con un radar. El radar emite ondas de radio que rebotan en el coche y vuelven al detector con una frecuencia ligeramente diferente. El ordenador calcula la velocidad exacta.',
+    question:'¿Qué fenómeno físico permite calcular la velocidad del coche con el radar?',
+    options:[
+      {icon:'🌊',text:'Efecto Doppler — la frecuencia de las ondas reflejadas cambia según la velocidad del coche',correct:true},
+      {icon:'⚡',text:'Fuego de San Telmo — el campo eléctrico del coche altera las ondas',correct:false},
+      {icon:'💎',text:'Efecto Piezoeléctrico — la vibración del coche genera señales detectables',correct:false},
+    ],
+    ok:'✅ ¡Exacto! El radar de velocidad usa el efecto Doppler: emite ondas de radio, que al rebotar en un objeto en movimiento regresan con una frecuencia diferente (mayor si se acerca, menor si se aleja). La diferencia de frecuencia indica exactamente la velocidad.',
+    hint:'💡 Las ondas que rebotan vuelven con frecuencia diferente según la velocidad del objeto. ¿Qué efecto relaciona movimiento y cambio de frecuencia de ondas?',
+  },
+  {
+    emoji:'📡🌍',
+    title:'La antena del barco y el pararrayos',
+    desc:'En un barco durante una tormenta, la antena de comunicaciones es muy alta y puntiaguda. El capitán la usa tranquilamente aunque haya rayos alrededor. Al mismo tiempo, la sala de radio está protegida.',
+    question:'¿Qué dos fenómenos actúan simultáneamente para proteger el barco y su tripulación?',
+    options:[
+      {icon:'⚡🛡',text:'El efecto de punta atrae y canaliza los rayos al mar, mientras la sala metálica crea una Jaula de Faraday para los tripulantes',correct:true},
+      {icon:'🌊💎',text:'El efecto Doppler desvía los rayos y el efecto piezoeléctrico absorbe la energía',correct:false},
+      {icon:'☀️🌡',text:'El efecto fotoeléctrico convierte el rayo en energía y el piroeléctrico detecta el peligro',correct:false},
+    ],
+    ok:'✅ ¡Perfecto! El efecto de punta concentra las cargas eléctricas en el extremo puntiagudo de la antena/pararrayos, atrayendo el rayo y conduciéndolo de forma controlada al mar. Y la sala de radio, al estar rodeada de metal, forma una Jaula de Faraday que protege a los operadores y los equipos.',
+    hint:'💡odos los barcos tienen pararrayos en los mástiles. La punta atrae el rayo y lo canaliza de forma segura. Y la sala de radio metálica crea un escudo electromagnético.',
+  },
+];
+
+// ═══════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════
+let score = 0, corrCount = 0, wrongCount = 0;
+let currentRound = 1;
+let r1Idx = 0;
+let r2Matched = 0, r2Attempts = 0;
+let r3Idx = 0;
+let qAnswered = false;
+
+// ═══════════════════════════════════════════════════
+// ROUND MANAGEMENT
+// ═══════════════════════════════════════════════════
+function updateRoundIndicator() {
+  [1,2,3].forEach(i => {
+    const el = document.getElementById('rstep'+i);
+    el.classList.remove('active','done');
+    if (i < currentRound) el.classList.add('done');
+    if (i === currentRound) el.classList.add('active');
+  });
+  document.getElementById('roundVal').textContent = 'Ronda '+currentRound;
+}
+
+function nextRound() {
+  currentRound++;
+  document.getElementById('roundNextBtn').classList.remove('show');
+  document.getElementById('nextBtn').classList.remove('show');
+  updateRoundIndicator();
+  if (currentRound === 2) renderR2();
+  else if (currentRound === 3) renderR3();
+  else showResults();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function updateScore() {
+  document.getElementById('scoreVal').textContent = score;
+  document.getElementById('corrVal').textContent = corrCount;
+}
+
+function showPop(text, color) {
+  const el = document.createElement('div');
+  el.className='pts-pop'; el.textContent=text; el.style.color=color;
+  const bar = document.querySelector('.score-bar');
+  const r = bar.getBoundingClientRect();
+  el.style.top=(r.top+window.scrollY-10)+'px';
+  el.style.left=(r.left+r.width/2-20)+'px';
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),1200);
+}
+
+// ═══════════════════════════════════════════════════
+// RONDA 1
+// ═══════════════════════════════════════════════════
+function renderR1() {
+  const area = document.getElementById('gameArea');
+  const q = R1[r1Idx];
+  qAnswered = false;
+  document.getElementById('nextBtn').classList.remove('show');
+
+  const shuffled1 = q.options.map(o=>({...o})).sort(()=>Math.random()-0.5);
+  const opts = shuffled1.map((o,i)=>`
+    <button class="r1-opt" id="r1o${i}" onclick="answerR1(${i},${o.correct})">
+      <span class="oicon">${o.icon}</span><span>${o.text}</span>
+    </button>`).join('');
+
+  area.innerHTML = `
+    <div class="section-head">
+      <div class="round-tag">RONDA 1 · ADIVINA EL FENÓMENO</div>
+      <h2>¿Qué fenómeno físico explica esto?</h2>
+      <p>Lee la situación y elige el fenómeno electromagnético correcto</p>
+    </div>
+    <div class="r1-card">
+      <div class="r1-progress">SITUACIÓN ${r1Idx+1} DE ${R1.length}</div>
+      <div class="r1-scenario">
+        <div class="r1-emoji">${q.emoji}</div>
+        <div class="r1-text"><h3>${q.title}</h3><p>${q.desc}</p></div>
+      </div>
+      <div class="r1-question">${q.question}</div>
+      <div class="r1-options">${opts}</div>
+      <div class="feedback-box" id="r1fb"></div>
+    </div>`;
+}
+
+function answerR1(idx, correct) {
+  if (qAnswered) return;
+  const q = R1[r1Idx];
+  const firstTry = !document.querySelector('.r1-opt.wrong');
+
+  if (correct) {
+    qAnswered = true;
+    document.getElementById('r1o'+idx).classList.add('correct');
+    document.querySelectorAll('.r1-opt').forEach(b=>b.disabled=true);
+    const pts = firstTry ? 100 : 50;
+    score += pts; corrCount++;
+    updateScore();
+    showFb('r1fb', true, q.ok);
+    showPop('+'+pts, '#1e8449');
+    setTimeout(()=>{
+      r1Idx++;
+      if (r1Idx < R1.length) renderR1();
+      else {
+        addLog('r1-done');
+        document.getElementById('roundNextBtn').classList.add('show');
+      }
+    }, 1600);
+  } else {
+    qAnswered = false;
+    document.getElementById('r1o'+idx).classList.add('wrong');
+    document.getElementById('r1o'+idx).disabled = true;
+    score = Math.max(0, score-10); wrongCount++;
+    updateScore();
+    showFb('r1fb', false, q.hint);
+    showPop('-10','#c0392b');
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// RONDA 2 — DRAG & DROP EMPAREJA
+// ═══════════════════════════════════════════════════
+let dragId = null;
+let r2Score = 0;
+
+function renderR2() {
+  r2Matched = 0; r2Attempts = 0; r2Score = 0;
+  const area = document.getElementById('gameArea');
+
+  // Shuffle right column
+  const shuffled = [...R2_PAIRS].sort(()=>Math.random()-0.5);
+
+  const leftItems = R2_PAIRS.map(p=>`
+    <div class="r2-item" id="left_${p.id}" draggable="true"
+      ondragstart="dragStart('${p.id}')"
+      ontouchstart="touchStart(event,'${p.id}')"
+      ontouchmove="touchMove(event)"
+      ontouchend="touchEnd(event)">
+      <span style="font-size:18px">${p.left.icon}</span>
+      <span>${p.left.text}</span>
+    </div>`).join('');
+
+  const rightTargets = shuffled.map(p=>`
+    <div class="r2-target" id="right_${p.id}"
+      ondragover="dragOver(event)"
+      ondragleave="dragLeave(event)"
+      ondrop="drop(event,'${p.id}')">
+      <span style="font-size:18px">${p.right.icon}</span>
+      <span>${p.right.text}</span>
+    </div>`).join('');
+
+  area.innerHTML = `
+    <div class="section-head">
+      <div class="round-tag">RONDA 2 · EMPAREJA</div>
+      <h2>Conecta cada fenómeno con su aplicación</h2>
+      <p>Arrastra cada fenómeno de la izquierda a su aplicación correcta en la derecha</p>
+    </div>
+    <div class="r1-card">
+      <div class="r2-grid">
+        <div>
+          <div class="r2-col-title">Fenómenos</div>
+          <div class="r2-items" id="leftCol">${leftItems}</div>
+        </div>
+        <div>
+          <div class="r2-col-title">Aplicaciones</div>
+          <div class="r2-items" id="rightCol">${rightTargets}</div>
+        </div>
+      </div>
+      <div class="r2-score-line" id="r2scoreLine">Empareja los 8 fenómenos con sus aplicaciones</div>
+    </div>`;
+}
+
+function dragStart(id) { dragId = id; setTimeout(()=>document.getElementById('left_'+id)?.classList.add('dragging'),0); }
+function dragOver(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
+function dragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+
+function drop(e, targetId) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (!dragId) return;
+  checkPair(dragId, targetId);
+  document.getElementById('left_'+dragId)?.classList.remove('dragging');
+  dragId = null;
+}
+
+// Touch support
+let touchDragId = null, touchClone = null;
+function touchStart(e, id) {
+  touchDragId = id;
+  const el = document.getElementById('left_'+id);
+  touchClone = el.cloneNode(true);
+  touchClone.style.cssText = 'position:fixed;opacity:0.7;pointer-events:none;z-index:999;width:'+el.offsetWidth+'px;transform:scale(1.05)';
+  document.body.appendChild(touchClone);
+  el.classList.add('dragging');
+}
+function touchMove(e) {
+  e.preventDefault();
+  const t = e.touches[0];
+  if (touchClone) { touchClone.style.left=(t.clientX-60)+'px'; touchClone.style.top=(t.clientY-20)+'px'; }
+  document.querySelectorAll('.r2-target').forEach(tgt=>{
+    const r = tgt.getBoundingClientRect();
+    const over = t.clientX>=r.left&&t.clientX<=r.right&&t.clientY>=r.top&&t.clientY<=r.bottom;
+    tgt.classList.toggle('drag-over',over);
+  });
+}
+function touchEnd(e) {
+  if (touchClone) { touchClone.remove(); touchClone=null; }
+  document.getElementById('left_'+touchDragId)?.classList.remove('dragging');
+  const t = e.changedTouches[0];
+  const target = document.elementsFromPoint(t.clientX,t.clientY).find(el=>el.classList.contains('r2-target'));
+  document.querySelectorAll('.r2-target').forEach(tgt=>tgt.classList.remove('drag-over'));
+  if (target && touchDragId) {
+    const tId = target.id.replace('right_','');
+    checkPair(touchDragId, tId);
+  }
+  touchDragId = null;
+}
+
+function checkPair(leftId, rightId) {
+  r2Attempts++;
+  const leftEl = document.getElementById('left_'+leftId);
+  const rightEl = document.getElementById('right_'+rightId);
+  if (!leftEl || !rightEl) return;
+
+  if (leftId === rightId) {
+    // Correct match
+    leftEl.classList.add('matched-ok'); leftEl.draggable=false;
+    rightEl.classList.add('matched-ok');
+    leftEl.setAttribute('draggable','false');
+    leftEl.ontouchstart=null; leftEl.ontouchmove=null; leftEl.ontouchend=null;
+    r2Matched++; r2Score += 80; score += 80; corrCount++;
+    updateScore();
+    showPop('+80','#1e8449');
+    document.getElementById('r2scoreLine').textContent = `✅ ${r2Matched} de ${R2_PAIRS.length} emparejados correctamente`;
+    if (r2Matched === R2_PAIRS.length) {
+      setTimeout(()=>{ document.getElementById('roundNextBtn').classList.add('show'); },500);
+    }
+  } else {
+    // Wrong
+    leftEl.classList.add('matched-wrong');
+    score = Math.max(0,score-10); wrongCount++;
+    updateScore();
+    showPop('-10','#c0392b');
+    setTimeout(()=>leftEl.classList.remove('matched-wrong'),500);
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// RONDA 3
+// ═══════════════════════════════════════════════════
+function renderR3() {
+  const area = document.getElementById('gameArea');
+  const q = R3[r3Idx];
+  qAnswered = false;
+  document.getElementById('nextBtn').classList.remove('show');
+  document.getElementById('roundNextBtn').classList.remove('show');
+
+  // Shuffle options, keeping track of which is correct
+  const shuffled = q.options.map((o,i)=>({...o, origIdx:i})).sort(()=>Math.random()-0.5);
+  const opts = shuffled.map((o,i)=>`
+    <button class="r3-opt" id="r3o${i}" onclick="answerR3(${i},${o.correct})">
+      <span class="oicon">${o.icon}</span><span>${o.text}</span>
+    </button>`).join('');
+
+  area.innerHTML = `
+    <div class="section-head">
+      <div class="round-tag">RONDA 3 · ¿QUÉ FENÓMENO ACTÚA?</div>
+      <h2>Identifica el fenómeno en acción</h2>
+      <p>Situaciones reales con varios fenómenos combinados</p>
+    </div>
+    <div class="r3-card">
+      <div class="r1-progress">SITUACIÓN ${r3Idx+1} DE ${R3.length}</div>
+      <div class="r3-scene">
+        <span class="r3-scene-emoji">${q.emoji}</span>
+        <div class="r3-scene-title">${q.title}</div>
+        <div class="r3-scene-desc">${q.desc}</div>
+      </div>
+      <div class="r3-question">${q.question}</div>
+      <div class="r3-options">${opts}</div>
+      <div class="feedback-box" id="r3fb"></div>
+    </div>`;
+}
+
+function answerR3(idx, correct) {
+  if (qAnswered) return;
+  const q = R3[r3Idx];
+  const firstTry = !document.querySelector('.r3-opt.wrong');
+
+  if (correct) {
+    qAnswered = true;
+    document.getElementById('r3o'+idx).classList.add('correct');
+    document.querySelectorAll('.r3-opt').forEach(b=>b.disabled=true);
+    const pts = firstTry ? 120 : 60;
+    score += pts; corrCount++;
+    updateScore();
+    showFb('r3fb', true, q.ok);
+    showPop('+'+pts,'#1a5276');
+    setTimeout(()=>{
+      r3Idx++;
+      if (r3Idx < R3.length) renderR3();
+      else showResults();
+    }, 1800);
+  } else {
+    qAnswered = false;
+    document.getElementById('r3o'+idx).classList.add('wrong');
+    document.getElementById('r3o'+idx).disabled=true;
+    score=Math.max(0,score-10); wrongCount++;
+    updateScore();
+    showFb('r3fb',false,q.hint);
+    showPop('-10','#c0392b');
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════
+function showFb(id, ok, msg) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.className = 'feedback-box '+(ok?'ok':'hint')+' show';
+  el.textContent = msg;
+}
+
+function addLog(tag) { /* placeholder */ }
+
+function showResults() {
+  document.getElementById('gameArea').innerHTML='';
+  document.getElementById('nextBtn').style.display='none';
+  document.getElementById('roundNextBtn').style.display='none';
+  updateRoundIndicator();
+  [1,2,3].forEach(i=>document.getElementById('rstep'+i).classList.add('done'));
+
+  const maxScore = R1.length*100 + R2_PAIRS.length*80 + R3.length*120;
+  const pct = Math.round((score/maxScore)*100);
+  let emoji,title,msg;
+  if(pct>=85){emoji='🏆';title='¡Maestro de la Electromagnetismo!';msg='Dominas todos los fenómenos electromagnéticos. ¡Resultado sobresaliente!';}
+  else if(pct>=65){emoji='🥇';title='¡Excelente trabajo!';msg='Tienes una comprensión muy sólida de la física cotidiana. ¡Muy bien!';}
+  else if(pct>=45){emoji='🥈';title='¡Buen resultado!';msg='Has aprendido bastante hoy. Repasa los fenómenos donde tuviste dudas.';}
+  else{emoji='📖';title='¡Sigue estudiando!';msg='La física electromagnética tiene mucho que ofrecerte. ¡Vuelve a intentarlo!';}
+
+  const rc=document.getElementById('resultsCard');
+  rc.innerHTML=`
+    <div class="results-dec"></div>
+    <span class="results-emoji">${emoji}</span>
+    <div class="results-title">${title}</div>
+    <div class="results-score">${score} pts</div>
+    <div class="results-sub">${msg}</div>
+    <div class="results-stats">
+      <div class="rstat"><div class="rstat-v">${corrCount}</div><div class="rstat-l">✅ Aciertos</div></div>
+      <div class="rstat"><div class="rstat-v">${wrongCount}</div><div class="rstat-l">❌ Fallos</div></div>
+      <div class="rstat"><div class="rstat-v">${pct}%</div><div class="rstat-l">⭐ del máximo</div></div>
+    </div>
+    <button class="restart-btn" onclick="restartGame()">🔄 Jugar de nuevo</button>`;
+  rc.classList.add('show');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function restartGame() {
+  score=0;corrCount=0;wrongCount=0;r1Idx=0;r3Idx=0;
+  r2Matched=0;r2Attempts=0;currentRound=1;
+  updateScore();
+  document.getElementById('resultsCard').classList.remove('show');
+  document.getElementById('nextBtn').style.display='';
+  document.getElementById('roundNextBtn').style.display='';
+  updateRoundIndicator();
+  renderR1();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ── INIT ──
+updateRoundIndicator();
+renderR1();
+</script>
+</body>
+</html>

@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RTC — Conmutación de Circuitos</title>
+<link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Share+Tech+Mono&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#09100d; --bg2:#0d160f; --panel:#101810;
+  --border:#1c2e1e; --border2:#2a4030;
+  --amber:#d4920e; --amber2:#f0b830; --amberdim:#6a480a;
+  --green:#1aaa3a; --greenbright:#44ff77; --greendim:#0a3018;
+  --red:#cc2222; --redbright:#ff4444;
+  --wire:#7a5c0a; --wirelit:#f0b830; --wireactive:#44ff77;
+  --cream:#c8ba88; --dim:#1e2e20; --white:#dde8dd;
+  --copper:#b87333; --copperbright:#e8a050;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background:var(--bg);
+  font-family:'Share Tech Mono',monospace;
+  color:var(--white);
+  min-height:100vh;
+  overflow-x:hidden;
+  user-select:none;
+}
+body::after {
+  content:'';
+  position:fixed; inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.06) 3px,rgba(0,0,0,0.06) 4px);
+  pointer-events:none; z-index:900;
+}
+.page { max-width:1040px; margin:0 auto; padding:14px 12px 60px; position:relative; z-index:1; }
+
+/* HEADER */
+header {
+  text-align:center; padding:18px 0 14px;
+  border-bottom:1px solid var(--border2);
+  margin-bottom:16px;
+}
+.htag { font-size:9px; letter-spacing:6px; color:var(--amberdim); margin-bottom:6px; }
+h1 {
+  font-family:'Special Elite',serif;
+  font-size:clamp(17px,3.2vw,30px);
+  letter-spacing:3px; color:var(--amber2);
+  text-shadow:0 0 18px rgba(240,184,48,0.35);
+  margin-bottom:4px;
+}
+.hsub { font-size:10px; color:var(--amberdim); letter-spacing:3px; }
+
+/* PHONE GRID */
+.phone-section {
+  margin-bottom:14px;
+}
+.phone-section-title {
+  font-size:9px; letter-spacing:5px; color:var(--amberdim);
+  margin-bottom:10px; text-align:center;
+}
+.regions-wrap {
+  display:flex; gap:10px; flex-wrap:wrap; justify-content:center;
+}
+.region-block {
+  background:var(--panel);
+  border:1px solid var(--border2);
+  padding:10px 12px;
+  flex:1; min-width:180px;
+}
+.region-title {
+  font-size:9px; letter-spacing:4px; color:var(--amberdim);
+  margin-bottom:8px; text-align:center;
+  border-bottom:1px solid var(--border); padding-bottom:6px;
+}
+.province-block { margin-bottom:8px; }
+.province-name { font-size:9px; color:var(--copper); letter-spacing:2px; margin-bottom:5px; }
+.phones-row { display:flex; gap:6px; flex-wrap:wrap; }
+.phone-btn {
+  background:var(--bg2);
+  border:1px solid var(--border2);
+  color:var(--amberdim);
+  font-family:'Share Tech Mono',monospace;
+  font-size:10px;
+  padding:5px 10px;
+  cursor:pointer;
+  transition:all 0.18s;
+  display:flex; align-items:center; gap:5px;
+}
+.phone-btn:hover { border-color:var(--amber); color:var(--amber); }
+.phone-btn.sel-orig { border-color:var(--amber2); color:var(--amber2); background:rgba(240,184,48,0.1); box-shadow:0 0 8px rgba(240,184,48,0.25); }
+.phone-btn.sel-dest { border-color:var(--greenbright); color:var(--greenbright); background:rgba(68,255,119,0.07); box-shadow:0 0 8px rgba(68,255,119,0.2); }
+.phone-btn:disabled { opacity:0.3; cursor:default; }
+
+/* STATUS */
+.status-strip {
+  display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;
+}
+.scard {
+  background:var(--panel); border:1px solid var(--border2);
+  padding:9px 12px; flex:1; min-width:130px;
+}
+.scard-t { font-size:8px; letter-spacing:4px; color:var(--amberdim); margin-bottom:4px; }
+.scard-v { font-size:12px; font-weight:700; color:var(--amber2); }
+.scard-s { font-size:10px; color:var(--amberdim); margin-top:2px; }
+
+/* CANVAS */
+.canvas-wrap {
+  background:var(--bg2); border:1px solid var(--border2);
+  border-top:2px solid var(--amber);
+  margin-bottom:12px; overflow:hidden;
+}
+#rtcCanvas { display:block; width:100%; }
+
+/* CONTROLS */
+.controls { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-bottom:10px; }
+.cbtn {
+  background:transparent;
+  border:2px solid var(--amber); color:var(--amber);
+  font-family:'Orbitron',sans-serif; font-size:9px; letter-spacing:3px;
+  padding:10px 20px; cursor:pointer; transition:all 0.18s;
+}
+.cbtn:hover { background:var(--amber); color:var(--bg); }
+.cbtn:disabled { border-color:var(--dim); color:var(--dim); cursor:default; background:transparent; }
+.cbtn.g { border-color:var(--greenbright); color:var(--greenbright); }
+.cbtn.g:hover { background:var(--greenbright); color:var(--bg); }
+.cbtn.r { border-color:var(--red); color:var(--red); }
+.cbtn.r:hover { background:var(--red); color:var(--white); }
+.cbtn.s { border-color:var(--border2); color:var(--amberdim); }
+.cbtn.s:hover { border-color:var(--amber); color:var(--amber); background:transparent; }
+
+.speed-row { display:flex; align-items:center; gap:8px; justify-content:center; font-size:10px; color:var(--amberdim); letter-spacing:2px; margin-bottom:10px; }
+.spbtn { background:var(--panel); border:1px solid var(--border); color:var(--amberdim); font-family:'Share Tech Mono',monospace; font-size:10px; padding:4px 10px; cursor:pointer; }
+.spbtn.on { border-color:var(--amber); color:var(--amber); }
+
+/* LOG */
+.log-box {
+  background:var(--bg); border:1px solid var(--border2);
+  border-top:2px solid var(--green);
+  padding:10px 14px; height:120px; overflow-y:auto;
+  font-size:11px; line-height:1.8;
+}
+.log-box::-webkit-scrollbar { width:4px; }
+.log-box::-webkit-scrollbar-thumb { background:var(--border2); }
+.ll { opacity:0; animation:lf 0.3s forwards; }
+@keyframes lf { to{opacity:1;} }
+.lt { color:var(--amberdim); margin-right:8px; }
+.la { color:var(--amber2); }   /* estableciendo */
+.lc { color:var(--greenbright); }  /* conectado/activo */
+.ld { color:var(--amberdim); }  /* liberando */
+.le { color:var(--cream); }    /* sistema */
+.lr { color:var(--redbright); } /* rechazado/ocupado */
+</style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <div class="htag">// TELECOMUNICACIONES · TEORÍA 6 · RED TELEFÓNICA CONMUTADA</div>
+  <h1>RTC — CONMUTACIÓN DE CIRCUITOS</h1>
+  <p class="hsub">Selecciona teléfono origen y destino · El circuito se establece extremo a extremo</p>
+</header>
+
+<!-- PHONE SELECTOR -->
+<div class="phone-section">
+  <div class="phone-section-title">SELECCIONA TELÉFONO ORIGEN (ámbar) Y DESTINO (verde)</div>
+  <div class="regions-wrap" id="regionsWrap"></div>
+</div>
+
+<!-- STATUS -->
+<div class="status-strip">
+  <div class="scard">
+    <div class="scard-t">ORIGEN</div>
+    <div class="scard-v" id="sOrig" style="color:var(--amberdim)">—</div>
+    <div class="scard-s" id="sOrigSub">sin seleccionar</div>
+  </div>
+  <div class="scard">
+    <div class="scard-t">DESTINO</div>
+    <div class="scard-v" id="sDest" style="color:var(--amberdim)">—</div>
+    <div class="scard-s" id="sDestSub">sin seleccionar</div>
+  </div>
+  <div class="scard">
+    <div class="scard-t">NIVELES RECORRIDOS</div>
+    <div class="scard-v" id="sLevels" style="color:var(--amberdim)">—</div>
+    <div class="scard-s" id="sLevelsSub">calculando ruta...</div>
+  </div>
+  <div class="scard">
+    <div class="scard-t">ESTADO</div>
+    <div class="scard-v" id="sState" style="font-size:11px">Listo</div>
+    <div class="scard-s" id="sStateSub">selecciona teléfonos</div>
+  </div>
+</div>
+
+<!-- CANVAS -->
+<div class="canvas-wrap">
+  <canvas id="rtcCanvas" height="420"></canvas>
+</div>
+
+<!-- CONTROLS -->
+<div class="controls">
+  <button class="cbtn" id="btnCall" onclick="startCall()" disabled>📞 Llamar</button>
+  <button class="cbtn g" id="btnTalk" onclick="startTalk()" disabled>🗣 Hablar</button>
+  <button class="cbtn r" id="btnHang" onclick="hangUp()" disabled>📵 Colgar</button>
+  <button class="cbtn s" onclick="resetAll()">↺ Reiniciar</button>
+  <button class="cbtn s" id="btnIntruder" onclick="intruderCall()" disabled>📞 2ª llamada (ocupado)</button>
+</div>
+<div class="speed-row">
+  VEL:
+  <button class="spbtn on" id="sp1" onclick="setSpd(1)">NORMAL</button>
+  <button class="spbtn" id="sp2" onclick="setSpd(2)">RÁPIDO</button>
+  <button class="spbtn" id="sp3" onclick="setSpd(3)">MUY RÁPIDO</button>
+</div>
+
+<!-- LOG -->
+<div class="log-box" id="logBox">
+  <div class="ll"><span class="lt">[00:00]</span><span class="le">Sistema listo. Selecciona teléfono origen y destino.</span></div>
+</div>
+
+</div><!-- /page -->
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// NETWORK TOPOLOGY
+// ═══════════════════════════════════════════════════════════
+// Tree hierarchy:
+// Level 0: phones
+// Level 1: local exchanges (centrales locales)
+// Level 2: provincial exchanges
+// Level 3: regional exchanges
+// Level 4: national exchange
+
+const NETWORK = {
+  national: { id:'NAC', label:'C. Nacional', city:'Madrid', level:4 },
+  regional: [
+    { id:'REG_N', label:'C. Regional Norte',  city:'Bilbao',   level:3, parent:'NAC' },
+    { id:'REG_C', label:'C. Regional Centro', city:'Madrid',   level:3, parent:'NAC' },
+    { id:'REG_S', label:'C. Regional Sur',    city:'Sevilla',  level:3, parent:'NAC' },
+  ],
+  provincial: [
+    { id:'PRV_GIP', label:'C. Provincial Gipuzkoa', city:'San Sebastián', level:2, parent:'REG_N' },
+    { id:'PRV_VIZ', label:'C. Provincial Vizcaya',  city:'Bilbao',        level:2, parent:'REG_N' },
+    { id:'PRV_MAD', label:'C. Provincial Madrid',   city:'Madrid',        level:2, parent:'REG_C' },
+    { id:'PRV_BCN', label:'C. Provincial Barcelona',city:'Barcelona',     level:2, parent:'REG_C' },
+    { id:'PRV_SEV', label:'C. Provincial Sevilla',  city:'Sevilla',       level:2, parent:'REG_S' },
+    { id:'PRV_MAL', label:'C. Provincial Málaga',   city:'Málaga',        level:2, parent:'REG_S' },
+  ],
+  local: [
+    { id:'LOC_SSB', label:'C. Local S.Sebastián', city:'San Sebastián', level:1, parent:'PRV_GIP' },
+    { id:'LOC_BIL', label:'C. Local Bilbao',      city:'Bilbao',        level:1, parent:'PRV_VIZ' },
+    { id:'LOC_MAD', label:'C. Local Madrid',      city:'Madrid',        level:1, parent:'PRV_MAD' },
+    { id:'LOC_BCN', label:'C. Local Barcelona',   city:'Barcelona',     level:1, parent:'PRV_BCN' },
+    { id:'LOC_SEV', label:'C. Local Sevilla',     city:'Sevilla',       level:1, parent:'PRV_SEV' },
+    { id:'LOC_MAL', label:'C. Local Málaga',      city:'Málaga',        level:1, parent:'PRV_MAL' },
+  ],
+  phones: [
+    { id:'PH_SSB1', label:'Casa García',       city:'San Sebastián', num:'943 21 10 01', parent:'LOC_SSB', region:'Norte' },
+    { id:'PH_SSB2', label:'Bar Txoko',         city:'San Sebastián', num:'943 21 10 02', parent:'LOC_SSB', region:'Norte' },
+    { id:'PH_BIL1', label:'Casa Martínez',     city:'Bilbao',        num:'944 32 20 01', parent:'LOC_BIL', region:'Norte' },
+    { id:'PH_BIL2', label:'Oficina Guggenheim',city:'Bilbao',        num:'944 32 20 02', parent:'LOC_BIL', region:'Norte' },
+    { id:'PH_MAD1', label:'Casa López',        city:'Madrid',        num:'91 543 10 01', parent:'LOC_MAD', region:'Centro' },
+    { id:'PH_MAD2', label:'Ofic. Telefónica',  city:'Madrid',        num:'91 543 10 02', parent:'LOC_MAD', region:'Centro' },
+    { id:'PH_BCN1', label:'Casa Puig',         city:'Barcelona',     num:'93 412 10 01', parent:'LOC_BCN', region:'Centro' },
+    { id:'PH_BCN2', label:'Bar Rambla',        city:'Barcelona',     num:'93 412 10 02', parent:'LOC_BCN', region:'Centro' },
+    { id:'PH_SEV1', label:'Casa Fernández',    city:'Sevilla',       num:'954 22 10 01', parent:'LOC_SEV', region:'Sur' },
+    { id:'PH_SEV2', label:'Bar Giralda',       city:'Sevilla',       num:'954 22 10 02', parent:'LOC_SEV', region:'Sur' },
+    { id:'PH_MAL1', label:'Casa Ruiz',         city:'Málaga',        num:'952 33 10 01', parent:'LOC_MAL', region:'Sur' },
+    { id:'PH_MAL2', label:'Hotel Sol',         city:'Málaga',        num:'952 33 10 02', parent:'LOC_MAL', region:'Sur' },
+  ]
+};
+
+// Build flat node map
+const NODES = {};
+[NETWORK.national, ...NETWORK.regional, ...NETWORK.provincial, ...NETWORK.local, ...NETWORK.phones]
+  .forEach(n => NODES[n.id] = n);
+
+// Get full path from phone up to root
+function getPath(phoneId) {
+  const path = [];
+  let cur = NODES[phoneId];
+  while (cur) {
+    path.push(cur.id);
+    cur = cur.parent ? NODES[cur.parent] : null;
+  }
+  return path; // [phone, local, provincial, regional?, national?]
+}
+
+// Find circuit path between two phones
+function findCircuit(origId, destId) {
+  const pathO = getPath(origId); // orig → ... → NAC
+  const pathD = getPath(destId); // dest → ... → NAC
+  // Find lowest common ancestor
+  const setO = new Set(pathO);
+  let lca = null;
+  for (const id of pathD) {
+    if (setO.has(id)) { lca = id; break; }
+  }
+  // Circuit: orig path up to LCA, then dest path from LCA down (reversed)
+  const upPath  = pathO.slice(0, pathO.indexOf(lca) + 1);
+  const downPath = pathD.slice(0, pathD.indexOf(lca)).reverse();
+  return [...upPath, ...downPath]; // full circuit node sequence
+}
+
+// ═══════════════════════════════════════════════════════════
+// UI — BUILD PHONE SELECTOR
+// ═══════════════════════════════════════════════════════════
+const REGIONS = ['Norte','Centro','Sur'];
+const REGION_COLORS = { Norte:'#d4920e', Centro:'#2a7a9a', Sur:'#7a3a9a' };
+
+function buildPhoneUI() {
+  const wrap = document.getElementById('regionsWrap');
+  REGIONS.forEach(reg => {
+    const block = document.createElement('div');
+    block.className = 'region-block';
+    block.innerHTML = `<div class="region-title" style="color:${REGION_COLORS[reg]}">${reg.toUpperCase()}</div>`;
+
+    // Group phones by city in this region
+    const cities = [...new Set(NETWORK.phones.filter(p=>p.region===reg).map(p=>p.city))];
+    cities.forEach(city => {
+      const pb = document.createElement('div');
+      pb.className = 'province-block';
+      pb.innerHTML = `<div class="province-name">${city}</div><div class="phones-row" id="row_${city.replace(/\s/g,'_')}"></div>`;
+      block.appendChild(pb);
+    });
+    wrap.appendChild(block);
+  });
+
+  NETWORK.phones.forEach(ph => {
+    const row = document.getElementById('row_'+ph.city.replace(/\s/g,'_'));
+    if (!row) return;
+    const btn = document.createElement('button');
+    btn.className = 'phone-btn';
+    btn.id = 'pbtn_'+ph.id;
+    btn.innerHTML = `📞 ${ph.label}`;
+    btn.title = ph.num;
+    btn.onclick = () => selectPhone(ph.id);
+    row.appendChild(btn);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// CANVAS
+// ═══════════════════════════════════════════════════════════
+const canvas = document.getElementById('rtcCanvas');
+const ctx = canvas.getContext('2d');
+let W, H;
+function resize() { W = canvas.parentElement.clientWidth; H = 420; canvas.width = W; canvas.height = H; }
+resize();
+window.addEventListener('resize', () => { resize(); computeLayout(); redraw(); });
+
+// ── Node positions computed from topology ──────────────────
+let nodePos = {}; // id → {x, y}
+
+function computeLayout() {
+  nodePos = {};
+  const pad = 36, u = W - pad*2;
+  // Y levels (canvas split into 5 rows)
+  // Row 0 (top): phones origin side
+  // Row 1: local exchanges
+  // Row 2: provincial exchanges
+  // Row 3: regional exchanges
+  // Row 4 (mid): national exchange
+  // (mirror below for dest side)
+  // We'll put the tree in a vertical layout:
+  // top = phones, bottom-center = national
+  // Actually let's do it left-right with hierarchy vertical:
+  // Y=5%  → phones
+  // Y=22% → local
+  // Y=40% → provincial
+  // Y=60% → regional
+  // Y=78% → national (center)
+  // Y=60% → regional (right side)
+  // Y=40% → provincial (right side)
+  // Y=22% → local (right side)
+  // Y=5%  → phones (right side)
+  // This is a tree so we lay out left cities on left, right cities on right
+
+  const cities = ['San Sebastián','Bilbao','Madrid','Barcelona','Sevilla','Málaga'];
+  const nCities = cities.length;
+  const cityX = {};
+  cities.forEach((c,i) => { cityX[c] = pad + u * (i / (nCities-1)); });
+
+  // Phones: y = 6% H, spaced within city column
+  NETWORK.phones.forEach(ph => {
+    const siblings = NETWORK.phones.filter(p=>p.city===ph.city);
+    const si = siblings.findIndex(p=>p.id===ph.id);
+    const spread = 22;
+    const cx = cityX[ph.city];
+    nodePos[ph.id] = { x: cx + (si - (siblings.length-1)/2) * spread, y: H*0.06 };
+  });
+
+  // Local: y = 22% H
+  NETWORK.local.forEach(n => { nodePos[n.id] = { x: cityX[n.city], y: H*0.22 }; });
+
+  // Provincial: y = 40% H
+  NETWORK.provincial.forEach(n => { nodePos[n.id] = { x: cityX[n.city], y: H*0.40 }; });
+
+  // Regional: y = 60% H — spread across 3 positions
+  const regCities = { REG_N: 'Bilbao', REG_C: 'Madrid', REG_S: 'Sevilla' };
+  NETWORK.regional.forEach(n => { nodePos[n.id] = { x: cityX[regCities[n.id]], y: H*0.62 }; });
+
+  // National: y = 80% H, centered
+  nodePos['NAC'] = { x: W/2, y: H*0.80 };
+}
+
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+let selOrig = null, selDest = null;
+let circuit = []; // full node sequence
+let litNodes = new Set();    // nodes currently lit (amber = establishing)
+let activeNodes = new Set(); // nodes fully active (green = call live)
+let litLinks = [];   // {a,b,state} state: 'establishing'|'active'|'releasing'
+let phase = 'idle'; // idle | establishing | active | releasing
+let spd = 1;
+let callTimer = null, callSecs = 0;
+let rafId = null;
+let pulsePhase = 0; // for voice animation
+let stepIdx = 0;
+let stepTimer = null;
+let intruderActive = false;
+let intruderNodes = []; // nodes for rejected call
+let intruderTimer = null;
+
+const BASE_STEP = 600; // ms per hop at speed 1
+
+// ═══════════════════════════════════════════════════════════
+// PHONE SELECTION
+// ═══════════════════════════════════════════════════════════
+function selectPhone(id) {
+  if (phase !== 'idle') return;
+  if (id === selOrig) { selOrig = null; }
+  else if (id === selDest) { selDest = null; }
+  else if (!selOrig) { selOrig = id; }
+  else if (!selDest && id !== selOrig) { selDest = id; }
+  else {
+    // Replace whichever was selected last — cycle
+    selDest = id === selOrig ? null : id;
+  }
+  updatePhoneButtons();
+  updateStatusCards();
+  updateCircuitPreview();
+  updateControlButtons();
+  redraw();
+}
+
+function updatePhoneButtons() {
+  NETWORK.phones.forEach(ph => {
+    const btn = document.getElementById('pbtn_'+ph.id);
+    if (!btn) return;
+    btn.classList.remove('sel-orig','sel-dest');
+    if (ph.id === selOrig) btn.classList.add('sel-orig');
+    if (ph.id === selDest) btn.classList.add('sel-dest');
+  });
+}
+
+function updateStatusCards() {
+  const o = selOrig ? NODES[selOrig] : null;
+  const d = selDest ? NODES[selDest] : null;
+  document.getElementById('sOrig').textContent = o ? o.label : '—';
+  document.getElementById('sOrig').style.color = o ? 'var(--amber2)' : 'var(--amberdim)';
+  document.getElementById('sOrigSub').textContent = o ? o.city+' · '+o.num : 'sin seleccionar';
+  document.getElementById('sDest').textContent = d ? d.label : '—';
+  document.getElementById('sDest').style.color = d ? 'var(--greenbright)' : 'var(--amberdim)';
+  document.getElementById('sDestSub').textContent = d ? d.city+' · '+d.num : 'sin seleccionar';
+
+  if (o && d) {
+    circuit = findCircuit(selOrig, selDest);
+    const hops = circuit.length - 1;
+    // Find deepest exchange level
+    const maxLevel = Math.max(...circuit.map(id => NODES[id]?.level || 0));
+    const levelNames = ['','Central Local','Central Provincial','Central Regional','Central Nacional'];
+    document.getElementById('sLevels').textContent = hops + ' tramos';
+    document.getElementById('sLevels').style.color = 'var(--amber2)';
+    document.getElementById('sLevelsSub').textContent = `sube hasta ${levelNames[maxLevel]}`;
+  } else {
+    circuit = [];
+    document.getElementById('sLevels').textContent = '—';
+    document.getElementById('sLevels').style.color = 'var(--amberdim)';
+    document.getElementById('sLevelsSub').textContent = 'selecciona ambos teléfonos';
+  }
+}
+
+function updateCircuitPreview() {
+  litNodes = new Set();
+  litLinks = [];
+  if (selOrig) litNodes.add(selOrig);
+  if (selDest) litNodes.add(selDest);
+}
+
+function updateControlButtons() {
+  const ready = selOrig && selDest && circuit.length > 0;
+  document.getElementById('btnCall').disabled = !ready || phase !== 'idle';
+  document.getElementById('btnTalk').disabled = phase !== 'active_ready';
+  document.getElementById('btnHang').disabled = phase !== 'talking';
+  document.getElementById('btnIntruder').disabled = phase !== 'talking';
+}
+
+// ═══════════════════════════════════════════════════════════
+// CALL PHASES
+// ═══════════════════════════════════════════════════════════
+function startCall() {
+  if (!selOrig || !selDest || phase !== 'idle') return;
+  phase = 'establishing';
+  litNodes = new Set([selOrig]);
+  litLinks = [];
+  activeNodes = new Set();
+  stepIdx = 0;
+  updateControlButtons();
+  document.getElementById('sState').textContent = 'Estableciendo...';
+  document.getElementById('sStateSub').textContent = 'reservando tramos';
+  document.getElementById('sState').style.color = 'var(--amber2)';
+  addLog('la', `📞 ${NODES[selOrig].label} (${NODES[selOrig].city}) marca ${NODES[selDest].num}`);
+  addLog('la', `Estableciendo circuito: ${circuit.length-1} tramos a reservar`);
+  disablePhoneButtons();
+  scheduleNextHop();
+  startRaf();
+}
+
+function scheduleNextHop() {
+  if (stepIdx >= circuit.length - 1) {
+    // All hops established
+    setTimeout(() => {
+      phase = 'active_ready';
+      updateControlButtons();
+      document.getElementById('sState').textContent = 'Circuito listo';
+      document.getElementById('sStateSub').textContent = '☎ sonando en destino...';
+      document.getElementById('sState').style.color = 'var(--greenbright)';
+      addLog('lc', `✓ Circuito completo establecido de extremo a extremo`);
+      addLog('lc', `Sonando en ${NODES[selDest].label} (${NODES[selDest].city})...`);
+    }, 400/spd);
+    return;
+  }
+
+  stepTimer = setTimeout(() => {
+    const from = circuit[stepIdx];
+    const to   = circuit[stepIdx+1];
+    litNodes.add(to);
+    litLinks.push({ a:from, b:to, state:'establishing' });
+    const fromN = NODES[from], toN = NODES[to];
+    const levelNames = {1:'Central Local',2:'Central Provincial',3:'Central Regional',4:'Central Nacional'};
+    if (toN.level) {
+      addLog('la', `→ Reservando tramo: ${fromN.label||fromN.city} → ${levelNames[toN.level]||toN.label} (${toN.city})`);
+    } else {
+      addLog('la', `→ Llegando a teléfono destino: ${toN.label} (${toN.city})`);
+    }
+    stepIdx++;
+    scheduleNextHop();
+  }, BASE_STEP/spd);
+}
+
+function startTalk() {
+  if (phase !== 'active_ready') return;
+  phase = 'talking';
+  // Mark all links and nodes as active (green)
+  litLinks.forEach(lk => lk.state = 'active');
+  circuit.forEach(id => { litNodes.add(id); activeNodes.add(id); });
+  updateControlButtons();
+  document.getElementById('sState').textContent = 'LLAMADA ACTIVA';
+  document.getElementById('sStateSub').textContent = 'circuito ocupado';
+  document.getElementById('sState').style.color = 'var(--greenbright)';
+  addLog('lc', `🗣 Llamada en curso. Circuito RESERVADO exclusivamente.`);
+  addLog('lc', `Ninguna otra llamada puede usar estos tramos.`);
+  callSecs = 0;
+  callTimer = setInterval(() => {
+    callSecs++;
+    document.getElementById('sStateSub').textContent = `circuito ocupado · ${callSecs}s`;
+  }, 1000);
+}
+
+function hangUp() {
+  if (phase !== 'talking') return;
+  clearInterval(callTimer);
+  intruderActive = false;
+  intruderNodes = [];
+  phase = 'releasing';
+  stepIdx = circuit.length - 1;
+  updateControlButtons();
+  document.getElementById('sState').textContent = 'Liberando...';
+  document.getElementById('sStateSub').textContent = 'liberando tramos';
+  document.getElementById('sState').style.color = 'var(--amberdim)';
+  addLog('ld', `📵 Colgando. Liberando circuito tramo a tramo...`);
+  scheduleRelease();
+}
+
+function scheduleRelease() {
+  if (stepIdx <= 0) {
+    setTimeout(() => {
+      phase = 'idle';
+      litLinks = [];
+      litNodes = new Set([selOrig, selDest]);
+      activeNodes = new Set();
+      updateControlButtons();
+      document.getElementById('sState').textContent = 'Liberado';
+      document.getElementById('sStateSub').textContent = 'circuito libre';
+      document.getElementById('sState').style.color = 'var(--amberdim)';
+      addLog('le', `✓ Circuito liberado. Tramos disponibles para otras llamadas.`);
+    }, 400/spd);
+    return;
+  }
+  stepTimer = setTimeout(() => {
+    const from = circuit[stepIdx-1];
+    const to   = circuit[stepIdx];
+    // Remove last link
+    litLinks = litLinks.filter(lk => !(lk.a===from&&lk.b===to) && !(lk.a===to&&lk.b===from));
+    litNodes.delete(to);
+    activeNodes.delete(to);
+    const toN = NODES[to];
+    addLog('ld', `← Liberando tramo hacia ${toN.label||toN.city}`);
+    stepIdx--;
+    scheduleRelease();
+  }, (BASE_STEP*0.7)/spd);
+}
+
+// ── Intruder call (second call on occupied circuit) ────────
+function intruderCall() {
+  if (phase !== 'talking') return;
+  intruderActive = true;
+  // Pick a phone that shares at least one circuit node
+  const sharedNode = circuit[Math.floor(circuit.length/2)]; // middle node
+  // Find phones that would use this node
+  const candidates = NETWORK.phones.filter(ph => {
+    if (ph.id === selOrig || ph.id === selDest) return false;
+    const p = getPath(ph.id);
+    return p.includes(sharedNode);
+  });
+  if (candidates.length === 0) {
+    addLog('lr', `⚠ No hay candidato para 2ª llamada en este tramo.`);
+    return;
+  }
+  const intruder = candidates[Math.floor(Math.random()*candidates.length)];
+  // Find another phone in different city for dest
+  const others = NETWORK.phones.filter(ph => ph.id !== intruder.id && ph.city !== intruder.city);
+  const intDest = others[Math.floor(Math.random()*others.length)];
+  const iCircuit = findCircuit(intruder.id, intDest.id);
+  // Find first conflict with active circuit
+  const circuitSet = new Set(circuit);
+  const conflictNode = iCircuit.find(id => circuitSet.has(id) && NODES[id]?.level >= 1);
+
+  intruderNodes = iCircuit.slice(0, iCircuit.indexOf(conflictNode)+1);
+
+  addLog('lr', `📞 2ª llamada: ${intruder.label} (${intruder.city}) → ${intDest.label} (${intDest.city})`);
+  addLog('lr', `⚠ Tramo OCUPADO en ${NODES[conflictNode]?.label||conflictNode}. Señal de COMUNICANDO.`);
+  addLog('lr', `✗ Llamada rechazada. El circuito está reservado en exclusiva.`);
+
+  intruderTimer = setTimeout(() => {
+    intruderActive = false;
+    intruderNodes = [];
+  }, 4000/spd);
+}
+
+// ═══════════════════════════════════════════════════════════
+// DRAW
+// ═══════════════════════════════════════════════════════════
+function startRaf() {
+  if (rafId) cancelAnimationFrame(rafId);
+  function loop(ts) {
+    pulsePhase = (pulsePhase + 0.04) % (Math.PI*2);
+    redraw();
+    rafId = requestAnimationFrame(loop);
+  }
+  rafId = requestAnimationFrame(loop);
+}
+
+function redraw() {
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#0d160f'; ctx.fillRect(0,0,W,H);
+
+  // Grid
+  ctx.strokeStyle='rgba(26,160,58,0.04)'; ctx.lineWidth=1;
+  for(let x=0;x<W;x+=50){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<H;y+=50){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+
+  // Level labels on left
+  const levelY = [H*0.06, H*0.22, H*0.40, H*0.62, H*0.80];
+  const levelLabels = ['Teléfonos','Centrales Locales','Centrales Provinciales','Centrales Regionales','Central Nacional'];
+  const levelCols = ['#6a480a','#5a3a08','#4a2808','#3a1808','#2a1008'];
+  ctx.save();
+  ctx.font = '8px Share Tech Mono, monospace';
+  ctx.fillStyle = 'rgba(100,72,10,0.5)';
+  levelLabels.forEach((lb,i) => {
+    ctx.fillText(lb, 4, levelY[i]+4);
+  });
+  // Horizontal level lines
+  levelY.forEach((y,i) => {
+    ctx.strokeStyle = `rgba(100,72,10,0.08)`;
+    ctx.lineWidth = 1; ctx.setLineDash([4,8]);
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
+  });
+  ctx.setLineDash([]);
+  ctx.restore();
+
+  // ── Draw all possible links (tree structure, faint) ──
+  drawTreeLinks();
+
+  // ── Draw active/establishing links ──
+  drawActiveLinks();
+
+  // ── Intruder links ──
+  if (intruderActive && intruderNodes.length > 1) {
+    drawIntruderLinks();
+  }
+
+  // ── Draw all nodes ──
+  drawAllNodes();
+
+  // ── Voice animation ──
+  if (phase === 'talking') {
+    drawVoiceAnim();
+  }
+}
+
+function drawTreeLinks() {
+  // Draw parent→child links for all nodes
+  [...NETWORK.regional, ...NETWORK.provincial, ...NETWORK.local, ...NETWORK.phones].forEach(n => {
+    const parent = NODES[n.parent];
+    if (!parent) return;
+    const p1 = nodePos[n.id], p2 = nodePos[parent.id];
+    if (!p1||!p2) return;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(42,64,32,0.6)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([3,6]);
+    ctx.beginPath(); ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y); ctx.stroke();
+    ctx.restore();
+  });
+}
+
+function drawActiveLinks() {
+  litLinks.forEach(lk => {
+    const p1 = nodePos[lk.a], p2 = nodePos[lk.b];
+    if (!p1||!p2) return;
+    const isActive = lk.state === 'active';
+    const isReleasing = lk.state === 'releasing';
+    const col = isActive ? '#44ff77' : '#f0b830';
+    const alpha = isActive ? (0.6 + 0.4*Math.sin(pulsePhase)) : 0.9;
+    ctx.save();
+    ctx.strokeStyle = col;
+    ctx.lineWidth = isActive ? 3.5 : 2.5;
+    ctx.globalAlpha = alpha;
+    ctx.shadowColor = col;
+    ctx.shadowBlur = isActive ? 12 : 8;
+    ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y); ctx.stroke();
+    ctx.restore();
+  });
+}
+
+function drawIntruderLinks() {
+  for (let i=0; i<intruderNodes.length-1; i++) {
+    const p1 = nodePos[intruderNodes[i]], p2 = nodePos[intruderNodes[i+1]];
+    if (!p1||!p2) continue;
+    // Check if this link conflicts
+    const conflicts = litLinks.some(lk =>
+      (lk.a===intruderNodes[i]&&lk.b===intruderNodes[i+1]) ||
+      (lk.b===intruderNodes[i]&&lk.a===intruderNodes[i+1])
+    );
+    const col = conflicts ? '#ff4444' : '#ff9944';
+    const alpha = 0.5 + 0.5*Math.abs(Math.sin(pulsePhase*2));
+    ctx.save();
+    ctx.strokeStyle = col;
+    ctx.lineWidth = conflicts ? 2 : 1.5;
+    ctx.globalAlpha = alpha;
+    ctx.shadowColor = col; ctx.shadowBlur = 8;
+    ctx.setLineDash(conflicts ? [4,4] : [2,6]);
+    ctx.beginPath(); ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y); ctx.stroke();
+    ctx.restore();
+  }
+  // X mark at conflict point
+  if (intruderNodes.length > 0) {
+    const lastN = intruderNodes[intruderNodes.length-1];
+    const p = nodePos[lastN];
+    if (p) {
+      const alpha = 0.6 + 0.4*Math.abs(Math.sin(pulsePhase*3));
+      ctx.save();
+      ctx.strokeStyle = '#ff4444'; ctx.lineWidth = 3;
+      ctx.globalAlpha = alpha;
+      ctx.shadowColor = '#ff4444'; ctx.shadowBlur = 12;
+      const s = 10;
+      ctx.beginPath(); ctx.moveTo(p.x-s,p.y-s); ctx.lineTo(p.x+s,p.y+s); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(p.x+s,p.y-s); ctx.lineTo(p.x-s,p.y+s); ctx.stroke();
+      ctx.font = 'bold 10px Share Tech Mono,monospace';
+      ctx.fillStyle = '#ff4444';
+      ctx.textAlign = 'center';
+      ctx.fillText('OCUPADO', p.x, p.y - 20);
+      ctx.restore();
+    }
+  }
+}
+
+function drawAllNodes() {
+  // Draw exchange nodes
+  [...NETWORK.regional, ...NETWORK.provincial, ...NETWORK.local,
+   {id:'NAC',label:'C. Nacional',city:'Madrid',level:4}].forEach(n => {
+    const p = nodePos[n.id];
+    if (!p) return;
+    const isLit = litNodes.has(n.id);
+    const isActive = activeNodes.has(n.id);
+    drawExchangeNode(p.x, p.y, n, isLit, isActive);
+  });
+
+  // Draw phone nodes
+  NETWORK.phones.forEach(ph => {
+    const p = nodePos[ph.id];
+    if (!p) return;
+    const isOrig = ph.id === selOrig;
+    const isDest = ph.id === selDest;
+    const isLit = litNodes.has(ph.id);
+    const isActive = activeNodes.has(ph.id);
+    drawPhoneNode(p.x, p.y, ph, isOrig, isDest, isLit, isActive);
+  });
+}
+
+function drawExchangeNode(x, y, node, lit, active) {
+  const r = Math.min(16, W*0.016);
+  const col = active ? '#44ff77' : (lit ? '#f0b830' : '#2a4030');
+  const strokeCol = active ? '#44ff77' : (lit ? '#f0b830' : '#3a6040');
+
+  // Glow
+  if (lit || active) {
+    ctx.save();
+    ctx.beginPath(); ctx.arc(x, y, r+6, 0, Math.PI*2);
+    const g = ctx.createRadialGradient(x,y,r,x,y,r+6);
+    g.addColorStop(0, col+'44'); g.addColorStop(1,'transparent');
+    ctx.fillStyle=g; ctx.fill(); ctx.restore();
+  }
+
+  // Node shape — square for exchanges
+  const s = r;
+  ctx.save();
+  ctx.fillStyle = lit||active ? col+'22' : '#0d160f';
+  ctx.strokeStyle = strokeCol;
+  ctx.lineWidth = lit||active ? 2 : 1;
+  if (lit||active) { ctx.shadowColor=col; ctx.shadowBlur=10; }
+  ctx.fillRect(x-s,y-s,s*2,s*2);
+  ctx.strokeRect(x-s,y-s,s*2,s*2);
+  ctx.restore();
+
+  // Level indicator dot
+  const levelCols = {1:'#7a5c0a',2:'#6a4a08',3:'#5a3808',4:'#4a2608'};
+  ctx.save();
+  ctx.fillStyle = lit ? col : (levelCols[node.level]||'#3a5030');
+  ctx.font = `bold ${Math.max(7,Math.min(9,W*0.009))}px Share Tech Mono,monospace`;
+  ctx.textAlign='center';
+  ctx.fillStyle = lit||active ? col : '#3a6040';
+  if(lit||active){ctx.shadowColor=col;ctx.shadowBlur=5;}
+  ctx.fillText(node.city, x, y+s+11);
+  ctx.restore();
+}
+
+function drawPhoneNode(x, y, ph, isOrig, isDest, lit, active) {
+  const r = Math.min(13, W*0.013);
+  let col = '#2a3a28';
+  if (isOrig) col = active ? '#44ff77' : '#f0b830';
+  else if (isDest) col = active ? '#44ff77' : '#22cc44';
+  else if (lit) col = '#f0b830';
+
+  // Glow
+  if (isOrig || isDest || lit) {
+    ctx.save();
+    const alpha = active ? (0.3+0.2*Math.sin(pulsePhase)) : 0.3;
+    ctx.beginPath(); ctx.arc(x,y,r+5,0,Math.PI*2);
+    const g = ctx.createRadialGradient(x,y,r,x,y,r+5);
+    g.addColorStop(0,col+'55'); g.addColorStop(1,'transparent');
+    ctx.fillStyle=g; ctx.globalAlpha=alpha*2; ctx.fill(); ctx.restore();
+  }
+
+  // Circle
+  ctx.save();
+  ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+  ctx.fillStyle = (isOrig||isDest||lit) ? col+'22' : '#0d160f';
+  ctx.strokeStyle = col;
+  ctx.lineWidth = (isOrig||isDest) ? 2 : 1;
+  if(isOrig||isDest||lit){ctx.shadowColor=col;ctx.shadowBlur=8;}
+  ctx.fill(); ctx.stroke(); ctx.restore();
+
+  // Phone icon
+  ctx.save();
+  ctx.font=`${Math.max(9,r)}px serif`;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('📞',x,y);
+  ctx.restore();
+
+  // Label
+  const fs = Math.max(7,Math.min(9,W*0.009));
+  ctx.save();
+  ctx.font=`${fs}px Share Tech Mono,monospace`;
+  ctx.textAlign='center';
+  ctx.fillStyle = (isOrig||isDest||lit) ? col : '#2a3a28';
+  if(isOrig||isDest){ctx.shadowColor=col;ctx.shadowBlur=4;}
+  ctx.fillText(ph.label, x, y+r+10);
+  ctx.restore();
+}
+
+function drawVoiceAnim() {
+  if (circuit.length < 2) return;
+  // Animated dot travelling along circuit
+  const totalSegments = circuit.length - 1;
+  const cycleLen = totalSegments * 60; // frames-ish
+  const t = ((pulsePhase / (Math.PI*2)) * cycleLen) % cycleLen;
+  const seg = Math.floor(t / 60 * totalSegments) % totalSegments;
+  const segT = (t / 60 * totalSegments) - seg;
+  const p1 = nodePos[circuit[seg]];
+  const p2 = nodePos[circuit[seg+1]];
+  if (!p1||!p2) return;
+  const px = p1.x + (p2.x-p1.x)*segT;
+  const py = p1.y + (p2.y-p1.y)*segT;
+
+  // Voice dot
+  ctx.save();
+  const alpha = 0.7 + 0.3*Math.sin(pulsePhase*4);
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = '#88ffaa'; ctx.shadowColor='#44ff77'; ctx.shadowBlur=16;
+  ctx.beginPath(); ctx.arc(px,py,5,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  // Second dot going other direction
+  const seg2 = (totalSegments - 1 - seg);
+  const p3 = nodePos[circuit[totalSegments - seg2 - 1]];
+  const p4 = nodePos[circuit[totalSegments - seg2]];
+  if (p3&&p4) {
+    const px2 = p3.x + (p4.x-p3.x)*(1-segT);
+    const py2 = p3.y + (p4.y-p3.y)*(1-segT);
+    ctx.save();
+    ctx.globalAlpha = alpha * 0.7;
+    ctx.fillStyle = '#aaffcc'; ctx.shadowColor='#44ff77'; ctx.shadowBlur=10;
+    ctx.beginPath(); ctx.arc(px2,py2,3.5,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════
+function disablePhoneButtons() {
+  NETWORK.phones.forEach(ph => {
+    const btn = document.getElementById('pbtn_'+ph.id);
+    if (btn) btn.disabled = true;
+  });
+}
+function enablePhoneButtons() {
+  NETWORK.phones.forEach(ph => {
+    const btn = document.getElementById('pbtn_'+ph.id);
+    if (btn) btn.disabled = false;
+  });
+}
+
+function setSpd(s) {
+  spd = s;
+  [1,2,3].forEach(i => document.getElementById(`sp${i}`).classList.toggle('on',i===s));
+}
+
+function resetAll() {
+  if (stepTimer) clearTimeout(stepTimer);
+  if (callTimer) clearInterval(callTimer);
+  if (rafId) cancelAnimationFrame(rafId);
+  if (intruderTimer) clearTimeout(intruderTimer);
+  rafId = null; intruderActive = false; intruderNodes = [];
+  selOrig = null; selDest = null; circuit = [];
+  litNodes = new Set(); activeNodes = new Set(); litLinks = [];
+  phase = 'idle'; stepIdx = 0; pulsePhase = 0;
+  enablePhoneButtons();
+  updatePhoneButtons();
+  document.getElementById('sOrig').textContent='—'; document.getElementById('sOrig').style.color='var(--amberdim)';
+  document.getElementById('sOrigSub').textContent='sin seleccionar';
+  document.getElementById('sDest').textContent='—'; document.getElementById('sDest').style.color='var(--amberdim)';
+  document.getElementById('sDestSub').textContent='sin seleccionar';
+  document.getElementById('sLevels').textContent='—'; document.getElementById('sLevels').style.color='var(--amberdim)';
+  document.getElementById('sLevelsSub').textContent='calculando ruta...';
+  document.getElementById('sState').textContent='Listo'; document.getElementById('sStateSub').textContent='selecciona teléfonos';
+  document.getElementById('sState').style.color='var(--white)';
+  updateControlButtons();
+  addLog('le','Sistema reiniciado.');
+  redraw();
+}
+
+function addLog(cls, msg) {
+  const box = document.getElementById('logBox');
+  const t = new Date();
+  const ts = `${String(t.getMinutes()).padStart(2,'0')}:${String(t.getSeconds()).padStart(2,'0')}`;
+  const d = document.createElement('div'); d.className='ll';
+  d.innerHTML=`<span class="lt">[${ts}]</span><span class="${cls}">${msg}</span>`;
+  box.appendChild(d); box.scrollTop=box.scrollHeight;
+  while(box.children.length>120) box.removeChild(box.firstChild);
+}
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+buildPhoneUI();
+computeLayout();
+redraw();
+</script>
+</body>
+</html>

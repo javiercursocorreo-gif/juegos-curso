@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Juego 8 — Trivial de Telecomunicaciones</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0f1923;
+  --card:#162030;
+  --card2:#1d2d40;
+  --border:#2a3f58;
+  --text:#e8f4f8;
+  --text2:#a8c4d8;
+  --c1:#e74c3c; --c1l:#fde8e8; /* Historia */
+  --c2:#e67e22; --c2l:#fef0e0; /* Redes */
+  --c3:#f1c40f; --c3l:#fefce0; /* Ondas */
+  --c4:#27ae60; --c4l:#e4f9ee; /* RTC */
+  --c5:#2980b9; --c5l:#e3f2fd; /* Internet */
+  --c6:#9b59b6; --c6l:#f3e8fd; /* Conexiones */
+  --gold:#f0b429;
+  --shadow:0 4px 24px rgba(0,0,0,0.4);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background:var(--bg);
+  font-family:'Nunito',sans-serif;
+  color:var(--text);
+  min-height:100vh;
+}
+.page { max-width:860px; margin:0 auto; padding:16px 14px 60px; }
+
+/* HEADER */
+header { text-align:center; padding:20px 0 16px; margin-bottom:16px; }
+.htag { font-size:10px; letter-spacing:5px; color:var(--text2); margin-bottom:8px; }
+h1 { font-family:'Fredoka One',sans-serif; font-size:clamp(24px,5vw,42px); color:var(--gold); line-height:1.1; margin-bottom:4px; }
+.hsub { font-size:13px; color:var(--text2); font-weight:600; }
+
+/* PROGRESS — QUESITOS */
+.quesitos-bar {
+  display:flex; gap:8px; justify-content:center;
+  flex-wrap:wrap; margin-bottom:18px;
+}
+.quesito {
+  width:44px; height:44px; border-radius:50%;
+  border:3px solid; display:flex; align-items:center;
+  justify-content:center; font-size:18px;
+  transition:all 0.3s; position:relative;
+}
+.quesito.empty { opacity:0.3; filter:grayscale(1); }
+.quesito.won { opacity:1; filter:none; box-shadow:0 0 12px currentColor; }
+.q1{border-color:var(--c1);color:var(--c1);}
+.q2{border-color:var(--c2);color:var(--c2);}
+.q3{border-color:var(--c3);color:var(--c3);}
+.q4{border-color:var(--c4);color:var(--c4);}
+.q5{border-color:var(--c5);color:var(--c5);}
+.q6{border-color:var(--c6);color:var(--c6);}
+
+/* SCORE CHIPS */
+.score-bar { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-bottom:18px; }
+.schip {
+  background:var(--card); border:1px solid var(--border);
+  border-radius:50px; padding:7px 16px;
+  display:flex; align-items:center; gap:7px;
+  font-size:13px; font-weight:800;
+}
+.schip .lbl { color:var(--text2); font-size:11px; font-weight:600; }
+
+/* BOARD */
+.board-wrap { margin-bottom:20px; }
+.board-title {
+  text-align:center; font-size:11px; letter-spacing:4px;
+  color:var(--text2); margin-bottom:14px; font-weight:700;
+}
+.hex-grid {
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+}
+.hex-row { display:flex; gap:8px; justify-content:center; }
+.hex-btn {
+  width:clamp(110px,18vw,150px);
+  height:clamp(90px,14vw,120px);
+  clip-path:polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%);
+  border:none; cursor:pointer;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:6px; font-family:'Nunito',sans-serif;
+  transition:all 0.18s; position:relative;
+  font-size:clamp(10px,1.8vw,13px); font-weight:800;
+  text-align:center; padding:8px 14px;
+  line-height:1.2;
+}
+.hex-btn:disabled { cursor:default; opacity:0.6; }
+.hex-btn .hicon { font-size:clamp(20px,4vw,28px); }
+.hex-btn.won { opacity:0.7; }
+.hex-btn:not(:disabled):not(.won):hover { transform:scale(1.07); filter:brightness(1.15); }
+.hex-c1{background:var(--c1);color:#fff;}
+.hex-c2{background:var(--c2);color:#fff;}
+.hex-c3{background:var(--c3);color:var(--bg);}
+.hex-c4{background:var(--c4);color:#fff;}
+.hex-c5{background:var(--c5);color:#fff;}
+.hex-c6{background:var(--c6);color:#fff;}
+.hex-center {
+  width:clamp(90px,16vw,130px);
+  height:clamp(90px,16vw,130px);
+  clip-path:polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%);
+  background:var(--gold); display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:4px;
+}
+.hex-center .hicon { font-size:clamp(22px,4vw,32px); }
+.hex-center span { font-family:'Fredoka One',sans-serif; font-size:clamp(9px,1.6vw,12px); color:var(--bg); text-align:center; line-height:1.2; }
+
+/* QUESTION PANEL */
+.q-panel {
+  background:var(--card); border-radius:16px;
+  border:2px solid var(--border); box-shadow:var(--shadow);
+  padding:24px 22px; margin-bottom:16px;
+  display:none; animation:fadeUp 0.3s ease;
+}
+.q-panel.show { display:block; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+.q-cat-badge {
+  display:inline-flex; align-items:center; gap:8px;
+  border-radius:50px; padding:6px 14px; font-size:12px;
+  font-weight:800; margin-bottom:14px; letter-spacing:1px;
+}
+.q-progress { font-size:11px; color:var(--text2); margin-bottom:14px; letter-spacing:2px; font-weight:700; }
+.q-streak { font-size:11px; color:var(--gold); font-weight:800; margin-bottom:14px; }
+.q-text {
+  font-size:clamp(14px,2.5vw,18px); font-weight:800;
+  color:var(--text); margin-bottom:18px; line-height:1.4;
+}
+.q-options { display:flex; flex-direction:column; gap:10px; }
+.q-opt {
+  background:var(--card2); border:2px solid var(--border);
+  border-radius:10px; padding:13px 16px;
+  cursor:pointer; font-family:'Nunito',sans-serif;
+  font-size:14px; font-weight:700; color:var(--text);
+  text-align:left; transition:all 0.16s;
+  display:flex; align-items:center; gap:12px;
+}
+.q-opt:hover:not(:disabled) { border-color:var(--gold); color:var(--gold); background:rgba(240,180,41,0.08); }
+.q-opt:disabled { cursor:default; }
+.q-opt.correct { background:rgba(39,174,96,0.15); border-color:#27ae60; color:#4ade80; }
+.q-opt.wrong { background:rgba(231,76,60,0.15); border-color:var(--c1); color:#f87171; text-decoration:line-through; opacity:0.6; }
+.q-opt .oletter {
+  width:26px; height:26px; border-radius:50%; flex-shrink:0;
+  background:var(--border); display:flex; align-items:center;
+  justify-content:center; font-size:12px; font-weight:900;
+}
+.feedback-box {
+  border-radius:10px; padding:13px 16px; margin-top:14px;
+  font-size:13px; font-weight:700; line-height:1.6;
+  display:none; animation:fadeUp 0.3s ease;
+}
+.feedback-box.show { display:block; }
+.feedback-box.ok { background:rgba(39,174,96,0.15); border:1px solid #27ae60; color:#4ade80; }
+.feedback-box.hint { background:rgba(240,180,41,0.1); border:1px solid var(--gold); color:var(--gold); }
+.q-streak-msg { text-align:center; font-size:13px; color:var(--gold); font-weight:800; margin-top:10px; display:none; }
+
+/* BACK BTN */
+.back-btn {
+  background:transparent; border:1px solid var(--border);
+  color:var(--text2); border-radius:50px; padding:7px 18px;
+  font-family:'Nunito',sans-serif; font-size:13px; font-weight:700;
+  cursor:pointer; transition:all 0.18s; margin-bottom:12px;
+  display:none;
+}
+.back-btn:hover { border-color:var(--text2); color:var(--text); }
+.back-btn.show { display:inline-block; }
+
+/* QUESITO WON OVERLAY */
+.quesito-won {
+  background:var(--card); border-radius:16px;
+  border:2px solid var(--gold); padding:28px 22px;
+  text-align:center; display:none; animation:fadeUp 0.4s ease;
+  box-shadow:0 0 40px rgba(240,180,41,0.2);
+}
+.quesito-won.show { display:block; }
+.qw-emoji { font-size:56px; display:block; margin-bottom:12px; }
+.qw-title { font-family:'Fredoka One',sans-serif; font-size:clamp(20px,4vw,30px); color:var(--gold); margin-bottom:8px; }
+.qw-sub { font-size:14px; color:var(--text2); margin-bottom:20px; font-weight:600; }
+.qw-continue {
+  background:var(--gold); color:var(--bg);
+  border:none; border-radius:50px; padding:12px 28px;
+  font-family:'Fredoka One',sans-serif; font-size:17px;
+  cursor:pointer; transition:all 0.18s;
+}
+.qw-continue:hover { transform:scale(1.05); filter:brightness(1.1); }
+
+/* VICTORY */
+.victory-card {
+  background:var(--card); border-radius:20px;
+  border:2px solid var(--gold); padding:36px 24px;
+  text-align:center; display:none; animation:fadeUp 0.5s ease;
+  box-shadow:0 0 60px rgba(240,180,41,0.25);
+}
+.victory-card.show { display:block; }
+.vic-emoji { font-size:72px; display:block; margin-bottom:14px; animation:bounce 1s ease infinite alternate; }
+@keyframes bounce { from{transform:translateY(0)} to{transform:translateY(-10px)} }
+.vic-title { font-family:'Fredoka One',sans-serif; font-size:clamp(24px,5vw,40px); color:var(--gold); margin-bottom:8px; }
+.vic-score { font-family:'Fredoka One',sans-serif; font-size:clamp(40px,8vw,64px); color:#fff; margin-bottom:6px; }
+.vic-sub { font-size:15px; color:var(--text2); margin-bottom:22px; font-weight:600; }
+.vic-quesitos { display:flex; gap:10px; justify-content:center; margin-bottom:24px; flex-wrap:wrap; }
+.vic-stats { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-bottom:24px; }
+.vstat { background:var(--card2); border:1px solid var(--border); border-radius:10px; padding:12px 18px; }
+.vstat-v { font-family:'Fredoka One',sans-serif; font-size:26px; color:var(--gold); }
+.vstat-l { font-size:11px; color:var(--text2); font-weight:700; margin-top:2px; }
+.restart-btn {
+  background:linear-gradient(135deg,var(--gold),#e67e22);
+  color:var(--bg); border:none; border-radius:50px;
+  padding:14px 36px; font-family:'Fredoka One',sans-serif;
+  font-size:18px; cursor:pointer; transition:all 0.2s;
+  box-shadow:0 4px 20px rgba(240,180,41,0.4);
+}
+.restart-btn:hover { transform:translateY(-2px); filter:brightness(1.1); }
+
+/* PTS POPUP */
+.pts-pop { position:fixed; font-family:'Fredoka One',sans-serif; font-size:28px; pointer-events:none; z-index:999; animation:popUp 1.1s ease forwards; }
+@keyframes popUp { 0%{opacity:1;transform:translateY(0) scale(1)} 60%{opacity:1;transform:translateY(-50px) scale(1.2)} 100%{opacity:0;transform:translateY(-90px) scale(0.9)} }
+
+@media(max-width:520px){
+  .hex-btn{width:90px;height:76px;}
+  .hex-center{width:76px;height:76px;}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <div class="htag">// TELECOMUNICACIONES · JUEGO 8 · REPASO FINAL</div>
+  <h1>🏆 Trivial de Telecomunicaciones</h1>
+  <p class="hsub">Consigue los 6 quesitos respondiendo 3 preguntas de cada categoría</p>
+</header>
+
+<div class="quesitos-bar" id="quesitosBar">
+  <div class="quesito q1 empty" id="quesito0" title="Historia">🕰</div>
+  <div class="quesito q2 empty" id="quesito1" title="Redes">📡</div>
+  <div class="quesito q3 empty" id="quesito2" title="Ondas">🌊</div>
+  <div class="quesito q4 empty" id="quesito3" title="RTC">📞</div>
+  <div class="quesito q5 empty" id="quesito4" title="Internet">🌐</div>
+  <div class="quesito q6 empty" id="quesito5" title="Conexiones">📱</div>
+</div>
+
+<div class="score-bar">
+  <div class="schip"><span>⭐</span><span id="scoreVal">0</span><span class="lbl">puntos</span></div>
+  <div class="schip"><span>🎯</span><span id="quesitosVal">0/6</span><span class="lbl">quesitos</span></div>
+  <div class="schip"><span>✅</span><span id="corrVal">0</span><span class="lbl">correctas</span></div>
+</div>
+
+<div class="board-wrap" id="boardWrap">
+  <div class="board-title">ELIGE UNA CATEGORÍA</div>
+  <div class="hex-grid">
+    <div class="hex-row">
+      <button class="hex-btn hex-c1" id="hbtn0" onclick="startCat(0)">
+        <span class="hicon">🕰</span>Historia y Evolución
+      </button>
+      <button class="hex-btn hex-c2" id="hbtn1" onclick="startCat(1)">
+        <span class="hicon">📡</span>Tipos de Redes
+      </button>
+    </div>
+    <div class="hex-row">
+      <button class="hex-btn hex-c3" id="hbtn2" onclick="startCat(2)">
+        <span class="hicon">🌊</span>Ondas y Señales
+      </button>
+      <div class="hex-center">
+        <span class="hicon">📻</span>
+        <span>TELECO TRIVIAL</span>
+      </div>
+      <button class="hex-btn hex-c4" id="hbtn3" onclick="startCat(3)">
+        <span class="hicon">📞</span>Red Telefónica
+      </button>
+    </div>
+    <div class="hex-row">
+      <button class="hex-btn hex-c5" id="hbtn4" onclick="startCat(4)">
+        <span class="hicon">🌐</span>Internet y Datos
+      </button>
+      <button class="hex-btn hex-c6" id="hbtn5" onclick="startCat(5)">
+        <span class="hicon">📱</span>Conexiones Cotidianas
+      </button>
+    </div>
+  </div>
+</div>
+
+<button class="back-btn" id="backBtn" onclick="goBack()">← Volver al tablero</button>
+
+<div class="q-panel" id="qPanel"></div>
+<div class="quesito-won" id="qWonPanel"></div>
+<div class="victory-card" id="victoryCard"></div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// QUESTIONS — 5 per category, shuffled each game
+// ═══════════════════════════════════════════════
+const CATS = [
+  {
+    id:0, name:'Historia y Evolución', icon:'🕰', cls:'hex-c1', color:'var(--c1)', light:'var(--c1l)', textDark:false,
+    questions:[
+      { q:'¿Quién inventó el teléfono en 1876?', opts:['Alexander Graham Bell','Thomas Edison','Nikola Tesla','Samuel Morse'], ans:0,
+        ok:'✅ Alexander Graham Bell patentó el teléfono en 1876. Aunque Elisha Gray también lo intentó el mismo día, Bell llegó antes al registro.' },
+      { q:'¿Qué fue el telégrafo?', opts:['El primer sistema de comunicación eléctrica a distancia usando código de puntos y rayas','El primer teléfono inalámbrico','Un sistema de transmisión de imágenes','El precursor de Internet'], ans:0,
+        ok:'✅ El telégrafo fue el primer sistema de comunicación eléctrica a distancia. Usaba el código Morse (puntos y rayas) para transmitir mensajes.' },
+      { q:'¿En qué década se lanzó el primer satélite de comunicaciones comercial?', opts:['Años 60','Años 50','Años 70','Años 80'], ans:0,
+        ok:'✅ El primer satélite de comunicaciones comercial fue Telstar 1, lanzado en 1962. Permitió las primeras transmisiones de TV en directo entre Europa y América.' },
+      { q:'¿Qué fue la "red de postas" en la historia de las comunicaciones?', opts:['Un sistema de mensajeros a caballo con relevos en puntos fijos','El primer sistema de telégrafo óptico','Una red de semáforos para barcos','El primer correo electrónico'], ans:0,
+        ok:'✅ La red de postas usaba mensajeros a caballo que cambiaban de montura en puntos fijos (postas). Fue el sistema de comunicación más rápido durante siglos.' },
+      { q:'¿Cuál fue la primera forma de telecomunicación óptica a larga distancia?', opts:['El telégrafo óptico de semáforos de Chappe','El morse óptico','La telegrafía sin hilos','Los faros de señales'], ans:0,
+        ok:'✅ El telégrafo óptico de Claude Chappe (1792) usaba torres con brazos articulados visibles desde lejos para transmitir mensajes codificados. Llegó a cubrir toda Francia.' },
+    ]
+  },
+  {
+    id:1, name:'Tipos de Redes', icon:'📡', cls:'hex-c2', color:'var(--c2)', light:'var(--c2l)', textDark:false,
+    questions:[
+      { q:'¿Qué significa LAN?', opts:['Red de Área Local','Red de Área Nacional','Red de Área Libre','Red de Alta Velocidad'], ans:0,
+        ok:'✅ LAN = Local Area Network (Red de Área Local). Es la red que conecta dispositivos en un espacio reducido como una casa, oficina o colegio.' },
+      { q:'¿Cuál es la diferencia principal entre una red WAN y una LAN?', opts:['La WAN cubre áreas geográficas muy grandes (países, continentes) y la LAN solo espacios reducidos','La WAN es inalámbrica y la LAN usa cables','La WAN es más lenta que la LAN','La WAN es solo para empresas'], ans:0,
+        ok:'✅ La WAN (Wide Area Network) conecta redes separadas geográficamente — puede abarcar países o continentes. Internet es la WAN más grande del mundo.' },
+      { q:'¿Qué tipo de red es la que creas cuando conectas tus auriculares Bluetooth al móvil?', opts:['PAN (Red de Área Personal)','LAN (Red de Área Local)','WAN (Red de Área Amplia)','MAN (Red de Área Metropolitana)'], ans:0,
+        ok:'✅ Una PAN (Personal Area Network) conecta dispositivos personales en distancias muy cortas. Bluetooth, NFC y la conexión entre tu reloj y el móvil son ejemplos de PAN.' },
+      { q:'En una topología en estrella, ¿qué pasa si el dispositivo central falla?', opts:['Toda la red deja de funcionar','Solo falla la conexión entre dos equipos','La red sigue funcionando normalmente','Los equipos se conectan entre sí directamente'], ans:0,
+        ok:'✅ En topología en estrella todos los dispositivos se conectan a un nodo central (el switch o router). Si ese nodo falla, todos pierden la conexión.' },
+      { q:'¿Qué es Internet desde el punto de vista técnico?', opts:['Una red de redes: millones de redes LAN y WAN interconectadas globalmente','Un único servidor muy grande que almacena toda la información','La red Wi-Fi de cada casa conectada a un satélite central','Un cable submarino que conecta todos los países'], ans:0,
+        ok:'✅ Internet es literalmente una "red de redes" — millones de redes de todo el mundo interconectadas usando protocolos comunes (TCP/IP).' },
+    ]
+  },
+  {
+    id:2, name:'Ondas y Señales', icon:'🌊', cls:'hex-c3', color:'var(--c3)', light:'var(--c3l)', textDark:true,
+    questions:[
+      { q:'¿Qué es la frecuencia de una onda?', opts:['El número de ciclos completos que se producen por segundo','La altura máxima de la onda','La distancia entre dos crestas','La velocidad a la que viaja la onda'], ans:0,
+        ok:'✅ La frecuencia es el número de ciclos completos por segundo. Se mide en Hercios (Hz). Una onda de 100 Hz hace 100 ciclos completos cada segundo.' },
+      { q:'¿Qué relación tiene la frecuencia con la longitud de onda?', opts:['Son inversamente proporcionales: a mayor frecuencia, menor longitud de onda','Son directamente proporcionales: a mayor frecuencia, mayor longitud de onda','No tienen ninguna relación entre sí','Depende del tipo de onda'], ans:0,
+        ok:'✅ Son inversamente proporcionales. Ondas de alta frecuencia (como los rayos X) tienen longitud de onda muy pequeña. Ondas de baja frecuencia (como las de radio AM) tienen longitud de onda enorme.' },
+      { q:'¿Qué es la amplitud de una onda?', opts:['La altura máxima de la onda desde su posición de equilibrio','El número de ciclos por segundo','La distancia entre dos crestas consecutivas','La velocidad de propagación'], ans:0,
+        ok:'✅ La amplitud es la altura máxima de la onda (desplazamiento máximo desde el punto de equilibrio). En sonido, mayor amplitud significa mayor volumen. En radio, la AM modula la amplitud.' },
+      { q:'¿En qué se diferencia una señal analógica de una digital?', opts:['La analógica varía de forma continua y la digital solo usa dos valores (0 y 1)','La analógica es más moderna que la digital','La digital se transmite por cables y la analógica por el aire','La analógica es más rápida'], ans:0,
+        ok:'✅ Una señal analógica puede tomar cualquier valor de forma continua (como el sonido de la voz). La digital solo usa dos estados: 0 o 1. Los ordenadores trabajan con señales digitales.' },
+      { q:'¿Por qué las ondas de radio FM tienen mejor calidad de sonido que las de AM?', opts:['La FM modula la frecuencia y es menos susceptible a interferencias eléctricas que la AM','La FM usa más potencia que la AM','La FM viaja más rápido que la AM','La FM usa ondas más largas que se propagan mejor'], ans:0,
+        ok:'✅ La FM (Frecuencia Modulada) codifica la información variando la frecuencia, no la amplitud. Las interferencias eléctricas afectan principalmente a la amplitud, por eso la FM suena más limpia.' },
+    ]
+  },
+  {
+    id:3, name:'Red Telefónica', icon:'📞', cls:'hex-c4', color:'var(--c4)', light:'var(--c4l)', textDark:false,
+    questions:[
+      { q:'¿Qué es la conmutación de circuitos en la RTC?', opts:['Reservar un camino físico exclusivo entre dos puntos para toda la duración de la llamada','Dividir la llamada en pequeños paquetes y enviarlos por rutas distintas','Conectar directamente dos teléfonos sin pasar por ninguna central','Usar satélites para redirigir las llamadas'], ans:0,
+        ok:'✅ En la conmutación de circuitos se reserva un circuito físico dedicado y exclusivo de extremo a extremo. Nadie más puede usar esos tramos mientras dure la llamada.' },
+      { q:'¿Qué indica la señal de "comunicando" cuando llamas a alguien?', opts:['Que el circuito entre la central y el teléfono destino ya está ocupado por otra llamada','Que el teléfono destino está apagado','Que la central está sobrecargada','Que el número no existe'], ans:0,
+        ok:'✅ La señal de comunicando (tono de ocupado) indica que uno de los tramos del circuito necesario para completar la llamada ya está reservado por otra persona.' },
+      { q:'¿Cuántos niveles tiene la jerarquía de la Red Telefónica Conmutada española?', opts:['4 niveles: local, provincial, regional y nacional','2 niveles: local y nacional','3 niveles: local, regional y nacional','5 niveles incluyendo el internacional'], ans:0,
+        ok:'✅ La RTC española tiene 4 niveles jerárquicos: Centrales Locales (ciudad), Provinciales, Regionales y la Central Nacional. La llamada sube hasta el ancestro común y baja.' },
+      { q:'¿Qué ventaja tiene la conmutación de circuitos para las llamadas de voz?', opts:['Garantiza un ancho de banda constante y retardo mínimo, ideal para voz en tiempo real','Es más barata que la conmutación de paquetes','Permite enviar más datos simultáneamente','No necesita infraestructura física'], ans:0,
+        ok:'✅ Al reservar un circuito dedicado, la calidad y el retardo son constantes durante toda la llamada. Esto es fundamental para la voz, que no tolera bien los retrasos variables.' },
+      { q:'¿Qué ocurre con el circuito reservado cuando cuelgas el teléfono?', opts:['Se libera completamente y queda disponible para otras llamadas','Permanece reservado durante 5 minutos por si vuelves a llamar','Pasa a modo de espera semi-activo','Se reutiliza automáticamente para datos'], ans:0,
+        ok:'✅ Al colgar, el circuito se libera tramo a tramo. Cada central libera los recursos y los pone a disposición de otras llamadas. Por eso en la RTC debes volver a marcar cada vez.' },
+    ]
+  },
+  {
+    id:4, name:'Internet y Datos', icon:'🌐', cls:'hex-c5', color:'var(--c5)', light:'var(--c5l)', textDark:false,
+    questions:[
+      { q:'¿Qué es la conmutación de paquetes que usa Internet?', opts:['Dividir la información en pequeños bloques que viajan independientemente y se reensamblan en destino','Reservar un canal exclusivo para cada conexión como en el teléfono','Enviar toda la información de una sola vez por el camino más corto','Comprimir los datos antes de enviarlos'], ans:0,
+        ok:'✅ Internet divide la información en paquetes numerados. Cada paquete puede tomar rutas diferentes y llegan desordenados al destino, donde se reensamblan en orden.' },
+      { q:'¿Para qué sirve el DNS (Sistema de Nombres de Dominio)?', opts:['Traducir nombres de sitios web (www.google.com) a direcciones IP numéricas','Proteger tu ordenador de virus informáticos','Comprimir los datos para que lleguen más rápido','Asignar contraseñas a las redes Wi-Fi'], ans:0,
+        ok:'✅ El DNS es como la guía telefónica de Internet. Traduce nombres legibles (www.google.com) a las direcciones IP numéricas que los ordenadores necesitan para comunicarse.' },
+      { q:'¿Qué es una dirección IP?', opts:['Un número único que identifica cada dispositivo conectado a una red','El nombre de tu proveedor de Internet','La velocidad máxima de tu conexión','El tipo de cable que usas para conectarte'], ans:0,
+        ok:'✅ Una dirección IP (ej: 192.168.1.1) es como el número de casa de tu dispositivo en Internet. Permite que los paquetes de datos sepan exactamente a dónde tienen que ir.' },
+      { q:'¿Cuál es la diferencia entre 1 GB y 1 Gb (gigabyte vs gigabit)?', opts:['1 GB = 8 Gb. Los operadores anuncian velocidades en Gb/s pero el almacenamiento se mide en GB','Son exactamente lo mismo, solo cambia la forma de escribirlo','1 Gb es más grande que 1 GB','GB es para almacenamiento de fotos y Gb es para vídeos'], ans:0,
+        ok:'✅ 1 Byte = 8 bits. Por eso 1 GB = 8 Gb. Los operadores anuncian "600 Mb/s" (megabits) pero cuando descargas un archivo de 1 GB tarda más de lo que esperarías.' },
+      { q:'¿Qué hace un router en tu casa?', opts:['Conecta tu red local (LAN) con Internet (WAN) y distribuye la conexión a todos tus dispositivos','Solo amplifica la señal Wi-Fi para que llegue a más habitaciones','Almacena copias de seguridad de tus archivos','Filtra los virus que intentan entrar a tu red'], ans:0,
+        ok:'✅ El router hace de puerta entre tu red local (LAN) e Internet (WAN). Asigna direcciones IP a todos tus dispositivos y gestiona el tráfico entre ellos e Internet.' },
+    ]
+  },
+  {
+    id:5, name:'Conexiones Cotidianas', icon:'📱', cls:'hex-c6', color:'var(--c6)', light:'var(--c6l)', textDark:false,
+    questions:[
+      { q:'¿A qué distancia máxima funciona el Bluetooth típicamente?', opts:['Unos 10 metros','Unos 100 metros','Unos 1000 metros','Ilimitada dentro de casa'], ans:0,
+        ok:'✅ El Bluetooth estándar funciona hasta unos 10 metros. Hay versiones de largo alcance (Bluetooth 5.0) que pueden llegar a 40 metros, pero el uso habitual es de corto alcance.' },
+      { q:'¿Qué significa que una red Wi-Fi sea de 5 GHz frente a 2,4 GHz?', opts:['La de 5 GHz es más rápida pero con menos alcance; la de 2,4 GHz llega más lejos pero es más lenta','La de 5 GHz es más antigua y lenta','La de 2,4 GHz solo funciona dentro de casa','Son idénticas, solo cambia el nombre comercial'], ans:0,
+        ok:'✅ La banda de 5 GHz ofrece más velocidad pero penetra peor las paredes. La de 2,4 GHz llega más lejos y atraviesa mejor los obstáculos, pero es más lenta y sufre más interferencias.' },
+      { q:'¿Qué es el NFC?', opts:['Una tecnología de comunicación inalámbrica de muy corto alcance (pocos centímetros) usada en pagos y tarjetas sin contacto','Una versión mejorada del Bluetooth para largas distancias','Un tipo de Wi-Fi para exteriores','La tecnología que usa el GPS'], ans:0,
+        ok:'✅ NFC (Near Field Communication) funciona a distancias de pocos centímetros. Se usa para pagar con el móvil, leer tarjetas de transporte, y compartir datos entre dispositivos muy cercanos.' },
+      { q:'¿Por qué el GPS no gasta datos del bono móvil para localizar tu posición?', opts:['Porque recibe señales de satélites de forma pasiva — no envía nada ni necesita Internet','Porque usa el Wi-Fi de las casas cercanas para ubicarse','Porque los datos del GPS están incluidos gratis en todas las tarifas','Porque funciona con una conexión especial separada del bono'], ans:0,
+        ok:'✅ El GPS es un receptor pasivo: escucha las señales de los satélites pero no transmite nada. Es como escuchar la radio — no gastas datos porque no envías información.' },
+      { q:'¿Cuándo gasta datos de tu bono móvil ver un vídeo en YouTube?', opts:['Solo cuando estás usando la red 4G/5G del operador, no cuando usas Wi-Fi','Siempre que ves un vídeo en YouTube, independientemente de la red','Solo si el vídeo es en alta definición (HD)','Nunca, porque YouTube es gratuito'], ans:0,
+        ok:'✅ El bono de datos solo se consume cuando usas la red móvil del operador (4G/5G). Con Wi-Fi, el vídeo llega por tu fibra o ADSL de casa — el bono no se toca.' },
+    ]
+  },
+];
+
+// ═══════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════
+let score = 0, corrCount = 0, wrongCount = 0;
+let quesitos = [false,false,false,false,false,false];
+let currentCat = null;
+let catProgress = [0,0,0,0,0,0]; // preguntas correctas por categoría en sesión actual
+let catQIdx = 0;          // índice de la pregunta actual dentro del array mezclado
+let catQList = [];         // preguntas mezcladas de la categoría actual
+let qAnswered = false;
+
+// ═══════════════════════════════════════════════
+// BOARD
+// ═══════════════════════════════════════════════
+function startCat(catId) {
+  currentCat = catId;
+  catQIdx = 0;
+  // Mezclar preguntas de la categoría
+  catQList = [...CATS[catId].questions].sort(()=>Math.random()-0.5);
+  catProgress[catId] = 0;
+
+  document.getElementById('boardWrap').style.display = 'none';
+  document.getElementById('qWonPanel').classList.remove('show');
+  document.getElementById('backBtn').classList.add('show');
+  renderQuestion();
+}
+
+function goBack() {
+  document.getElementById('boardWrap').style.display = 'block';
+  document.getElementById('qPanel').classList.remove('show');
+  document.getElementById('qWonPanel').classList.remove('show');
+  document.getElementById('backBtn').classList.remove('show');
+  currentCat = null;
+}
+
+// ═══════════════════════════════════════════════
+// RENDER QUESTION
+// ═══════════════════════════════════════════════
+function renderQuestion() {
+  const cat = CATS[currentCat];
+  const q = catQList[catQIdx % catQList.length];
+  qAnswered = false;
+
+  // Shuffle options
+  const optsShuffled = q.opts.map((o,i)=>({text:o,correct:i===q.ans})).sort(()=>Math.random()-0.5);
+  const letters = ['A','B','C','D'];
+  const optsHTML = optsShuffled.map((o,i)=>`
+    <button class="q-opt" id="qo${i}" onclick="answerQ(${i},${o.correct})">
+      <span class="oletter">${letters[i]}</span>
+      <span>${o.text}</span>
+    </button>`).join('');
+
+  const needed = 3;
+  const progress = catProgress[currentCat];
+
+  document.getElementById('qPanel').innerHTML = `
+    <div class="q-cat-badge" style="background:${cat.color}20;border:1px solid ${cat.color};color:${cat.color}">
+      ${cat.icon} ${cat.name}
+    </div>
+    <div class="q-progress">PREGUNTA ${progress+1} DE ${needed} PARA EL QUESITO</div>
+    <div class="q-streak" id="qStreakBar">${'⬤'.repeat(progress)}${'○'.repeat(needed-progress)} — ${progress} aciertos seguidos</div>
+    <div class="q-text">${q.q}</div>
+    <div class="q-options">${optsHTML}</div>
+    <div class="feedback-box" id="qfb"></div>`;
+
+  document.getElementById('qPanel').classList.add('show');
+}
+
+// ═══════════════════════════════════════════════
+// ANSWER
+// ═══════════════════════════════════════════════
+function answerQ(idx, correct) {
+  if (qAnswered) return;
+  const cat = CATS[currentCat];
+  const q = catQList[catQIdx % catQList.length];
+  const firstTry = !document.querySelector('.q-opt.wrong');
+
+  if (correct) {
+    qAnswered = true;
+    document.getElementById('qo'+idx).classList.add('correct');
+    document.querySelectorAll('.q-opt').forEach(b=>b.disabled=true);
+    const pts = firstTry ? 100 : 50;
+    score += pts; corrCount++;
+    updateScore();
+    showFb(true, q.ok);
+    showPop('+'+pts, '#27ae60');
+
+    catProgress[currentCat]++;
+    catQIdx++;
+
+    if (catProgress[currentCat] >= 3) {
+      // ¡Quesito ganado!
+      setTimeout(()=>showQuesito(currentCat), 1600);
+    } else {
+      setTimeout(()=>renderQuestion(), 1600);
+    }
+  } else {
+    qAnswered = false;
+    document.getElementById('qo'+idx).classList.add('wrong');
+    document.getElementById('qo'+idx).disabled = true;
+    score = Math.max(0, score-10); wrongCount++;
+    updateScore();
+    // Hint permanente — sin timeout
+    const fb = document.getElementById('qfb');
+    fb.className = 'feedback-box hint show';
+    fb.textContent = '💡 Esa no es. Sigue intentándolo — lee bien las opciones restantes.';
+    showPop('-10','#e74c3c');
+  }
+}
+
+function showFb(ok, msg) {
+  const fb = document.getElementById('qfb');
+  if (!fb) return;
+  fb.className = 'feedback-box '+(ok?'ok':'hint')+' show';
+  fb.textContent = msg;
+}
+
+// ═══════════════════════════════════════════════
+// QUESITO WON
+// ═══════════════════════════════════════════════
+function showQuesito(catId) {
+  quesitos[catId] = true;
+  const wonCount = quesitos.filter(Boolean).length;
+
+  // Update quesito visual
+  document.getElementById('quesito'+catId).classList.remove('empty');
+  document.getElementById('quesito'+catId).classList.add('won');
+
+  // Disable hex button
+  const hbtn = document.getElementById('hbtn'+catId);
+  if (hbtn) { hbtn.disabled=true; hbtn.classList.add('won'); hbtn.innerHTML += ' ✓'; }
+
+  document.getElementById('qPanel').classList.remove('show');
+  document.getElementById('backBtn').classList.remove('show');
+
+  if (wonCount >= 6) {
+    showVictory();
+    return;
+  }
+
+  const cat = CATS[catId];
+  const wonPanel = document.getElementById('qWonPanel');
+  wonPanel.innerHTML = `
+    <span class="qw-emoji">${cat.icon}</span>
+    <div class="qw-title">¡Quesito de ${cat.name} conseguido!</div>
+    <div class="qw-sub">Has respondido 3 preguntas correctamente. Te quedan ${6-wonCount} quesitos.<br>
+    Total acumulado: <strong style="color:var(--gold)">${score} puntos</strong></div>
+    <button class="qw-continue" onclick="returnToBoard()">Volver al tablero →</button>`;
+  wonPanel.classList.add('show');
+
+  updateScore();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function returnToBoard() {
+  document.getElementById('qWonPanel').classList.remove('show');
+  document.getElementById('boardWrap').style.display = 'block';
+  currentCat = null;
+}
+
+// ═══════════════════════════════════════════════
+// VICTORY
+// ═══════════════════════════════════════════════
+function showVictory() {
+  document.getElementById('boardWrap').style.display='none';
+  document.getElementById('qWonPanel').classList.remove('show');
+
+  const qHTML = CATS.map((c,i)=>`
+    <div class="quesito q${i+1} won" style="width:50px;height:50px;font-size:22px">
+      ${c.icon}
+    </div>`).join('');
+
+  const vc = document.getElementById('victoryCard');
+  vc.innerHTML = `
+    <span class="vic-emoji">🏆</span>
+    <div class="vic-title">¡Eres un experto en Telecomunicaciones!</div>
+    <div class="vic-score">${score} pts</div>
+    <div class="vic-sub">Has conseguido los 6 quesitos. ¡Dominas todo el curso!</div>
+    <div class="vic-quesitos">${qHTML}</div>
+    <div class="vic-stats">
+      <div class="vstat"><div class="vstat-v">${corrCount}</div><div class="vstat-l">✅ Respuestas correctas</div></div>
+      <div class="vstat"><div class="vstat-v">${wrongCount}</div><div class="vstat-l">❌ Fallos</div></div>
+      <div class="vstat"><div class="vstat-v">6/6</div><div class="vstat-l">🎯 Quesitos</div></div>
+    </div>
+    <button class="restart-btn" onclick="restartGame()">🔄 Jugar de nuevo</button>`;
+  vc.classList.add('show');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ═══════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════
+function updateScore() {
+  document.getElementById('scoreVal').textContent = score;
+  document.getElementById('corrVal').textContent = corrCount;
+  document.getElementById('quesitosVal').textContent = quesitos.filter(Boolean).length+'/6';
+}
+
+function showPop(text, color) {
+  const el = document.createElement('div');
+  el.className='pts-pop'; el.textContent=text; el.style.color=color;
+  const bar = document.querySelector('.score-bar');
+  const r = bar.getBoundingClientRect();
+  el.style.top=(r.top+window.scrollY-10)+'px';
+  el.style.left=(r.left+r.width/2-24)+'px';
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),1200);
+}
+
+function restartGame() {
+  score=0; corrCount=0; wrongCount=0;
+  quesitos=[false,false,false,false,false,false];
+  catProgress=[0,0,0,0,0,0];
+  currentCat=null; catQIdx=0;
+
+  // Reset quesitos bar
+  CATS.forEach((_,i)=>{
+    document.getElementById('quesito'+i).className=`quesito q${i+1} empty`;
+  });
+  // Reset hex buttons
+  CATS.forEach((_,i)=>{
+    const btn=document.getElementById('hbtn'+i);
+    if(btn){ btn.disabled=false; btn.classList.remove('won');
+      const txt=btn.innerHTML.replace(' ✓',''); btn.innerHTML=txt; }
+  });
+
+  updateScore();
+  document.getElementById('victoryCard').classList.remove('show');
+  document.getElementById('boardWrap').style.display='block';
+  document.getElementById('backBtn').classList.remove('show');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// INIT
+updateScore();
+</script>
+</body>
+</html>

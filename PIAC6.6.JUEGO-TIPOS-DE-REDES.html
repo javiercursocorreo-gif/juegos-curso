@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Juego 2 – Tipos de Redes de Telecomunicaciones</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:        #050d14;
+  --bg2:       #091520;
+  --bg3:       #0d1f2d;
+  --panel:     #0a1a28;
+  --border:    #1a3a50;
+  --cyan:      #00e5ff;
+  --cyan-dim:  #007a8a;
+  --orange:    #ff6d00;
+  --orange-dim:#7a3300;
+  --green:     #00e676;
+  --red:       #ff1744;
+  --yellow:    #ffd600;
+  --white:     #e8f4f8;
+  --gray:      #4a7a96;
+  --purple:    #aa00ff;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--white);
+  font-family: 'Exo 2', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Circuit background */
+body::before {
+  content:'';
+  position:fixed; inset:0;
+  background-image:
+    linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+  background-size: 32px 32px;
+  pointer-events:none; z-index:0;
+}
+
+body::after {
+  content:'';
+  position:fixed; inset:0;
+  background:
+    radial-gradient(ellipse at 15% 50%, rgba(0,229,255,0.06) 0%, transparent 55%),
+    radial-gradient(ellipse at 85% 30%, rgba(255,109,0,0.06) 0%, transparent 50%);
+  pointer-events:none; z-index:0;
+}
+
+.page {
+  position:relative; z-index:1;
+  max-width:1000px;
+  margin:0 auto;
+  padding:20px 16px 60px;
+}
+
+/* ── HEADER ── */
+header {
+  text-align:center;
+  margin-bottom:22px;
+  padding:28px 20px 22px;
+  background: var(--panel);
+  border:1px solid var(--border);
+  border-top:3px solid var(--cyan);
+  position:relative;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
+}
+
+.header-tag {
+  font-family:'Share Tech Mono', monospace;
+  font-size:11px;
+  color: var(--cyan-dim);
+  letter-spacing:4px;
+  margin-bottom:8px;
+}
+
+h1 {
+  font-size: clamp(22px, 5vw, 40px);
+  font-weight:900;
+  letter-spacing:2px;
+  line-height:1.1;
+  background: linear-gradient(135deg, var(--white) 40%, var(--cyan));
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+  margin-bottom:8px;
+}
+
+.header-sub {
+  font-size:14px;
+  color:var(--gray);
+  font-weight:300;
+}
+
+/* ── SCORE BAR ── */
+.scorebar {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:10px 20px;
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:3px;
+  margin-bottom:18px;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.scores {
+  display:flex;
+  gap:24px;
+}
+
+.score-item { text-align:center; }
+.score-val {
+  font-family:'Share Tech Mono', monospace;
+  font-size:26px;
+  line-height:1;
+}
+.score-val.c { color:var(--green); }
+.score-val.w { color:var(--red); }
+.score-val.l { color:var(--yellow); }
+.score-lbl {
+  font-size:10px;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  color:var(--gray);
+}
+
+.round-badge {
+  font-family:'Share Tech Mono', monospace;
+  font-size:12px;
+  color:var(--cyan);
+  letter-spacing:2px;
+  border:1px solid var(--cyan-dim);
+  padding:6px 14px;
+  border-radius:2px;
+}
+
+/* ── INSTRUCTIONS ── */
+.instructions {
+  background:rgba(0,229,255,0.04);
+  border:1px solid rgba(0,229,255,0.15);
+  border-left:3px solid var(--cyan);
+  padding:12px 18px;
+  font-size:14px;
+  color:var(--gray);
+  margin-bottom:20px;
+  line-height:1.6;
+  border-radius:0 3px 3px 0;
+}
+.instructions strong { color:var(--white); }
+
+/* ── ROUNDS INDICATOR ── */
+.rounds-nav {
+  display:flex;
+  gap:8px;
+  justify-content:center;
+  margin-bottom:20px;
+}
+
+.round-dot {
+  width:32px; height:32px;
+  border-radius:50%;
+  border:2px solid var(--border);
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Share Tech Mono', monospace;
+  font-size:11px;
+  color:var(--gray);
+  transition: all 0.3s;
+}
+.round-dot.active { border-color:var(--cyan); color:var(--cyan); background:rgba(0,229,255,0.1); }
+.round-dot.done   { border-color:var(--green); color:var(--green); background:rgba(0,230,118,0.1); }
+
+/* ── GAME AREA ── */
+.game-area {
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:16px;
+  margin-bottom:20px;
+}
+
+@media(max-width:600px) {
+  .game-area { grid-template-columns:1fr; }
+}
+
+/* Drop zones */
+.drop-zone-wrap {
+  background:var(--panel);
+  border:2px solid var(--border);
+  border-radius:4px;
+  overflow:hidden;
+  transition: border-color 0.2s;
+}
+
+.drop-zone-wrap.cable { border-top:3px solid var(--cyan); }
+.drop-zone-wrap.wireless { border-top:3px solid var(--orange); }
+.drop-zone-wrap.local { border-top:3px solid var(--purple); }
+.drop-zone-wrap.global { border-top:3px solid var(--yellow); }
+
+.zone-header {
+  padding:12px 16px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  border-bottom:1px solid var(--border);
+}
+
+.zone-icon { font-size:22px; }
+
+.zone-title {
+  font-size:15px;
+  font-weight:700;
+  letter-spacing:1px;
+}
+.cable .zone-title   { color:var(--cyan); }
+.wireless .zone-title{ color:var(--orange); }
+.local .zone-title   { color:var(--purple); }
+.global .zone-title  { color:var(--yellow); }
+
+.zone-subtitle {
+  font-size:11px;
+  color:var(--gray);
+  font-weight:300;
+  margin-top:2px;
+}
+
+.drop-area {
+  min-height:110px;
+  padding:10px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  align-content:flex-start;
+  transition: background 0.2s;
+}
+
+.drop-area.over { background:rgba(255,255,255,0.04); }
+
+.drop-placeholder {
+  width:100%;
+  text-align:center;
+  color:var(--border);
+  font-family:'Share Tech Mono', monospace;
+  font-size:12px;
+  letter-spacing:2px;
+  padding:20px 0;
+  pointer-events:none;
+}
+
+/* ── CARDS BANK ── */
+.bank-section {
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:4px;
+  padding:16px;
+  margin-bottom:20px;
+}
+
+.bank-title {
+  font-family:'Share Tech Mono', monospace;
+  font-size:11px;
+  letter-spacing:4px;
+  color:var(--cyan-dim);
+  text-transform:uppercase;
+  text-align:center;
+  margin-bottom:14px;
+  padding-bottom:10px;
+  border-bottom:1px solid var(--border);
+}
+
+.bank {
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  justify-content:center;
+  min-height:50px;
+}
+
+/* ── ITEM CARD ── */
+.item-card {
+  background:var(--bg3);
+  border:1px solid var(--border);
+  border-radius:4px;
+  padding:9px 14px;
+  cursor:grab;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:13px;
+  font-weight:600;
+  letter-spacing:0.5px;
+  color:var(--white);
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+  user-select:none;
+  white-space:nowrap;
+}
+
+.item-card .card-icon { font-size:18px; flex-shrink:0; }
+
+.item-card:hover {
+  transform:translateY(-2px);
+  border-color:var(--gray);
+  box-shadow:0 6px 20px rgba(0,0,0,0.4);
+  z-index:5;
+}
+
+.item-card.dragging { opacity:0.4; cursor:grabbing; }
+
+.item-card.correct {
+  border-color:var(--green);
+  background:rgba(0,230,118,0.08);
+  cursor:default;
+  pointer-events:none;
+  opacity:0.8;
+}
+
+.item-card.wrong {
+  border-color:var(--red);
+  background:rgba(255,23,68,0.1);
+  animation: shake 0.4s ease;
+}
+
+@keyframes shake {
+  0%,100%{transform:translateX(0)}
+  20%{transform:translateX(-8px)}
+  40%{transform:translateX(8px)}
+  60%{transform:translateX(-4px)}
+  80%{transform:translateX(4px)}
+}
+
+/* ── POPUP ── */
+.backdrop {
+  position:fixed; inset:0;
+  background:rgba(0,0,0,0.7);
+  z-index:99;
+  opacity:0; pointer-events:none;
+  transition:opacity 0.3s;
+}
+.backdrop.show { opacity:1; pointer-events:all; cursor:pointer; }
+
+.popup {
+  position:fixed;
+  top:50%; left:50%;
+  transform:translate(-50%,-46%) scale(0.9);
+  background:var(--bg2);
+  border:2px solid var(--cyan);
+  border-radius:6px;
+  padding:28px 32px 22px;
+  max-width:500px;
+  width:92%;
+  z-index:100;
+  opacity:0; pointer-events:none;
+  transition:opacity 0.3s, transform 0.3s;
+  text-align:center;
+  box-shadow:0 0 40px rgba(0,229,255,0.15), 0 16px 48px rgba(0,0,0,0.8);
+}
+
+.popup.show {
+  opacity:1;
+  transform:translate(-50%,-50%) scale(1);
+  pointer-events:all;
+}
+
+.popup.correct-pop { border-color:var(--green); box-shadow:0 0 40px rgba(0,230,118,0.15), 0 16px 48px rgba(0,0,0,0.8); }
+.popup.wrong-pop   { border-color:var(--red);   box-shadow:0 0 40px rgba(255,23,68,0.15),  0 16px 48px rgba(0,0,0,0.8); }
+
+.popup-status {
+  font-family:'Share Tech Mono', monospace;
+  font-size:11px;
+  letter-spacing:4px;
+  text-transform:uppercase;
+  margin-bottom:10px;
+}
+.correct-pop .popup-status { color:var(--green); }
+.wrong-pop   .popup-status { color:var(--red); }
+
+.popup-icon { font-size:44px; margin-bottom:8px; line-height:1; }
+
+.popup-title {
+  font-size:20px;
+  font-weight:700;
+  margin-bottom:10px;
+  color:var(--white);
+}
+
+.popup-text {
+  font-size:15px;
+  line-height:1.7;
+  color:#a0c8d8;
+  margin-bottom:18px;
+}
+
+.popup-close {
+  background:var(--cyan);
+  color:var(--bg);
+  border:none;
+  font-family:'Exo 2', sans-serif;
+  font-size:14px;
+  font-weight:700;
+  letter-spacing:2px;
+  padding:10px 28px;
+  border-radius:3px;
+  cursor:pointer;
+  text-transform:uppercase;
+  transition:background 0.2s;
+}
+.popup-close:hover { background:#4df0ff; }
+
+/* ── VICTORY ── */
+#victory {
+  display:none;
+  text-align:center;
+  background:var(--panel);
+  border:2px solid var(--cyan);
+  border-radius:6px;
+  padding:40px 30px;
+  box-shadow:0 0 60px rgba(0,229,255,0.2);
+}
+
+#victory h2 {
+  font-size:36px;
+  font-weight:900;
+  letter-spacing:3px;
+  color:var(--cyan);
+  margin-bottom:10px;
+}
+
+#victory p {
+  font-size:17px;
+  color:var(--gray);
+  margin-bottom:24px;
+  line-height:1.6;
+}
+
+.restart-btn {
+  background:transparent;
+  border:2px solid var(--cyan);
+  color:var(--cyan);
+  font-family:'Exo 2', sans-serif;
+  font-size:15px;
+  font-weight:700;
+  letter-spacing:3px;
+  padding:12px 32px;
+  border-radius:3px;
+  cursor:pointer;
+  text-transform:uppercase;
+  transition:all 0.2s;
+}
+.restart-btn:hover { background:var(--cyan); color:var(--bg); }
+
+/* Round transition */
+.round-transition {
+  display:none;
+  text-align:center;
+  padding:30px;
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:4px;
+  margin-bottom:20px;
+}
+
+.round-transition h3 {
+  font-size:24px;
+  font-weight:900;
+  letter-spacing:3px;
+  color:var(--cyan);
+  margin-bottom:8px;
+}
+
+.round-transition p {
+  color:var(--gray);
+  font-size:15px;
+  margin-bottom:20px;
+}
+
+.next-round-btn {
+  background:var(--cyan);
+  color:var(--bg);
+  border:none;
+  font-family:'Exo 2', sans-serif;
+  font-size:14px;
+  font-weight:700;
+  letter-spacing:3px;
+  padding:12px 28px;
+  border-radius:3px;
+  cursor:pointer;
+  text-transform:uppercase;
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="header-tag">// TELECOMUNICACIONES · TEORÍA 6 · JUEGO 2</div>
+    <h1>Clasificador de Redes</h1>
+    <p class="header-sub">Arrastra cada dispositivo o tecnología a la categoría correcta</p>
+  </header>
+
+  <div class="scorebar">
+    <div class="scores">
+      <div class="score-item">
+        <div class="score-val c" id="sCorrect">0</div>
+        <div class="score-lbl">Correctos</div>
+      </div>
+      <div class="score-item">
+        <div class="score-val w" id="sWrong">0</div>
+        <div class="score-lbl">Errores</div>
+      </div>
+      <div class="score-item">
+        <div class="score-val l" id="sLeft">—</div>
+        <div class="score-lbl">Quedan</div>
+      </div>
+    </div>
+    <div class="round-badge" id="roundBadge">RONDA 1 / 3</div>
+  </div>
+
+  <div class="instructions">
+    <strong>¿Cómo se juega?</strong> Hay 3 rondas con distintos criterios de clasificación. En cada ronda, arrastra las tarjetas a la categoría correcta. Si aciertas, recibirás una explicación. Si fallas, la tarjeta vuelve al banco.
+  </div>
+
+  <div class="rounds-nav" id="roundsNav"></div>
+
+  <!-- Round transition screen -->
+  <div class="round-transition" id="roundTransition">
+    <h3 id="rtTitle">¡RONDA SUPERADA!</h3>
+    <p id="rtText"></p>
+    <button class="next-round-btn" onclick="startNextRound()">SIGUIENTE RONDA →</button>
+  </div>
+
+  <!-- Cards bank -->
+  <div class="bank-section" id="bankSection">
+    <div class="bank-title">&gt;&gt; elementos por clasificar &lt;&lt;</div>
+    <div class="bank" id="cardsBank"></div>
+  </div>
+
+  <!-- Drop zones -->
+  <div class="game-area" id="gameArea"></div>
+
+  <!-- Victory -->
+  <div id="victory">
+    <div style="font-size:52px;margin-bottom:12px">⚡</div>
+    <h2>SISTEMA OPERATIVO</h2>
+    <p id="victoryMsg">Has clasificado todas las redes correctamente.</p>
+    <button class="restart-btn" onclick="initGame()">↺ REINICIAR</button>
+  </div>
+
+</div>
+
+<!-- Backdrop + Popup -->
+<div class="backdrop" id="backdrop" onclick="closePopup()"></div>
+<div class="popup" id="popup">
+  <div class="popup-status" id="popupStatus">CORRECTO</div>
+  <div class="popup-icon" id="popupIcon">✓</div>
+  <div class="popup-title" id="popupTitle"></div>
+  <div class="popup-text" id="popupText"></div>
+  <button class="popup-close" onclick="closePopup()">Entendido ✓</button>
+</div>
+
+<script>
+// ── DATA ─────────────────────────────────────────────────────────
+
+const ROUNDS = [
+  {
+    id: 1,
+    title: 'RONDA 1 — Con cable vs. Sin cable',
+    instruction: 'Clasifica cada elemento según si usa cable físico o transmisión inalámbrica.',
+    zones: [
+      {
+        id: 'cable',
+        cssClass: 'cable',
+        icon: '🔌',
+        title: 'CON CABLE',
+        subtitle: 'Transmisión por medio físico',
+      },
+      {
+        id: 'wireless',
+        cssClass: 'wireless',
+        icon: '📡',
+        title: 'SIN CABLE',
+        subtitle: 'Transmisión inalámbrica por ondas',
+      }
+    ],
+    items: [
+      { id:'r1_fiber', icon:'💡', name:'Fibra óptica', zone:'cable',    fact:'La fibra óptica transmite datos como pulsos de luz a casi 200.000 km/s. En España, más del 90% de los hogares ya tiene acceso a fibra óptica, una de las tasas más altas de Europa.' },
+      { id:'r1_copper',icon:'🔶',name:'Par de cobre', zone:'cable',    fact:'El par de cobre es el cable telefónico clásico que llega a tu casa. Funciona bien para voz, pero para internet de alta velocidad ha sido sustituido por la fibra óptica.' },
+      { id:'r1_eth',   icon:'🖥️', name:'Cable Ethernet', zone:'cable', fact:'El cable Ethernet (el cable de red del ordenador) puede alcanzar hasta 40 Gbps en su versión Cat8. Es ideal para gaming o trabajo donde la estabilidad es clave.' },
+      { id:'r1_wifi',  icon:'📶', name:'Wi-Fi',        zone:'wireless', fact:'Wi-Fi no significa "Wireless Fidelity": ¡es solo un nombre comercial inventado por una agencia de marketing! Funciona en la banda de 2,4 GHz o 5 GHz, como los hornos microondas.' },
+      { id:'r1_5g',    icon:'📱', name:'Red 5G',       zone:'wireless', fact:'El 5G es 100 veces más rápido que el 4G y tiene una latencia de menos de 1 milisegundo. Permite conectar hasta 1 millón de dispositivos por km², lo que hace posible las ciudades inteligentes.' },
+      { id:'r1_bt',    icon:'🎧', name:'Bluetooth',    zone:'wireless', fact:'Bluetooth lleva el nombre del rey vikingo Harald Bluetooth, famoso por unir tribus. El logo combina sus iniciales en runas nórdicas: ᚼ (H) + ᛒ (B). Hoy hay más de 5.000 millones de dispositivos Bluetooth activos.' },
+      { id:'r1_sat',   icon:'🛰️', name:'Satélite Starlink', zone:'wireless', fact:'Starlink de SpaceX tiene más de 5.000 satélites activos y proyecta 42.000 para 2027. Su objetivo es dar internet de alta velocidad a zonas rurales sin cobertura de fibra.' },
+      { id:'r1_coax',  icon:'📺', name:'Cable coaxial', zone:'cable',  fact:'El cable coaxial es el grueso que conecta la antena de TV o el cable de televisión. Tiene un conductor central rodeado de una malla metálica que actúa como blindaje contra interferencias.' },
+    ]
+  },
+  {
+    id: 2,
+    title: 'RONDA 2 — Red Local vs. Red Global',
+    instruction: 'Ahora clasifica según el alcance: ¿llega solo a tu casa o puede llegar a cualquier parte del mundo?',
+    zones: [
+      {
+        id: 'local',
+        cssClass: 'local',
+        icon: '🏠',
+        title: 'RED LOCAL (LAN)',
+        subtitle: 'Alcance corto: casa, oficina, aula',
+      },
+      {
+        id: 'global',
+        cssClass: 'global',
+        icon: '🌍',
+        title: 'RED GLOBAL (WAN)',
+        subtitle: 'Alcance mundial: entre ciudades y países',
+      }
+    ],
+    items: [
+      { id:'r2_wifi',    icon:'📶', name:'Router Wi-Fi de casa',     zone:'local',  fact:'El router de casa crea una red local (LAN) que conecta todos tus dispositivos entre sí. Solo la IP pública del router es visible desde Internet. Tu móvil, TV y PC tienen IPs privadas invisibles desde fuera.' },
+      { id:'r2_eth',     icon:'🖥️', name:'Red de ordenadores del aula', zone:'local',  fact:'Una red de aula es una LAN clásica. Todos los ordenadores comparten recursos como impresoras o archivos. El primer ordenador personal se vendió en 1975: ¡podría caber en una mesa de un aula como esta!' },
+      { id:'r2_internet',icon:'🌐', name:'Internet',                 zone:'global', fact:'Internet no es una sola red, sino la "red de redes": miles de redes de ISPs interconectadas. Más del 60% del tráfico internacional viaja por cables en el fondo del océano, no por satélite.' },
+      { id:'r2_4g',      icon:'📡', name:'Red 4G del operador',      zone:'global', fact:'Cuando usas datos móviles en la calle, tu señal va a una antena local, luego al servidor de tu operador y de ahí a Internet. Puedes comunicarte con alguien al otro lado del mundo en milisegundos.' },
+      { id:'r2_sub',     icon:'🌊', name:'Cable submarino 2Africa',  zone:'global', fact:'El cable 2Africa, de 45.000 km, es el cable submarino más largo del mundo (2021). Conecta Europa, África y Asia con capacidad de 180 terabits por segundo. ¡Más que todo el tráfico de Internet de África!' },
+      { id:'r2_bt',      icon:'🎧', name:'Bluetooth entre dos móviles', zone:'local',  fact:'Bluetooth tiene un alcance máximo de unos 100 metros en versiones recientes. Es perfecto para auriculares, ratones o compartir archivos, pero no sirve para conectarte a Internet directamente.' },
+      { id:'r2_vpn',     icon:'🔒', name:'VPN empresarial',          zone:'global', fact:'Una VPN (Red Privada Virtual) crea un túnel cifrado a través de Internet para que empleados de todo el mundo puedan conectarse a la red interna de su empresa como si estuvieran en la oficina.' },
+      { id:'r2_nfc',     icon:'💳', name:'NFC (pago sin contacto)',   zone:'local',  fact:'NFC funciona a menos de 20 cm de distancia y por eso es seguro para pagos. Cuando pagas con el móvil, se genera un número de tarjeta virtual de un solo uso. ¡Tu número real nunca se transmite!' },
+    ]
+  },
+  {
+    id: 3,
+    title: 'RONDA 3 — ¿Gastas datos móviles o no?',
+    instruction: 'Una situación cotidiana: ¿esta acción gasta datos móviles de tu tarifa o no los gasta?',
+    zones: [
+      {
+        id: 'nodatos',
+        cssClass: 'cable',
+        icon: '✅',
+        title: 'NO GASTA DATOS',
+        subtitle: 'Usa Wi-Fi, cable o red fija',
+      },
+      {
+        id: 'datos',
+        cssClass: 'wireless',
+        icon: '📊',
+        title: 'SÍ GASTA DATOS',
+        subtitle: 'Usa la red móvil del operador',
+      }
+    ],
+    items: [
+      { id:'r3_wapp_casa', icon:'💬', name:'WhatsApp en casa con Wi-Fi',     zone:'nodatos', fact:'Si estás conectado al Wi-Fi de casa, WhatsApp usa la red de fibra del router. No gastas ni un megabyte de tu tarifa móvil. ¡Recuerda activar el Wi-Fi en casa para ahorrar datos!' },
+      { id:'r3_call_mov',  icon:'📞', name:'Llamada de voz por el móvil',    zone:'nodatos', fact:'Una llamada de voz normal va por la Red Telefónica Conmutada (RTC), no por datos móviles. Por eso puedes llamar aunque hayas agotado los gigas de tu tarifa. Es un canal separado.' },
+      { id:'r3_netflix_casa', icon:'🎬', name:'Ver Netflix en casa',         zone:'nodatos', fact:'Netflix en casa va por el router Wi-Fi conectado a tu fibra. Pero cuidado: una hora de Netflix en HD consume entre 1 y 3 GB. ¡Imagina si fuera por datos móviles!' },
+      { id:'r3_maps_calle', icon:'🗺️', name:'Google Maps en la calle',       zone:'datos',   fact:'Google Maps en la calle usa datos móviles para cargar los mapas y calcular rutas en tiempo real. Consejo: descarga el mapa de tu zona en casa con Wi-Fi para usarlo offline sin gastar datos.' },
+      { id:'r3_wapp_calle', icon:'💬', name:'WhatsApp en la calle',          zone:'datos',   fact:'En la calle sin Wi-Fi, WhatsApp usa tu red móvil (4G/5G). Un mensaje de texto pesa muy poco, pero los vídeos y audios pueden consumir bastante. ¡Los vídeos largos pueden pesar varios MB!' },
+      { id:'r3_skype_casa', icon:'💻', name:'Videollamada por Skype en casa', zone:'nodatos', fact:'Una videollamada por Skype, Zoom o WhatsApp en casa usa la fibra óptica a través del router. No gasta datos móviles. Una videollamada HD consume unos 1,5 GB por hora si fuera por datos.' },
+      { id:'r3_amazon_calle', icon:'🛒', name:'Comprar en Amazon en la calle', zone:'datos',  fact:'Navegar por webs en la calle usa tu tarifa de datos. Un dato curioso: cuando compras en Amazon, tu pedido puede pasar por más de 20 servidores en distintos países antes de confirmarse.' },
+      { id:'r3_sms',       icon:'✉️', name:'Enviar un SMS',                  zone:'nodatos', fact:'Los SMS van por un canal especial de señalización dentro de la red de telefonía, no por el canal de datos. Por eso funcionan incluso con la tarifa de datos agotada y en zonas con poca cobertura.' },
+    ]
+  }
+];
+
+// ── STATE ────────────────────────────────────────────────────────
+let currentRound = 0;
+let correct = 0, wrong = 0;
+let roundCorrect = 0;
+let totalItems = 0;
+let draggedId = null;
+let touchCard = null, touchClone = null, touchOffX = 0, touchOffY = 0;
+
+function initGame() {
+  currentRound = 0;
+  correct = 0; wrong = 0;
+  totalItems = ROUNDS.reduce((s, r) => s + r.items.length, 0);
+  document.getElementById('victory').style.display = 'none';
+  document.getElementById('roundTransition').style.display = 'none';
+  buildRoundsNav();
+  startRound(0);
+}
+
+function buildRoundsNav() {
+  const nav = document.getElementById('roundsNav');
+  nav.innerHTML = '';
+  ROUNDS.forEach((r, i) => {
+    const dot = document.createElement('div');
+    dot.className = 'round-dot';
+    dot.textContent = i + 1;
+    dot.id = `rdot_${i}`;
+    nav.appendChild(dot);
+  });
+}
+
+function startRound(idx) {
+  currentRound = idx;
+  roundCorrect = 0;
+  const round = ROUNDS[idx];
+
+  // Update nav dots
+  ROUNDS.forEach((_, i) => {
+    const dot = document.getElementById(`rdot_${i}`);
+    dot.className = 'round-dot' + (i < idx ? ' done' : i === idx ? ' active' : '');
+  });
+
+  document.getElementById('roundBadge').textContent = `RONDA ${idx+1} / ${ROUNDS.length}`;
+  document.getElementById('roundTransition').style.display = 'none';
+  document.getElementById('bankSection').style.display = 'block';
+  document.getElementById('gameArea').style.display = 'grid';
+
+  // Instructions
+  document.querySelector('.instructions').innerHTML =
+    `<strong>Ronda ${idx+1}:</strong> ${round.instruction}`;
+
+  renderBank(round);
+  renderZones(round);
+  updateScore();
+}
+
+function renderBank(round) {
+  const bank = document.getElementById('cardsBank');
+  bank.innerHTML = '';
+  const shuffled = [...round.items].sort(() => Math.random() - 0.5);
+  shuffled.forEach(item => {
+    bank.appendChild(createCard(item));
+  });
+}
+
+function renderZones(round) {
+  const area = document.getElementById('gameArea');
+  area.innerHTML = '';
+  round.zones.forEach(z => {
+    const wrap = document.createElement('div');
+    wrap.className = `drop-zone-wrap ${z.cssClass}`;
+
+    wrap.innerHTML = `
+      <div class="zone-header">
+        <span class="zone-icon">${z.icon}</span>
+        <div>
+          <div class="zone-title">${z.title}</div>
+          <div class="zone-subtitle">${z.subtitle}</div>
+        </div>
+      </div>
+      <div class="drop-area" id="zone_${z.id}">
+        <div class="drop-placeholder">— suelta aquí —</div>
+      </div>
+    `;
+    area.appendChild(wrap);
+
+    const dropArea = wrap.querySelector('.drop-area');
+    dropArea.addEventListener('dragover', onDragOver);
+    dropArea.addEventListener('dragleave', onDragLeave);
+    dropArea.addEventListener('drop', onDrop);
+  });
+}
+
+function createCard(item) {
+  const div = document.createElement('div');
+  div.className = 'item-card';
+  div.dataset.id = item.id;
+  div.draggable = true;
+  div.innerHTML = `<span class="card-icon">${item.icon}</span><span>${item.name}</span>`;
+  div.addEventListener('dragstart', onDragStart);
+  div.addEventListener('dragend', onDragEnd);
+  div.addEventListener('touchstart', onTouchStart, {passive:true});
+  div.addEventListener('touchmove', onTouchMove, {passive:false});
+  div.addEventListener('touchend', onTouchEnd);
+  return div;
+}
+
+// ── DRAG & DROP ──────────────────────────────────────────────────
+function onDragStart(e) {
+  draggedId = e.currentTarget.dataset.id;
+  e.currentTarget.classList.add('dragging');
+}
+function onDragEnd(e) { e.currentTarget.classList.remove('dragging'); }
+function onDragOver(e) { e.preventDefault(); e.currentTarget.classList.add('over'); }
+function onDragLeave(e) { e.currentTarget.classList.remove('over'); }
+function onDrop(e) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('over');
+  if (!draggedId) return;
+  handleDrop(draggedId, e.currentTarget.id.replace('zone_',''));
+  draggedId = null;
+}
+
+// ── TOUCH ────────────────────────────────────────────────────────
+function onTouchStart(e) {
+  touchCard = e.currentTarget;
+  const t = e.touches[0];
+  const r = touchCard.getBoundingClientRect();
+  touchOffX = t.clientX - r.left;
+  touchOffY = t.clientY - r.top;
+  touchClone = touchCard.cloneNode(true);
+  touchClone.style.cssText = `position:fixed;z-index:999;pointer-events:none;width:${r.width}px;opacity:0.85;transform:rotate(2deg);left:${r.left}px;top:${r.top}px;`;
+  document.body.appendChild(touchClone);
+  touchCard.style.opacity = '0.3';
+}
+function onTouchMove(e) {
+  e.preventDefault();
+  const t = e.touches[0];
+  touchClone.style.left = (t.clientX - touchOffX) + 'px';
+  touchClone.style.top  = (t.clientY - touchOffY) + 'px';
+  document.querySelectorAll('.drop-area').forEach(z => z.classList.remove('over'));
+  const el = document.elementFromPoint(t.clientX, t.clientY);
+  const zone = el ? el.closest('.drop-area') : null;
+  if (zone) zone.classList.add('over');
+}
+function onTouchEnd(e) {
+  const t = e.changedTouches[0];
+  if (touchClone) { touchClone.remove(); touchClone = null; }
+  if (touchCard) touchCard.style.opacity = '';
+  document.querySelectorAll('.drop-area').forEach(z => z.classList.remove('over'));
+  const el = document.elementFromPoint(t.clientX, t.clientY);
+  const zone = el ? el.closest('.drop-area') : null;
+  if (zone && touchCard) {
+    handleDrop(touchCard.dataset.id, zone.id.replace('zone_',''));
+  }
+  touchCard = null;
+}
+
+// ── LOGIC ────────────────────────────────────────────────────────
+function handleDrop(cardId, zoneId) {
+  const round = ROUNDS[currentRound];
+  const item = round.items.find(i => i.id === cardId);
+  if (!item) return;
+  const cardEl = document.querySelector(`.item-card[data-id="${cardId}"]`);
+  if (!cardEl) return;
+
+  if (item.zone === zoneId) {
+    // CORRECT
+    correct++;
+    roundCorrect++;
+    cardEl.classList.add('correct');
+    const zone = document.getElementById(`zone_${zoneId}`);
+    // Remove placeholder
+    const ph = zone.querySelector('.drop-placeholder');
+    if (ph) ph.remove();
+    zone.appendChild(cardEl);
+    cardEl.draggable = false;
+    showPopup(true, item);
+    updateScore();
+  } else {
+    // WRONG
+    wrong++;
+    cardEl.classList.add('wrong');
+    showPopup(false, item, zoneId);
+    setTimeout(() => cardEl.classList.remove('wrong'), 600);
+    updateScore();
+  }
+}
+
+function updateScore() {
+  document.getElementById('sCorrect').textContent = correct;
+  document.getElementById('sWrong').textContent = wrong;
+  const placed = document.querySelectorAll('.item-card.correct').length;
+  const round = ROUNDS[currentRound];
+  document.getElementById('sLeft').textContent = round.items.length - roundCorrect;
+}
+
+// ── POPUP ────────────────────────────────────────────────────────
+let pendingRoundComplete = false;
+
+function showPopup(isCorrect, item, wrongZoneId) {
+  const popup = document.getElementById('popup');
+  const backdrop = document.getElementById('backdrop');
+  document.getElementById('popupStatus').textContent = isCorrect ? '✓ CORRECTO' : '✗ INCORRECTO';
+  document.getElementById('popupIcon').textContent = isCorrect ? item.icon : '❌';
+
+  if (isCorrect) {
+    popup.className = 'popup show correct-pop';
+    document.getElementById('popupTitle').textContent = item.name;
+    document.getElementById('popupText').textContent = item.fact;
+  } else {
+    popup.className = 'popup show wrong-pop';
+    const round = ROUNDS[currentRound];
+    const correctZone = round.zones.find(z => z.id === item.zone);
+    const wrongZone   = round.zones.find(z => z.id === wrongZoneId);
+    document.getElementById('popupTitle').textContent = `"${item.name}" no va ahí`;
+    document.getElementById('popupText').textContent =
+      `Eso pertenece a "${correctZone.title}", no a "${wrongZone ? wrongZone.title : '?'}". ¡Inténtalo de nuevo!`;
+  }
+
+  backdrop.classList.add('show');
+
+  // Check round complete
+  const round = ROUNDS[currentRound];
+  if (isCorrect && roundCorrect === round.items.length) {
+    pendingRoundComplete = true;
+  } else {
+    pendingRoundComplete = false;
+  }
+}
+
+function closePopup() {
+  document.getElementById('popup').classList.remove('show');
+  document.getElementById('backdrop').classList.remove('show');
+
+  if (pendingRoundComplete) {
+    pendingRoundComplete = false;
+    setTimeout(() => {
+      if (currentRound < ROUNDS.length - 1) {
+        showRoundTransition();
+      } else {
+        showVictory();
+      }
+    }, 200);
+  }
+}
+
+function showRoundTransition() {
+  document.getElementById('bankSection').style.display = 'none';
+  document.getElementById('gameArea').style.display = 'none';
+  const rt = document.getElementById('roundTransition');
+  rt.style.display = 'block';
+  document.getElementById('rtTitle').textContent = `✓ RONDA ${currentRound + 1} SUPERADA`;
+  document.getElementById('rtText').textContent =
+    `Muy bien. Ahora viene la Ronda ${currentRound + 2}: ${ROUNDS[currentRound + 1].title.split('—')[1].trim()}.`;
+
+  // Mark dot done
+  document.getElementById(`rdot_${currentRound}`).className = 'round-dot done';
+}
+
+function startNextRound() {
+  startRound(currentRound + 1);
+}
+
+function showVictory() {
+  document.getElementById('bankSection').style.display = 'none';
+  document.getElementById('gameArea').style.display = 'none';
+  document.getElementById('roundTransition').style.display = 'none';
+  ROUNDS.forEach((_, i) => {
+    document.getElementById(`rdot_${i}`).className = 'round-dot done';
+  });
+  const pct = Math.round(correct / (correct + wrong) * 100);
+  let msg = '';
+  if (pct === 100) msg = '⚡ ¡Perfecto! Clasificaste todo sin un solo error. Eres un ingeniero de redes.';
+  else if (pct >= 75) msg = `✅ Muy bien. ${pct}% de aciertos a la primera. Ya entiendes cómo funcionan las redes.`;
+  else msg = `💪 Completado. Recuerda repasar las diferencias entre redes. ¡Cada error es un aprendizaje!`;
+  document.getElementById('victoryMsg').textContent = msg;
+  document.getElementById('victory').style.display = 'block';
+  document.getElementById('victory').scrollIntoView({behavior:'smooth'});
+}
+
+// ── START ────────────────────────────────────────────────────────
+initGame();
+</script>
+</body>
+</html>

@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Juego 6 – DNS: El Cartero de Internet</title>
+<link href="https://fonts.googleapis.com/css2?family=Arvo:wght@400;700&family=Source+Code+Pro:wght@400;600;700&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --kraft:     #c8a96e;
+  --kraft2:    #b8956a;
+  --kraft-dk:  #8a6640;
+  --paper:     #f5ead0;
+  --paper2:    #ede0c0;
+  --ink:       #1a120a;
+  --ink-mid:   #3d2800;
+  --stamp-red: #c0392b;
+  --stamp-blu: #1a3a6e;
+  --stamp-grn: #1a6e3a;
+  --terminal:  #00cc44;
+  --term-dim:  #006622;
+  --term-bg:   #001a08;
+  --amber:     #e8960a;
+  --amber2:    #ffb830;
+  --red-err:   #cc2200;
+  --bg:        #2a1a08;
+  --bg2:       #1a0e04;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  font-family: 'Arvo', serif;
+  color: var(--paper);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+/* Wood panel texture */
+body::before {
+  content:'';
+  position:fixed; inset:0;
+  background-image: repeating-linear-gradient(
+    88deg,
+    transparent, transparent 6px,
+    rgba(0,0,0,0.04) 6px, rgba(0,0,0,0.04) 7px
+  );
+  pointer-events:none; z-index:0;
+}
+
+.page {
+  position:relative; z-index:1;
+  max-width:960px;
+  margin:0 auto;
+  padding:16px 14px 60px;
+}
+
+/* ── HEADER ── */
+header {
+  background: var(--paper);
+  border:3px solid var(--kraft-dk);
+  border-top:6px solid var(--stamp-red);
+  padding:20px 28px 16px;
+  margin-bottom:16px;
+  color: var(--ink);
+  position:relative;
+  overflow:hidden;
+}
+
+/* Postage stamp corner decoration */
+header::before {
+  content:'✉';
+  position:absolute;
+  right:20px; top:12px;
+  font-size:48px;
+  opacity:0.08;
+  color:var(--ink);
+}
+
+/* Postmark circle */
+header::after {
+  content:'';
+  position:absolute;
+  right:28px; top:10px;
+  width:70px; height:70px;
+  border:3px solid var(--stamp-red);
+  border-radius:50%;
+  opacity:0.15;
+}
+
+.header-tag {
+  font-family:'Source Code Pro', monospace;
+  font-size:10px;
+  letter-spacing:4px;
+  color:var(--kraft-dk);
+  text-transform:uppercase;
+  margin-bottom:8px;
+}
+
+h1 {
+  font-family:'Playfair Display', serif;
+  font-size: clamp(22px, 4vw, 42px);
+  font-weight:900;
+  color:var(--ink);
+  letter-spacing:1px;
+  line-height:1.1;
+  margin-bottom:4px;
+}
+
+h1 span { color:var(--stamp-red); }
+
+.header-sub {
+  font-family:'Source Code Pro', monospace;
+  font-size:11px;
+  color:var(--ink-mid);
+  letter-spacing:2px;
+}
+
+/* ── SCORE BAR ── */
+.scorebar {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:10px 18px;
+  background:var(--paper2);
+  border:2px solid var(--kraft-dk);
+  margin-bottom:14px;
+  flex-wrap:wrap;
+  gap:8px;
+  color:var(--ink);
+}
+
+.scores { display:flex; gap:22px; }
+.score-item { text-align:center; }
+.score-val {
+  font-family:'Source Code Pro', monospace;
+  font-size:24px;
+  font-weight:700;
+  line-height:1;
+}
+.score-val.c { color:var(--stamp-grn); }
+.score-val.w { color:var(--stamp-red); }
+.score-lbl { font-size:9px; letter-spacing:2px; color:var(--kraft-dk); font-family:'Source Code Pro',monospace; }
+
+.phase-tag {
+  font-family:'Source Code Pro', monospace;
+  font-size:11px;
+  color:var(--ink);
+  border:2px solid var(--kraft-dk);
+  padding:4px 12px;
+  background:var(--paper);
+  letter-spacing:1px;
+}
+
+/* ── DNS LOOKUP PANEL ── */
+.dns-panel {
+  background: var(--term-bg);
+  border:2px solid var(--term-dim);
+  border-top:3px solid var(--terminal);
+  padding:14px 16px;
+  margin-bottom:14px;
+  font-family:'Source Code Pro', monospace;
+  position:relative;
+}
+
+.dns-panel-title {
+  font-size:10px;
+  letter-spacing:3px;
+  color:var(--terminal);
+  margin-bottom:10px;
+  text-transform:uppercase;
+}
+
+.dns-query-row {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-bottom:8px;
+}
+
+.dns-label {
+  font-size:11px;
+  color:var(--term-dim);
+  letter-spacing:1px;
+  white-space:nowrap;
+}
+
+.dns-domain {
+  font-size:15px;
+  color:var(--amber2);
+  font-weight:600;
+  letter-spacing:1px;
+}
+
+.dns-arrow {
+  font-size:13px;
+  color:var(--term-dim);
+  animation: arrowBlink 1.2s step-end infinite;
+}
+@keyframes arrowBlink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+.dns-ip {
+  font-size:15px;
+  font-weight:700;
+  letter-spacing:1px;
+  transition:all 0.4s;
+}
+.dns-ip.resolved { color:var(--terminal); text-shadow:0 0 8px var(--terminal); }
+.dns-ip.pending  { color:var(--term-dim); }
+
+.dns-steps {
+  display:flex;
+  gap:6px;
+  align-items:center;
+  flex-wrap:wrap;
+  margin-top:6px;
+  font-size:10px;
+  color:var(--term-dim);
+}
+
+.dns-step {
+  padding:2px 8px;
+  border:1px solid var(--term-dim);
+  border-radius:2px;
+  transition:all 0.3s;
+  white-space:nowrap;
+}
+.dns-step.active { border-color:var(--terminal); color:var(--terminal); background:rgba(0,204,68,0.08); }
+.dns-step.done   { border-color:var(--term-dim); color:var(--term-dim); opacity:0.5; }
+
+/* ── LETTER / ENVELOPE DISPLAY ── */
+.letter-section {
+  display:flex;
+  gap:12px;
+  margin-bottom:14px;
+  flex-wrap:wrap;
+}
+
+.envelope {
+  background:var(--paper);
+  border:2px solid var(--kraft-dk);
+  padding:14px 16px;
+  flex:1;
+  min-width:200px;
+  color:var(--ink);
+  position:relative;
+  overflow:hidden;
+}
+
+/* V-flap on envelope */
+.envelope::before {
+  content:'';
+  position:absolute;
+  top:0; left:0; right:0;
+  height:28px;
+  background: linear-gradient(135deg, var(--paper) 50%, var(--paper2) 50%);
+  border-bottom:1px solid var(--kraft-dk);
+}
+
+.envelope-content {
+  margin-top:30px;
+}
+
+.envelope-title {
+  font-family:'Source Code Pro', monospace;
+  font-size:9px;
+  letter-spacing:3px;
+  color:var(--kraft-dk);
+  text-transform:uppercase;
+  margin-bottom:6px;
+}
+
+.envelope-domain {
+  font-family:'Playfair Display', serif;
+  font-size:18px;
+  font-weight:700;
+  color:var(--ink);
+  margin-bottom:4px;
+}
+
+.envelope-from {
+  font-family:'Source Code Pro', monospace;
+  font-size:10px;
+  color:var(--ink-mid);
+}
+
+/* Stamp decoration on envelope */
+.stamp {
+  position:absolute;
+  right:12px; top:32px;
+  width:48px; height:56px;
+  border:3px solid;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  font-size:18px;
+  gap:2px;
+}
+.stamp-text {
+  font-family:'Source Code Pro', monospace;
+  font-size:7px;
+  letter-spacing:1px;
+  text-align:center;
+  line-height:1.2;
+}
+
+/* Delivery status */
+.deliveries {
+  background:var(--paper2);
+  border:2px solid var(--kraft-dk);
+  padding:12px 14px;
+  flex:1;
+  min-width:200px;
+  color:var(--ink);
+}
+
+.del-title {
+  font-family:'Source Code Pro', monospace;
+  font-size:9px;
+  letter-spacing:3px;
+  color:var(--kraft-dk);
+  margin-bottom:8px;
+  text-transform:uppercase;
+}
+
+.delivery-item {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-family:'Source Code Pro', monospace;
+  font-size:11px;
+  color:var(--ink-mid);
+  padding:4px 0;
+  border-bottom:1px dashed var(--kraft-dk);
+}
+.delivery-item:last-child { border-bottom:none; }
+
+.del-icon { font-size:14px; }
+.del-status {
+  margin-left:auto;
+  font-size:9px;
+  padding:2px 8px;
+  border:1px solid;
+}
+.del-status.pending  { border-color:var(--amber);    color:var(--amber);    background:rgba(232,150,10,0.08); }
+.del-status.done-ok  { border-color:var(--stamp-grn); color:var(--stamp-grn); background:rgba(26,110,58,0.08); }
+.del-status.current  { border-color:var(--stamp-red); color:var(--stamp-red); background:rgba(192,57,43,0.08); }
+
+/* ── PROGRESS NODES ── */
+.progress-row {
+  display:flex;
+  justify-content:center;
+  gap:5px;
+  margin-bottom:14px;
+  flex-wrap:wrap;
+}
+.pdot {
+  width:28px; height:28px;
+  border:2px solid var(--kraft-dk);
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Source Code Pro', monospace;
+  font-size:9px;
+  color:var(--kraft-dk);
+  transition:all 0.3s;
+}
+.pdot.active { border-color:var(--amber); color:var(--amber); background:rgba(232,150,10,0.1); box-shadow:0 0 8px rgba(232,150,10,0.3); }
+.pdot.done   { border-color:var(--stamp-grn); color:var(--stamp-grn); background:rgba(26,110,58,0.1); }
+
+/* ── QUESTION CARD ── */
+.question-card {
+  background:var(--paper);
+  border:2px solid var(--kraft-dk);
+  border-left:5px solid var(--stamp-red);
+  padding:22px 24px 18px;
+  margin-bottom:14px;
+  color:var(--ink);
+  position:relative;
+}
+
+.q-badge {
+  display:inline-block;
+  background:var(--stamp-red);
+  color:var(--paper);
+  font-family:'Source Code Pro', monospace;
+  font-size:9px;
+  letter-spacing:2px;
+  padding:3px 12px;
+  margin-bottom:12px;
+  text-transform:uppercase;
+}
+
+.q-num {
+  font-family:'Source Code Pro', monospace;
+  font-size:10px;
+  letter-spacing:3px;
+  color:var(--kraft-dk);
+  margin-bottom:8px;
+  text-transform:uppercase;
+}
+
+.q-text {
+  font-family:'Playfair Display', serif;
+  font-size:19px;
+  font-weight:700;
+  color:var(--ink);
+  line-height:1.5;
+  margin-bottom:18px;
+}
+
+.q-options {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+@media(max-width:520px) { .q-options { grid-template-columns:1fr; } }
+
+.q-btn {
+  background:var(--paper2);
+  border:2px solid var(--kraft-dk);
+  color:var(--ink-mid);
+  font-family:'Arvo', serif;
+  font-size:14px;
+  padding:12px 14px;
+  cursor:pointer;
+  text-align:left;
+  transition:all 0.15s;
+  line-height:1.4;
+}
+.q-btn:hover:not(:disabled) {
+  border-color:var(--stamp-red);
+  color:var(--ink);
+  background:var(--paper);
+}
+.q-btn.correct {
+  border-color:var(--stamp-grn);
+  color:var(--stamp-grn);
+  background:rgba(26,110,58,0.06);
+}
+.q-btn.wrong {
+  border-color:var(--stamp-red);
+  color:var(--stamp-red);
+  background:rgba(192,57,43,0.06);
+}
+.q-btn:disabled { cursor:default; }
+
+/* ── FEEDBACK ── */
+.feedback-box {
+  display:none;
+  padding:14px 18px;
+  margin-bottom:14px;
+  border-left:4px solid var(--stamp-grn);
+  background:var(--paper2);
+  font-size:13px;
+  line-height:1.7;
+  color:var(--ink);
+}
+.feedback-box.show { display:block; }
+.feedback-box.correct-fb { border-left-color:var(--stamp-grn); }
+.feedback-box.wrong-fb   { border-left-color:var(--stamp-red); }
+
+.fb-status {
+  font-family:'Source Code Pro', monospace;
+  font-size:12px;
+  letter-spacing:2px;
+  margin-bottom:6px;
+  text-transform:uppercase;
+}
+.correct-fb .fb-status { color:var(--stamp-grn); }
+.wrong-fb   .fb-status { color:var(--stamp-red); }
+
+.next-btn {
+  display:none;
+  background:var(--stamp-red);
+  border:none;
+  color:var(--paper);
+  font-family:'Source Code Pro', monospace;
+  font-size:12px;
+  letter-spacing:3px;
+  padding:12px 28px;
+  cursor:pointer;
+  transition:all 0.2s;
+  text-transform:uppercase;
+}
+.next-btn.show { display:inline-block; }
+.next-btn:hover { background:var(--stamp-blu); }
+
+/* ── VICTORY ── */
+#victory {
+  display:none;
+  background:var(--paper);
+  border:3px solid var(--kraft-dk);
+  border-top:6px solid var(--stamp-grn);
+  padding:40px 30px;
+  text-align:center;
+  color:var(--ink);
+}
+#victory h2 {
+  font-family:'Playfair Display', serif;
+  font-size:32px;
+  font-weight:900;
+  color:var(--ink);
+  margin-bottom:10px;
+}
+#victory .big-stamp {
+  font-size:56px;
+  margin-bottom:16px;
+  display:block;
+}
+#victory p {
+  font-family:'Arvo', serif;
+  font-size:15px;
+  color:var(--ink-mid);
+  margin-bottom:24px;
+  line-height:1.7;
+  max-width:480px;
+  margin-left:auto; margin-right:auto;
+}
+.restart-btn {
+  background:var(--ink);
+  border:none;
+  color:var(--paper);
+  font-family:'Source Code Pro', monospace;
+  font-size:12px;
+  letter-spacing:3px;
+  padding:12px 28px;
+  cursor:pointer;
+  transition:all 0.2s;
+  text-transform:uppercase;
+}
+.restart-btn:hover { background:var(--stamp-blu); }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="header-tag">// Telecomunicaciones · Teoría 6 · Juego 6</div>
+    <h1><span>DNS</span> — El Cartero de Internet</h1>
+    <p class="header-sub">Traduce dominios a direcciones IP y entrega los mensajes</p>
+  </header>
+
+  <div class="scorebar">
+    <div class="scores">
+      <div class="score-item">
+        <div class="score-val c" id="sCorrect">0</div>
+        <div class="score-lbl">Correctos</div>
+      </div>
+      <div class="score-item">
+        <div class="score-val w" id="sWrong">0</div>
+        <div class="score-lbl">Errores</div>
+      </div>
+    </div>
+    <div class="phase-tag" id="phaseTag">ENTREGA 1 / 10</div>
+  </div>
+
+  <!-- DNS terminal -->
+  <div class="dns-panel">
+    <div class="dns-panel-title">▶ TERMINAL DNS — CONSULTA EN CURSO</div>
+    <div class="dns-query-row">
+      <span class="dns-label">$ nslookup</span>
+      <span class="dns-domain" id="dnsDomain">www.ejemplo.com</span>
+      <span class="dns-arrow">──▶</span>
+      <span class="dns-ip pending" id="dnsIp">????.????.????.????</span>
+    </div>
+    <div class="dns-steps">
+      <span class="dns-step" id="dstep0">1. Caché local</span>
+      <span style="color:var(--term-dim)">→</span>
+      <span class="dns-step" id="dstep1">2. Servidor DNS ISP</span>
+      <span style="color:var(--term-dim)">→</span>
+      <span class="dns-step" id="dstep2">3. DNS Raíz</span>
+      <span style="color:var(--term-dim)">→</span>
+      <span class="dns-step" id="dstep3">4. DNS TLD (.com)</span>
+      <span style="color:var(--term-dim)">→</span>
+      <span class="dns-step" id="dstep4">5. DNS Autoritativo</span>
+    </div>
+  </div>
+
+  <!-- Letter + delivery status -->
+  <div class="letter-section">
+    <div class="envelope" id="envelopeBox">
+      <div class="envelope-content">
+        <div class="envelope-title">Destinatario</div>
+        <div class="envelope-domain" id="envDomain">www.ejemplo.com</div>
+        <div class="envelope-from" id="envFrom">De: Tu navegador web</div>
+      </div>
+      <div class="stamp" id="envStamp" style="border-color:var(--stamp-red);color:var(--stamp-red);">
+        <span style="font-size:20px">📮</span>
+        <span class="stamp-text">PENDIENTE</span>
+      </div>
+    </div>
+
+    <div class="deliveries">
+      <div class="del-title">Registro de entregas</div>
+      <div id="deliveryList"></div>
+    </div>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-row" id="progressRow"></div>
+
+  <!-- Question -->
+  <div class="question-card" id="questionCard" style="display:none;">
+    <div class="q-badge" id="qBadge">DNS RAÍZ</div>
+    <div class="q-num" id="qNum">PREGUNTA 1 DE 10</div>
+    <div class="q-text" id="qText">Texto</div>
+    <div class="q-options" id="qOptions"></div>
+  </div>
+
+  <div class="feedback-box" id="feedbackBox">
+    <div class="fb-status" id="fbStatus"></div>
+    <div id="fbText"></div>
+  </div>
+
+  <button class="next-btn" id="nextBtn" onclick="nextStep()">SIGUIENTE ENTREGA →</button>
+
+  <div id="victory">
+    <span class="big-stamp">📬</span>
+    <h2>¡TODAS LAS ENTREGAS COMPLETADAS!</h2>
+    <p id="victoryMsg"></p>
+    <button class="restart-btn" onclick="initGame()">↺ Nueva ronda de entregas</button>
+  </div>
+
+</div>
+
+<script>
+const DELIVERIES_DATA = [
+  { domain:'www.google.com',    ip:'142.250.185.46',  icon:'🔍', label:'Buscador' },
+  { domain:'www.wikipedia.org', ip:'185.15.58.224',   icon:'📖', label:'Wikipedia' },
+  { domain:'www.youtube.com',   ip:'216.58.215.110',  icon:'▶️',  label:'YouTube' },
+  { domain:'correo.gmail.com',  ip:'172.217.16.133',  icon:'✉️',  label:'Gmail' },
+];
+
+const STEPS = [
+  // ── ENTREGA 1: Google ──
+  {
+    delivery: 0,
+    dnsStep: 0,
+    badge: '💻 TU NAVEGADOR',
+    text: '¿Qué hace tu navegador antes de consultar al servidor DNS para encontrar "www.google.com"?',
+    options: ['Consulta directamente el servidor DNS raíz', 'Busca primero en su caché local (direcciones que ya visitó antes)', 'Pregunta al router Wi-Fi', 'Envía un paquete de prueba a Google'],
+    correct: 1,
+    feedback: 'Antes de consultar a servidores externos, el navegador mira en su CACHÉ LOCAL: una memoria temporal con las IPs de sitios visitados recientemente. Si la encuentra, el proceso DNS termina ahí, ahorrando tiempo. Por eso la primera visita a un sitio es más lenta que las siguientes.'
+  },
+  {
+    delivery: 0,
+    dnsStep: 1,
+    badge: '🏢 SERVIDOR DNS — ISP',
+    text: '¿Qué es el DNS y para qué sirve?',
+    options: [
+      'Un protocolo de seguridad para cifrar páginas web',
+      'Un sistema que traduce nombres de dominio (www.google.com) en direcciones IP numéricas',
+      'Un tipo de cable de red de alta velocidad',
+      'El servidor donde se almacenan las páginas web'
+    ],
+    correct: 1,
+    feedback: 'DNS (Domain Name System) es la "guía telefónica" de Internet. Traduce nombres legibles como "www.google.com" en direcciones IP numéricas como "142.250.185.46". Sin DNS tendrías que memorizar la IP de cada web. Hay más de 1.000 millones de dominios registrados en el mundo.'
+  },
+  // ── ENTREGA 2: Wikipedia ──
+  {
+    delivery: 1,
+    dnsStep: 2,
+    badge: '🌐 SERVIDOR DNS RAÍZ',
+    text: 'Un nombre de dominio como "www.wikipedia.org" tiene varias partes. ¿Cuál es el "dominio de nivel superior" o TLD?',
+    options: ['www', 'wikipedia', '.org', 'El dominio completo al completo'],
+    correct: 2,
+    feedback: 'El TLD (Top Level Domain) es la última parte del dominio: .com (comercial), .org (organización), .es (España), .net... Los gestiona ICANN. El DNS Raíz conoce las IPs de los servidores DNS responsables de cada TLD. Hay más de 1.500 TLDs distintos en el mundo.'
+  },
+  {
+    delivery: 1,
+    dnsStep: 3,
+    badge: '📋 DNS TLD — .org',
+    text: '¿Qué hace el servidor DNS TLD (.org) cuando recibe la consulta por "wikipedia.org"?',
+    options: [
+      'Devuelve directamente la IP de Wikipedia',
+      'Indica la dirección del servidor DNS autoritativo de Wikipedia, que sí conoce la IP exacta',
+      'Reenvía la consulta al servidor DNS raíz',
+      'Bloquea la consulta si la web no está registrada'
+    ],
+    correct: 1,
+    feedback: 'El servidor DNS TLD no conoce la IP final, pero sabe quién la conoce: el servidor DNS AUTORITATIVO del dominio. En este caso devuelve: "pregunta al servidor ns1.wikimedia.org, que él sí sabe la IP de wikipedia.org". Es una jerarquía de delegaciones.'
+  },
+  // ── ENTREGA 3: YouTube ──
+  {
+    delivery: 2,
+    dnsStep: 4,
+    badge: '🎯 DNS AUTORITATIVO',
+    text: '¿Qué es un servidor DNS autoritativo?',
+    options: [
+      'El servidor DNS más potente del mundo, ubicado en EE.UU.',
+      'El servidor que tiene la respuesta final y definitiva para un dominio concreto',
+      'El servidor del gobierno que controla todos los dominios',
+      'El router de tu casa cuando actúa como servidor DNS'
+    ],
+    correct: 1,
+    feedback: 'El servidor DNS AUTORITATIVO es el que tiene la respuesta definitiva para un dominio concreto. Google gestiona el DNS autoritativo de youtube.com, y es el único que puede decir con certeza "youtube.com = 216.58.215.110". Cualquier empresa puede configurar su propio servidor DNS autoritativo.'
+  },
+  {
+    delivery: 2,
+    dnsStep: 1,
+    badge: '⏱️ CACHÉ DNS',
+    text: 'Las respuestas DNS se guardan en caché durante un tiempo llamado TTL. ¿Qué significa TTL?',
+    options: ['Total Transfer Load', 'Time To Live (tiempo de vida)', 'Terminal Transfer Level', 'Type Transfer Language'],
+    correct: 1,
+    feedback: 'TTL (Time To Live) es el tiempo en segundos que una respuesta DNS puede guardarse en caché antes de que expire y haya que volver a consultarla. Un TTL de 3600 = 1 hora. TTL cortos permiten cambiar IPs rápidamente (útil para balanceo de carga). TTL largos reducen el tráfico DNS.'
+  },
+  // ── ENTREGA 4: Gmail ──
+  {
+    delivery: 3,
+    dnsStep: 0,
+    badge: '📧 REGISTRO MX',
+    text: 'Cuando envías un email a alguien@gmail.com, ¿qué tipo especial de registro DNS busca el servidor de correo para saber a dónde enviarlo?',
+    options: ['Registro A (dirección IPv4)', 'Registro MX (Mail Exchanger)', 'Registro CNAME (alias)', 'Registro NS (Name Server)'],
+    correct: 1,
+    feedback: 'El registro MX (Mail eXchanger) es un tipo especial de registro DNS que indica qué servidor de correo gestiona los emails de un dominio. Al enviar un email a gmail.com, el servidor de correo consulta el DNS buscando el registro MX de gmail.com, que apuntará a los servidores de correo de Google.'
+  },
+  {
+    delivery: 3,
+    dnsStep: 2,
+    badge: '🔒 SEGURIDAD DNS',
+    text: '¿Qué es el "envenenamiento de caché DNS" (DNS cache poisoning)?',
+    options: [
+      'Un virus que borra todos los registros DNS de tu ordenador',
+      'Un ataque que introduce registros DNS falsos para redirigir a usuarios a webs fraudulentas',
+      'Un fallo técnico que hace que el DNS tarde más en responder',
+      'Una actualización automática del sistema DNS'
+    ],
+    correct: 1,
+    feedback: 'El envenenamiento DNS es un ciberataque donde alguien introduce registros DNS falsos en los servidores. Así, cuando buscas "tubanco.com" el DNS te redirige a una web falsa idéntica al banco real. Para evitarlo existe DNSSEC, una extensión que añade firma digital a las respuestas DNS.'
+  },
+  {
+    delivery: 3,
+    dnsStep: 3,
+    badge: '🌍 DNS GLOBAL',
+    text: 'Existen solo 13 grupos de servidores DNS raíz en el mundo. ¿Qué ocurre si uno de ellos falla?',
+    options: [
+      'Todo Internet deja de funcionar hasta que se repara',
+      'Los otros servidores raíz asumen el tráfico — el sistema está diseñado para ser muy resiliente',
+      'Solo falla el acceso a webs en ese país',
+      'Los usuarios deben introducir IPs numéricas manualmente'
+    ],
+    correct: 1,
+    feedback: 'Aunque hay 13 direcciones IP raíz, cada una corresponde a muchos servidores físicos distribuidos por todo el mundo (mediante anycast). En total son más de 1.000 servidores raíz físicos. Si uno falla, otros asumen el tráfico sin que los usuarios lo noten. El DNS está diseñado para ser extremadamente resistente.'
+  },
+  {
+    delivery: 3,
+    dnsStep: 4,
+    badge: '🔄 PROCESO COMPLETO',
+    text: 'En el proceso DNS completo, ¿cuántas consultas hay que hacer como máximo para resolver un dominio que no está en ninguna caché?',
+    options: ['1 sola consulta al servidor raíz', 'Exactamente 2 consultas', 'Al menos 3: raíz → TLD → autoritativo', 'Depende del país del usuario'],
+    correct: 2,
+    feedback: 'En el peor caso (sin caché) son necesarias al menos 3 consultas: (1) al servidor DNS raíz → devuelve el servidor TLD, (2) al servidor TLD → devuelve el servidor autoritativo, (3) al servidor autoritativo → devuelve la IP final. Todo esto ocurre en milisegundos gracias a la velocidad de la fibra óptica y la caché.'
+  },
+];
+
+// Generate deliveries list from unique delivery indices
+const DELIVERY_ITEMS = DELIVERIES_DATA.map((d, i) => d);
+
+let stepIndex = 0;
+let correct = 0, wrong = 0;
+let wrongAttempts = 0;
+let triedOptions = new Set();
+let answered = false;
+let completedDeliveries = new Set();
+
+function initGame() {
+  stepIndex = 0; correct = 0; wrong = 0;
+  completedDeliveries = new Set();
+  document.getElementById('victory').style.display = 'none';
+  document.getElementById('feedbackBox').className = 'feedback-box';
+  document.getElementById('nextBtn').className = 'next-btn';
+  updateScore();
+  buildProgress();
+  buildDeliveryList();
+  showStep();
+}
+
+function buildProgress() {
+  const row = document.getElementById('progressRow');
+  row.innerHTML = '';
+  STEPS.forEach((_,i) => {
+    const d = document.createElement('div');
+    d.className = 'pdot';
+    d.id = `pdot_${i}`;
+    d.textContent = i+1;
+    row.appendChild(d);
+  });
+}
+
+function buildDeliveryList() {
+  const list = document.getElementById('deliveryList');
+  list.innerHTML = '';
+  DELIVERIES_DATA.forEach((del, i) => {
+    const div = document.createElement('div');
+    div.className = 'delivery-item';
+    div.id = `delitem_${i}`;
+    div.innerHTML = `
+      <span class="del-icon">${del.icon}</span>
+      <span>${del.domain}</span>
+      <span class="del-status pending" id="delstatus_${i}">PENDIENTE</span>
+    `;
+    list.appendChild(div);
+  });
+}
+
+function updateScore() {
+  document.getElementById('sCorrect').textContent = correct;
+  document.getElementById('sWrong').textContent = wrong;
+  document.getElementById('phaseTag').textContent = `ENTREGA ${Math.min(stepIndex+1, STEPS.length)} / ${STEPS.length}`;
+}
+
+function showStep() {
+  const step = STEPS[stepIndex];
+  wrongAttempts = 0; triedOptions = new Set(); answered = false;
+
+  // Progress dots
+  STEPS.forEach((_,i) => {
+    const d = document.getElementById(`pdot_${i}`);
+    if (!d) return;
+    d.className = 'pdot' + (i < stepIndex ? ' done' : i === stepIndex ? ' active' : '');
+  });
+
+  // Update envelope
+  const del = DELIVERIES_DATA[step.delivery];
+  document.getElementById('dnsDomain').textContent = del.domain;
+  document.getElementById('dnsIp').textContent = '????.????.????.????';
+  document.getElementById('dnsIp').className = 'dns-ip pending';
+  document.getElementById('envDomain').textContent = del.domain;
+
+  // DNS steps highlight
+  for (let i = 0; i <= 4; i++) {
+    const el = document.getElementById(`dstep${i}`);
+    el.className = 'dns-step' + (i === step.dnsStep ? ' active' : (i < step.dnsStep ? ' done' : ''));
+  }
+
+  // Delivery status
+  DELIVERIES_DATA.forEach((_, i) => {
+    const s = document.getElementById(`delstatus_${i}`);
+    if (!s) return;
+    if (completedDeliveries.has(i)) {
+      s.className = 'del-status done-ok';
+      s.textContent = 'ENTREGADO';
+    } else if (i === step.delivery) {
+      s.className = 'del-status current';
+      s.textContent = 'EN CURSO';
+    } else {
+      s.className = 'del-status pending';
+      s.textContent = 'PENDIENTE';
+    }
+  });
+
+  // Stamp
+  const stamp = document.getElementById('envStamp');
+  if (completedDeliveries.has(step.delivery)) {
+    stamp.style.borderColor = 'var(--stamp-grn)';
+    stamp.style.color = 'var(--stamp-grn)';
+    stamp.innerHTML = '<span style="font-size:20px">✅</span><span class="stamp-text">ENTREGADO</span>';
+  } else {
+    stamp.style.borderColor = 'var(--stamp-red)';
+    stamp.style.color = 'var(--stamp-red)';
+    stamp.innerHTML = '<span style="font-size:20px">📮</span><span class="stamp-text">PENDIENTE</span>';
+  }
+
+  // Question card
+  const card = document.getElementById('questionCard');
+  card.style.display = 'block';
+  document.getElementById('qBadge').textContent = step.badge;
+  document.getElementById('qNum').textContent = `PREGUNTA ${stepIndex+1} DE ${STEPS.length}`;
+  document.getElementById('qText').textContent = step.text;
+
+  const opts = document.getElementById('qOptions');
+  opts.innerHTML = '';
+  step.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'q-btn';
+    btn.textContent = `${['A','B','C','D'][i]}) ${opt}`;
+    btn.onclick = () => selectOption(i, btn);
+    opts.appendChild(btn);
+  });
+
+  document.getElementById('feedbackBox').className = 'feedback-box';
+  document.getElementById('nextBtn').className = 'next-btn';
+  updateScore();
+}
+
+function selectOption(idx, btnEl) {
+  if (answered || triedOptions.has(idx)) return;
+  const step = STEPS[stepIndex];
+  const allBtns = document.querySelectorAll('.q-btn');
+  const fb = document.getElementById('feedbackBox');
+
+  if (idx === step.correct) {
+    answered = true;
+    correct++;
+    btnEl.classList.add('correct');
+    allBtns.forEach(b => b.disabled = true);
+
+    // Resolve DNS IP
+    const del = DELIVERIES_DATA[step.delivery];
+    document.getElementById('dnsIp').textContent = del.ip;
+    document.getElementById('dnsIp').className = 'dns-ip resolved';
+
+    // Mark delivery complete if last step of this delivery
+    const isLastForDelivery = stepIndex === STEPS.length - 1 ||
+      STEPS[stepIndex + 1].delivery !== step.delivery;
+    if (isLastForDelivery) {
+      completedDeliveries.add(step.delivery);
+      const s = document.getElementById(`delstatus_${step.delivery}`);
+      if (s) { s.className = 'del-status done-ok'; s.textContent = 'ENTREGADO'; }
+      const stamp = document.getElementById('envStamp');
+      stamp.style.borderColor = 'var(--stamp-grn)';
+      stamp.style.color = 'var(--stamp-grn)';
+      stamp.innerHTML = '<span style="font-size:20px">✅</span><span class="stamp-text">ENTREGADO</span>';
+    }
+
+    // DNS step done
+    document.getElementById(`dstep${step.dnsStep}`).className = 'dns-step done';
+
+    fb.className = 'feedback-box show correct-fb';
+    document.getElementById('fbStatus').textContent = '✓ CORRECTO — DNS resuelto';
+    document.getElementById('fbText').textContent = step.feedback;
+    document.getElementById('nextBtn').className = 'next-btn show';
+  } else {
+    wrongAttempts++;
+    wrong++;
+    triedOptions.add(idx);
+    btnEl.classList.add('wrong');
+    btnEl.disabled = true;
+    fb.className = 'feedback-box show wrong-fb';
+    document.getElementById('fbStatus').textContent = '✗ INCORRECTO — inténtalo de nuevo';
+    document.getElementById('fbText').textContent = 'Esa respuesta no es correcta. Prueba con otra opción.';
+  }
+  updateScore();
+}
+
+function nextStep() {
+  stepIndex++;
+  if (stepIndex >= STEPS.length) {
+    showVictory();
+  } else {
+    document.getElementById('feedbackBox').className = 'feedback-box';
+    document.getElementById('nextBtn').className = 'next-btn';
+    showStep();
+  }
+}
+
+function showVictory() {
+  // All deliveries done
+  DELIVERIES_DATA.forEach((_,i) => {
+    const s = document.getElementById(`delstatus_${i}`);
+    if (s) { s.className = 'del-status done-ok'; s.textContent = 'ENTREGADO'; }
+  });
+  document.getElementById('dnsIp').textContent = '–– resuelto ––';
+  document.getElementById('dnsIp').className = 'dns-ip resolved';
+  document.querySelectorAll('.pdot').forEach(d => d.className = 'pdot done');
+  document.getElementById('questionCard').style.display = 'none';
+  document.getElementById('feedbackBox').className = 'feedback-box';
+  document.getElementById('nextBtn').className = 'next-btn';
+
+  const pct = Math.round(correct / (correct + wrong) * 100);
+  let msg = '';
+  if (pct === 100) msg = '🏆 ¡Sin un solo fallo! Conoces el sistema DNS como un administrador de redes.';
+  else if (pct >= 70) msg = `✓ Excelente reparto. ${correct} respuestas directas (${pct}%). Dominas el funcionamiento del DNS.`;
+  else msg = `Reparto completado con consultas adicionales. Repasa los conceptos de caché DNS, TTL y jerarquía de servidores.`;
+
+  document.getElementById('victoryMsg').textContent = msg;
+  document.getElementById('victory').style.display = 'block';
+  document.getElementById('victory').scrollIntoView({behavior:'smooth'});
+}
+
+initGame();
+</script>
+</body>
+</html>

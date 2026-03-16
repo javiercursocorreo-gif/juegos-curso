@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Juego 7 — Tecnología en tu día a día</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Fredoka+One&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f0f4ff;
+  --card:#ffffff;
+  --primary:#4f46e5;
+  --primary2:#6366f1;
+  --accent:#f59e0b;
+  --accent2:#fbbf24;
+  --green:#10b981;
+  --green2:#34d399;
+  --red:#ef4444;
+  --red2:#fca5a5;
+  --blue:#3b82f6;
+  --purple:#8b5cf6;
+  --pink:#ec4899;
+  --orange:#f97316;
+  --teal:#14b8a6;
+  --text:#1e1b4b;
+  --text2:#4338ca;
+  --dim:#6b7280;
+  --shadow:0 4px 24px rgba(79,70,229,0.10);
+  --shadow2:0 8px 32px rgba(79,70,229,0.18);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background:var(--bg);
+  font-family:'Nunito',sans-serif;
+  color:var(--text);
+  min-height:100vh;
+  background-image: radial-gradient(circle at 20% 20%, rgba(99,102,241,0.08) 0%, transparent 50%),
+                    radial-gradient(circle at 80% 80%, rgba(245,158,11,0.08) 0%, transparent 50%);
+}
+.page { max-width:760px; margin:0 auto; padding:20px 16px 60px; }
+
+/* HEADER */
+header {
+  text-align:center;
+  padding:24px 20px 20px;
+  margin-bottom:20px;
+}
+.header-tag {
+  font-size:11px; letter-spacing:4px; color:var(--primary2);
+  text-transform:uppercase; margin-bottom:10px; font-weight:700;
+}
+h1 {
+  font-family:'Fredoka One',sans-serif;
+  font-size:clamp(24px,5vw,40px);
+  color:var(--primary);
+  margin-bottom:6px;
+  line-height:1.1;
+}
+.header-sub { font-size:14px; color:var(--dim); font-weight:600; }
+
+/* SCORE BAR */
+.score-bar {
+  display:flex; gap:12px; justify-content:center; flex-wrap:wrap;
+  margin-bottom:22px;
+}
+.score-chip {
+  background:var(--card);
+  border-radius:50px;
+  padding:10px 20px;
+  box-shadow:var(--shadow);
+  display:flex; align-items:center; gap:8px;
+  font-weight:800; font-size:15px;
+}
+.score-chip .icon { font-size:18px; }
+.score-chip .val { color:var(--primary); }
+.score-chip .lbl { color:var(--dim); font-size:12px; font-weight:600; }
+
+/* PROGRESS */
+.progress-wrap { margin-bottom:22px; }
+.progress-top { display:flex; justify-content:space-between; font-size:13px; font-weight:700; color:var(--dim); margin-bottom:6px; }
+.progress-bar { height:8px; background:#e0e7ff; border-radius:99px; overflow:hidden; }
+.progress-fill { height:100%; background:linear-gradient(90deg,var(--primary),var(--purple)); border-radius:99px; transition:width 0.5s ease; }
+
+/* SCENARIO CARD */
+.scenario-card {
+  background:var(--card);
+  border-radius:24px;
+  box-shadow:var(--shadow2);
+  padding:28px 28px 24px;
+  margin-bottom:18px;
+  position:relative;
+  overflow:hidden;
+}
+.scenario-card::before {
+  content:'';
+  position:absolute; top:0; left:0; right:0; height:5px;
+  background:linear-gradient(90deg,var(--primary),var(--purple),var(--pink));
+}
+.scenario-num {
+  font-size:11px; letter-spacing:3px; font-weight:800;
+  color:var(--primary2); text-transform:uppercase; margin-bottom:12px;
+}
+.scenario-emoji {
+  font-size:clamp(48px,10vw,72px);
+  display:block; text-align:center;
+  margin-bottom:14px;
+  filter:drop-shadow(0 4px 8px rgba(0,0,0,0.12));
+}
+.scenario-title {
+  font-family:'Fredoka One',sans-serif;
+  font-size:clamp(17px,3.5vw,24px);
+  text-align:center; color:var(--text);
+  margin-bottom:10px; line-height:1.2;
+}
+.scenario-desc {
+  font-size:14px; color:var(--dim); text-align:center;
+  line-height:1.6; max-width:520px; margin:0 auto 18px;
+  font-weight:600;
+}
+.scenario-badge {
+  display:inline-flex; align-items:center; gap:6px;
+  background:var(--bg); border-radius:50px;
+  padding:5px 14px; font-size:12px; font-weight:800;
+  color:var(--primary2); margin:0 auto 0; display:block;
+  text-align:center; width:fit-content; margin:0 auto;
+}
+
+/* QUESTION BLOCK */
+.question-block {
+  background:var(--card);
+  border-radius:20px;
+  box-shadow:var(--shadow);
+  padding:22px 24px;
+  margin-bottom:14px;
+  border:2px solid #e0e7ff;
+  transition:border-color 0.2s;
+}
+.question-block.answered { border-color:#c7d2fe; }
+.question-text {
+  font-size:clamp(14px,2.5vw,17px);
+  font-weight:800; color:var(--text);
+  margin-bottom:16px; line-height:1.4;
+}
+.question-number {
+  display:inline-block;
+  background:var(--primary); color:#fff;
+  border-radius:50%; width:24px; height:24px;
+  text-align:center; line-height:24px;
+  font-size:12px; font-weight:900;
+  margin-right:8px; flex-shrink:0;
+}
+
+/* OPTIONS */
+.options { display:flex; flex-direction:column; gap:10px; }
+.options.grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.opt-btn {
+  background:var(--bg);
+  border:2.5px solid #e0e7ff;
+  border-radius:14px;
+  padding:12px 16px;
+  cursor:pointer;
+  font-family:'Nunito',sans-serif;
+  font-size:14px; font-weight:700;
+  color:var(--text);
+  text-align:left;
+  transition:all 0.18s;
+  display:flex; align-items:center; gap:10px;
+}
+.opt-btn:hover:not(:disabled) {
+  border-color:var(--primary2);
+  background:#eef2ff;
+  transform:translateY(-1px);
+  box-shadow:0 4px 12px rgba(99,102,241,0.15);
+}
+.opt-btn:disabled { cursor:default; }
+.opt-btn.correct {
+  background:#d1fae5; border-color:var(--green);
+  color:#065f46;
+}
+.opt-btn.wrong {
+  background:#fee2e2; border-color:var(--red);
+  color:#991b1b;
+  text-decoration:line-through; opacity:0.7;
+}
+.opt-btn.revealed {
+  background:#d1fae5; border-color:var(--green);
+  color:#065f46;
+}
+.opt-icon { font-size:20px; flex-shrink:0; }
+.opt-text { flex:1; line-height:1.3; }
+
+/* FEEDBACK */
+.feedback {
+  border-radius:14px;
+  padding:14px 18px;
+  margin-top:12px;
+  font-size:14px; font-weight:700;
+  line-height:1.5;
+  display:none;
+  animation:fadeIn 0.3s ease;
+}
+.feedback.show { display:block; }
+.feedback.ok { background:#d1fae5; color:#065f46; border:2px solid #6ee7b7; }
+.feedback.fail { background:#fef3c7; color:#92400e; border:2px solid #fcd34d; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+
+/* POINTS POPUP */
+.pts-popup {
+  position:fixed;
+  font-family:'Fredoka One',sans-serif;
+  font-size:28px;
+  font-weight:900;
+  pointer-events:none;
+  z-index:999;
+  animation:popUp 1.2s ease forwards;
+}
+@keyframes popUp {
+  0%   { opacity:1; transform:translateY(0) scale(1); }
+  60%  { opacity:1; transform:translateY(-50px) scale(1.2); }
+  100% { opacity:0; transform:translateY(-90px) scale(0.9); }
+}
+
+/* NEXT BTN */
+.next-wrap { text-align:center; margin-top:18px; }
+.next-btn {
+  background:linear-gradient(135deg,var(--primary),var(--purple));
+  color:#fff;
+  border:none; border-radius:50px;
+  padding:14px 36px;
+  font-family:'Fredoka One',sans-serif;
+  font-size:18px; letter-spacing:1px;
+  cursor:pointer;
+  box-shadow:0 4px 18px rgba(79,70,229,0.35);
+  transition:all 0.2s;
+  display:none;
+}
+.next-btn:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(79,70,229,0.4); }
+.next-btn.show { display:inline-block; }
+
+/* RESULTS */
+.results-card {
+  background:var(--card);
+  border-radius:24px;
+  box-shadow:var(--shadow2);
+  padding:36px 28px;
+  text-align:center;
+  display:none;
+}
+.results-card.show { display:block; animation:fadeIn 0.5s ease; }
+.results-emoji { font-size:72px; display:block; margin-bottom:16px; }
+.results-title {
+  font-family:'Fredoka One',sans-serif;
+  font-size:clamp(22px,5vw,36px);
+  color:var(--primary); margin-bottom:8px;
+}
+.results-score {
+  font-family:'Fredoka One',sans-serif;
+  font-size:clamp(40px,8vw,64px);
+  color:var(--accent); margin-bottom:6px;
+}
+.results-sub { font-size:15px; color:var(--dim); font-weight:700; margin-bottom:24px; }
+.results-stats {
+  display:flex; gap:16px; justify-content:center; flex-wrap:wrap;
+  margin-bottom:28px;
+}
+.rstat {
+  background:var(--bg); border-radius:16px;
+  padding:14px 20px; min-width:110px;
+}
+.rstat-val { font-family:'Fredoka One',sans-serif; font-size:28px; color:var(--primary); }
+.rstat-lbl { font-size:12px; color:var(--dim); font-weight:700; margin-top:2px; }
+.restart-btn {
+  background:linear-gradient(135deg,var(--accent),var(--orange));
+  color:#fff; border:none; border-radius:50px;
+  padding:14px 36px;
+  font-family:'Fredoka One',sans-serif; font-size:18px;
+  cursor:pointer;
+  box-shadow:0 4px 18px rgba(245,158,11,0.35);
+  transition:all 0.2s;
+}
+.restart-btn:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(245,158,11,0.4); }
+
+/* MEDAL */
+.medal { font-size:28px; margin-left:8px; }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <div class="header-tag">// Telecomunicaciones · Teoría 6</div>
+  <h1>📱 Tecnología en tu día a día</h1>
+  <p class="header-sub">¿Qué red usa cada situación? ¿Gasta datos?</p>
+</header>
+
+<div class="score-bar">
+  <div class="score-chip"><span class="icon">⭐</span><span class="val" id="scoreVal">0</span><span class="lbl">puntos</span></div>
+  <div class="score-chip"><span class="icon">✅</span><span class="val" id="correctVal">0</span><span class="lbl">correctas</span></div>
+  <div class="score-chip"><span class="icon">❌</span><span class="val" id="wrongVal">0</span><span class="lbl">fallos</span></div>
+</div>
+
+<div class="progress-wrap">
+  <div class="progress-top">
+    <span id="progLabel">Escenario 1 de 12</span>
+    <span id="progPct">0%</span>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progFill" style="width:0%"></div></div>
+</div>
+
+<div id="scenarioArea"></div>
+
+<div class="next-wrap">
+  <button class="next-btn" id="nextBtn" onclick="nextScenario()">Siguiente situación →</button>
+</div>
+
+<div class="results-card" id="resultsCard"></div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// SCENARIOS DATA
+// ═══════════════════════════════════════════════════════════
+const SCENARIOS = [
+  {
+    emoji:'📱💬',
+    title:'WhatsApp desde casa',
+    desc:'Estás en el salón de tu casa y mandas un mensaje de WhatsApp a tu hijo. Tu router está encendido y tu móvil conectado a él.',
+    badge:'🏠 En casa con Wi-Fi',
+    questions:[
+      {
+        text:'¿Qué tecnología usa tu móvil para enviar el mensaje?',
+        options:[
+          {icon:'📶',text:'Wi-Fi (red inalámbrica del router de casa)',correct:true},
+          {icon:'📡',text:'Datos móviles (red del operador)',correct:false},
+          {icon:'🔵',text:'Bluetooth',correct:false},
+        ],
+        feedback_ok:'✅ ¡Correcto! Cuando estás en casa conectado al router, el móvil usa el Wi-Fi. Es gratis y más rápido que los datos móviles.',
+        feedback_fail:'💡 Cuando el móvil está conectado al Wi-Fi de casa, usa esa red — no los datos del operador.',
+      },
+      {
+        text:'¿Gasta datos de tu bono móvil?',
+        options:[
+          {icon:'✅',text:'No, el Wi-Fi no gasta datos del bono',correct:true},
+          {icon:'❌',text:'Sí, siempre se gastan datos al usar Internet',correct:false},
+        ],
+        feedback_ok:'✅ ¡Exacto! El Wi-Fi usa la fibra óptica o ADSL de casa. Los datos del bono solo se gastan con la red móvil (4G/5G).',
+        feedback_fail:'💡 El Wi-Fi de casa va por la línea de fibra o ADSL — no toca tu bono de datos móviles.',
+      },
+    ]
+  },
+  {
+    emoji:'🎧📱',
+    title:'Auriculares inalámbricos',
+    desc:'Conectas tus auriculares inalámbricos al móvil para escuchar música. No usas ninguna aplicación de Internet — la música está guardada en el teléfono.',
+    badge:'🎵 Música guardada en el móvil',
+    questions:[
+      {
+        text:'¿Qué tecnología conecta los auriculares al móvil?',
+        options:[
+          {icon:'🔵',text:'Bluetooth',correct:true},
+          {icon:'📶',text:'Wi-Fi',correct:false},
+          {icon:'📡',text:'Datos móviles',correct:false},
+        ],
+        feedback_ok:'✅ ¡Muy bien! El Bluetooth es la tecnología para conectar dispositivos cercanos (auriculares, ratones, teclados, relojes...). Funciona en distancias cortas, hasta unos 10 metros.',
+        feedback_fail:'💡 Los auriculares inalámbricos usan Bluetooth — una tecnología de corto alcance para conectar dispositivos entre sí sin cables.',
+      },
+      {
+        text:'¿Gasta datos del bono móvil?',
+        options:[
+          {icon:'✅',text:'No, el Bluetooth no usa Internet',correct:true},
+          {icon:'❌',text:'Sí, cualquier cosa inalámbrica gasta datos',correct:false},
+        ],
+        feedback_ok:'✅ ¡Correcto! El Bluetooth crea una red local entre dos dispositivos. No se conecta a Internet ni gasta datos del bono.',
+        feedback_fail:'💡 Inalámbrico no significa Internet. El Bluetooth comunica dos dispositivos directamente, sin pasar por ningún operador.',
+      },
+    ]
+  },
+  {
+    emoji:'🎬🚆',
+    title:'Netflix en el tren',
+    desc:'Vas en el tren y ves un capítulo de tu serie favorita en Netflix. No tienes Wi-Fi en el tren y el móvil está en 4G.',
+    badge:'🚆 En movimiento, sin Wi-Fi',
+    questions:[
+      {
+        text:'¿Qué tecnología usa tu móvil para ver la serie?',
+        options:[
+          {icon:'📡',text:'Datos móviles (4G/5G del operador)',correct:true},
+          {icon:'📶',text:'Wi-Fi',correct:false},
+          {icon:'🔵',text:'Bluetooth',correct:false},
+        ],
+        feedback_ok:'✅ ¡Correcto! Sin Wi-Fi disponible, el móvil usa la red 4G o 5G del operador para conectarse a Internet.',
+        feedback_fail:'💡 En el tren no hay Wi-Fi, así que el móvil se conecta a Internet a través de la red móvil 4G/5G del operador.',
+      },
+      {
+        text:'¿Gasta datos del bono móvil?',
+        options:[
+          {icon:'❌',text:'Sí, y además bastante — el vídeo consume muchos datos',correct:true},
+          {icon:'✅',text:'No, Netflix se descarga solo cuando hay Wi-Fi',correct:false},
+        ],
+        feedback_ok:'✅ ¡Exacto! Ver vídeo en streaming por datos móviles gasta mucho bono. Un capítulo en HD puede consumir entre 1 y 3 GB.',
+        feedback_fail:'💡 Si no has descargado el capítulo antes por Wi-Fi, Netflix lo descarga en tiempo real por datos móviles — y eso gasta bono.',
+      },
+      {
+        text:'¿Cuántos GB puede consumir aproximadamente un capítulo de 45 minutos en buena calidad?',
+        options:[
+          {icon:'📦',text:'Entre 1 y 3 GB',correct:true},
+          {icon:'📦',text:'Menos de 10 MB',correct:false},
+          {icon:'📦',text:'Más de 20 GB',correct:false},
+        ],
+        feedback_ok:'✅ ¡Bien calculado! Un capítulo en HD puede consumir 1-3 GB. Por eso conviene descargar series en casa por Wi-Fi antes de viajar.',
+        feedback_fail:'💡 El vídeo en alta calidad consume mucho: un capítulo de 45 min puede gastar entre 1 y 3 GB de datos móviles.',
+      },
+    ]
+  },
+  {
+    emoji:'💳📱',
+    title:'Pagar con el móvil',
+    desc:'En la tienda acercas el móvil al datáfono para pagar sin sacar la tarjeta. El teléfono "toca" el lector por un momento.',
+    badge:'🛒 Pago sin contacto',
+    questions:[
+      {
+        text:'¿Qué tecnología permite pagar acercando el móvil al datáfono?',
+        options:[
+          {icon:'📲',text:'NFC (Near Field Communication)',correct:true},
+          {icon:'🔵',text:'Bluetooth',correct:false},
+          {icon:'📶',text:'Wi-Fi',correct:false},
+          {icon:'📡',text:'Datos móviles',correct:false},
+        ],
+        feedback_ok:'✅ ¡Perfecto! El NFC (Comunicación de Campo Cercano) funciona a muy corta distancia — solo unos centímetros. Es la tecnología del pago sin contacto y también de los bonos de transporte.',
+        feedback_fail:'💡 Es el NFC — Near Field Communication. Funciona acercando dos dispositivos a pocos centímetros. Se usa para pagos, bonos de metro y bus.',
+      },
+      {
+        text:'¿Necesita conexión a Internet para funcionar el pago?',
+        options:[
+          {icon:'✅',text:'Sí, el banco verifica el pago por Internet',correct:true},
+          {icon:'❌',text:'No, funciona completamente sin Internet',correct:false},
+        ],
+        feedback_ok:'✅ ¡Correcto! El NFC envía los datos del pago, pero el banco necesita aprobar la transacción a través de Internet. El datáfono tiene su propia conexión.',
+        feedback_fail:'💡 Aunque el NFC en sí no usa Internet, el datáfono sí se conecta al banco por Internet para verificar y aprobar el cobro.',
+      },
+    ]
+  },
+  {
+    emoji:'🎬🏠',
+    title:'Netflix en casa',
+    desc:'Por la noche ves tu serie favorita en la televisión inteligente (Smart TV) de casa, conectada al router por Wi-Fi.',
+    badge:'🏠 Smart TV con Wi-Fi',
+    questions:[
+      {
+        text:'¿Qué tecnología usa la televisión para cargar la serie?',
+        options:[
+          {icon:'📶',text:'Wi-Fi (conectada al router de casa)',correct:true},
+          {icon:'📡',text:'Datos móviles',correct:false},
+          {icon:'🔵',text:'Bluetooth',correct:false},
+          {icon:'📺',text:'Señal de antena de televisión',correct:false},
+        ],
+        feedback_ok:'✅ ¡Correcto! La Smart TV se conecta al router de casa por Wi-Fi para acceder a Internet y cargar Netflix, YouTube, etc.',
+        feedback_fail:'💡 Las televisiones inteligentes se conectan al router de casa por Wi-Fi (o cable de red) para acceder a servicios de Internet como Netflix.',
+      },
+      {
+        text:'¿Gasta datos del bono móvil?',
+        options:[
+          {icon:'✅',text:'No, usa el Wi-Fi de casa',correct:true},
+          {icon:'❌',text:'Sí, aunque sea la tele',correct:false},
+        ],
+        feedback_ok:'✅ ¡Exacto! La Smart TV va por el Wi-Fi del router, que usa la fibra óptica o ADSL de casa. El bono móvil no se toca.',
+        feedback_fail:'💡 La tele usa el Wi-Fi del router de casa — no la red móvil. No gasta nada del bono de datos del móvil.',
+      },
+    ]
+  },
+  {
+    emoji:'⌚📱',
+    title:'Smartwatch sincronizándose',
+    desc:'Tu reloj inteligente vibra y sincroniza tus pasos del día con la aplicación del móvil. El reloj y el móvil están cerca, en la misma habitación.',
+    badge:'⌚ Reloj inteligente',
+    questions:[
+      {
+        text:'¿Cómo se comunica el smartwatch con el móvil?',
+        options:[
+          {icon:'🔵',text:'Bluetooth',correct:true},
+          {icon:'📶',text:'Wi-Fi',correct:false},
+          {icon:'📡',text:'Datos móviles',correct:false},
+        ],
+        feedback_ok:'✅ ¡Muy bien! El smartwatch usa Bluetooth para comunicarse con el móvil cuando están cerca. Es la tecnología ideal para distancias cortas y bajo consumo de batería.',
+        feedback_fail:'💡 El reloj inteligente usa Bluetooth para hablar con el móvil — una tecnología de corto alcance y bajo consumo perfecta para wearables.',
+      },
+      {
+        text:'¿Gasta datos del bono móvil esta sincronización?',
+        options:[
+          {icon:'✅',text:'No, Bluetooth no usa la red del operador',correct:true},
+          {icon:'❌',text:'Sí, porque se envían datos',correct:false},
+        ],
+        feedback_ok:'✅ ¡Correcto! El Bluetooth no pasa por la red del operador. Aunque luego la app suba los datos a la nube, eso sí puede usar Wi-Fi o datos.',
+        feedback_fail:'💡 La sincronización por Bluetooth es local — va directamente del reloj al móvil sin pasar por la red del operador, sin gastar bono.',
+      },
+    ]
+  },
+  {
+    emoji:'📸📱',
+    title:'Subir foto a Instagram en la calle',
+    desc:'Estás en el parque y haces una foto preciosa. La subes a Instagram desde el móvil. Estás lejos de casa, sin Wi-Fi.',
+    badge:'🌳 Al aire libre, sin Wi-Fi',
+    questions:[
+      {
+        text:'¿Qué red usa el móvil para subir la foto?',
+        options:[
+          {icon:'📡',text:'Datos móviles (4G/5G)',correct:true},
+          {icon:'📶',text:'Wi-Fi del parque',correct:false},
+          {icon:'🔵',text:'Bluetooth',correct:false},
+        ],
+        feedback_ok:'✅ ¡Correcto! Sin Wi-Fi disponible, el móvil usa los datos móviles del operador (4G o 5G) para enviar la foto a los servidores de Instagram.',
+        feedback_fail:'💡 En el parque, sin Wi-Fi, el móvil se conecta a Internet por la red 4G/5G del operador — y eso sí gasta datos del bono.',
+      },
+      {
+        text:'¿Gasta datos del bono?',
+        options:[
+          {icon:'❌',text:'Sí, y subir fotos puede gastar bastante',correct:true},
+          {icon:'✅',text:'No, las redes sociales son gratuitas',correct:false},
+        ],
+        feedback_ok:'✅ ¡Exacto! Las apps son gratis de descargar, pero los datos que envían o reciben por la red móvil sí gastan bono. Una foto en alta resolución puede pesar varios MB.',
+        feedback_fail:'💡 Cuidado: "gratis" no significa sin datos. La app es gratuita, pero enviar la foto por 4G sí consume datos del bono del operador.',
+      },
+    ]
+  },
+  {
+    emoji:'🧭🚗',
+    title:'GPS en el coche',
+    desc:'Usas el GPS del coche para ir a un sitio nuevo. El GPS funciona con señal de satélite — solo calcula tu posición.',
+    badge:'🛰 Señal de satélite',
+    questions:[
+      {
+        text:'¿El GPS básico necesita datos móviles para localizar el coche?',
+        options:[
+          {icon:'✅',text:'No, el GPS recibe señal de satélite sin gastar datos',correct:true},
+          {icon:'❌',text:'Sí, siempre necesita Internet para funcionar',correct:false},
+        ],
+        feedback_ok:'✅ ¡Correcto! El GPS recibe señales de satélites en órbita gratuitamente. No usa la red del operador para calcular tu posición. Solo necesitas datos si quieres el mapa actualizado o el tráfico en tiempo real.',
+        feedback_fail:'💡 El GPS es diferente a Internet. Recibe señales de satélites espaciales sin gastar datos. Es unidireccional: el satélite te habla a ti, tú no envías nada.',
+      },
+      {
+        text:'¿Y si usas Google Maps con el mapa en tiempo real y tráfico actualizado?',
+        options:[
+          {icon:'❌',text:'Sí, ahí sí gasta datos para descargar el mapa y el tráfico',correct:true},
+          {icon:'✅',text:'No, el GPS siempre es gratuito sin datos',correct:false},
+        ],
+        feedback_ok:'✅ ¡Bien distinguido! El GPS puro no gasta datos. Pero Google Maps descarga los mapas y el tráfico en tiempo real — eso sí usa datos o Wi-Fi.',
+        feedback_fail:'💡 El GPS en sí no gasta datos. Pero las apps de navegación como Google Maps descargan mapas y tráfico — eso sí consume datos del bono.',
+      },
+    ]
+  },
+  {
+    emoji:'💻📡',
+    title:'Videollamada en la cafetería',
+    desc:'Estás en una cafetería que tiene Wi-Fi gratis y haces una videollamada con tu familia por WhatsApp.',
+    badge:'☕ Cafetería con Wi-Fi',
+    questions:[
+      {
+        text:'¿Qué red usa el móvil para la videollamada?',
+        options:[
+          {icon:'📶',text:'Wi-Fi de la cafetería',correct:true},
+          {icon:'📡',text:'Datos móviles',correct:false},
+          {icon:'🔵',text:'Bluetooth',correct:false},
+        ],
+        feedback_ok:'✅ ¡Correcto! Cuando el móvil detecta una red Wi-Fi y está conectado a ella, la usa automáticamente en lugar de los datos móviles.',
+        feedback_fail:'💡 Si el móvil está conectado al Wi-Fi de la cafetería, usa esa red — no los datos del operador. El Wi-Fi tiene prioridad cuando está disponible.',
+      },
+      {
+        text:'¿Gasta datos del bono móvil?',
+        options:[
+          {icon:'✅',text:'No, usa el Wi-Fi de la cafetería',correct:true},
+          {icon:'❌',text:'Sí, la videollamada siempre gasta datos',correct:false},
+        ],
+        feedback_ok:'✅ ¡Exacto! Conectado al Wi-Fi de la cafetería, la videollamada no toca el bono del móvil. ¡Aprovecha el Wi-Fi siempre que puedas!',
+        feedback_fail:'💡 Conectado al Wi-Fi, la videollamada va por ese Wi-Fi — no por los datos móviles. El bono no se gasta.',
+      },
+    ]
+  },
+  {
+    emoji:'📻🏠',
+    title:'Radio por Internet en casa',
+    desc:'Escuchas la radio por Internet en el móvil desde casa, usando una aplicación como iVoox. El móvil está conectado al Wi-Fi del router.',
+    badge:'🎙 Radio por Internet',
+    questions:[
+      {
+        text:'¿Qué diferencia hay entre la radio FM tradicional y la radio por Internet?',
+        options:[
+          {icon:'📡',text:'La FM usa ondas de radio, la de Internet usa Wi-Fi o datos móviles',correct:true},
+          {icon:'📻',text:'Son lo mismo, solo cambia el nombre',correct:false},
+          {icon:'🔵',text:'La FM usa Bluetooth y la otra Wi-Fi',correct:false},
+        ],
+        feedback_ok:'✅ ¡Muy bien! La FM capta ondas de radio del aire — no necesita Internet. La radio por Internet llega a través de Wi-Fi o datos móviles, como cualquier otra app.',
+        feedback_fail:'💡 Son tecnologías distintas: la FM recibe ondas electromagnéticas del aire (sin Internet), mientras que la radio por app descarga el audio de Internet.',
+      },
+      {
+        text:'Escuchando la radio por Internet desde casa con Wi-Fi: ¿gasta datos del bono?',
+        options:[
+          {icon:'✅',text:'No, usa el Wi-Fi de casa',correct:true},
+          {icon:'❌',text:'Sí, porque está usando Internet',correct:false},
+        ],
+        feedback_ok:'✅ ¡Correcto! Usar Internet no significa gastar datos del bono. En casa, con Wi-Fi, el audio llega por la fibra óptica — el bono no se toca.',
+        feedback_fail:'💡 "Usar Internet" y "gastar datos del bono" no es lo mismo. En casa, el Wi-Fi usa la fibra — el bono del operador no se gasta.',
+      },
+    ]
+  },
+  {
+    emoji:'🖨️💻',
+    title:'Imprimir desde el ordenador',
+    desc:'Desde tu ordenador portátil imprimes un documento en la impresora inalámbrica que tienes en casa. Ambos están en la misma red Wi-Fi del router.',
+    badge:'🏠 Red local de casa',
+    questions:[
+      {
+        text:'¿El documento viaja por Internet para llegar a la impresora?',
+        options:[
+          {icon:'✅',text:'No, viaja por la red local Wi-Fi de casa',correct:true},
+          {icon:'❌',text:'Sí, tiene que ir a Internet y volver',correct:false},
+        ],
+        feedback_ok:'✅ ¡Correcto! El ordenador y la impresora están en la misma red local Wi-Fi. El documento viaja directamente entre ellos — sin salir a Internet.',
+        feedback_fail:'💡 Cuando dos dispositivos están en la misma red Wi-Fi de casa, se comunican localmente — el documento no sale a Internet ni gasta datos.',
+      },
+      {
+        text:'¿Gasta datos del bono móvil?',
+        options:[
+          {icon:'✅',text:'No, es comunicación local dentro de casa',correct:true},
+          {icon:'❌',text:'Sí, porque es inalámbrico',correct:false},
+        ],
+        feedback_ok:'✅ ¡Exacto! La red Wi-Fi de casa crea una red local. Los dispositivos conectados a ella pueden comunicarse sin salir a Internet y sin gastar datos del bono.',
+        feedback_fail:'💡 Inalámbrico no significa Internet. La impresora y el ordenador están en la red local del router — se hablan entre ellos sin gastar datos del bono.',
+      },
+    ]
+  },
+  {
+    emoji:'📱🔋',
+    title:'¿Cuánto gasta cada cosa?',
+    desc:'Piensa en un día normal con tu móvil. Tienes 10 GB de datos al mes en tu tarifa.',
+    badge:'📊 Resumen de consumo',
+    questions:[
+      {
+        text:'¿Cuál de estas actividades gasta MÁS datos del bono móvil?',
+        options:[
+          {icon:'🎬',text:'Ver una película en streaming por 4G',correct:true},
+          {icon:'💬',text:'Mandar 100 mensajes de WhatsApp',correct:false},
+          {icon:'📰',text:'Leer el periódico digital',correct:false},
+          {icon:'🗺',text:'Mirar el GPS (posición, sin mapa)',correct:false},
+        ],
+        feedback_ok:'✅ ¡Correcto! El vídeo es lo que más datos consume: una película en HD puede gastar 3-7 GB. Los mensajes de texto gastan muy poco (menos de 1 MB para 100 mensajes).',
+        feedback_fail:'💡 El vídeo es el gran consumidor de datos. Una película en HD puede gastar entre 3 y 7 GB — casi todo el bono mensual de muchas tarifas.',
+      },
+      {
+        text:'¿Cuál de estas actividades NO gasta datos del bono?',
+        options:[
+          {icon:'🔵',text:'Llamada por Bluetooth entre móvil y auriculares',correct:true},
+          {icon:'🎵',text:'Escuchar Spotify por 4G',correct:false},
+          {icon:'📸',text:'Subir fotos al WhatsApp por 4G',correct:false},
+          {icon:'🗞',text:'Leer noticias por 4G',correct:false},
+        ],
+        feedback_ok:'✅ ¡Muy bien! El Bluetooth es una red local entre dispositivos — no usa Internet ni el bono del operador. Todo lo demás por 4G sí gasta datos.',
+        feedback_fail:'💡 El Bluetooth no pasa por la red del operador — no gasta datos del bono. Las otras opciones sí usan 4G y sí gastan datos.',
+      },
+    ]
+  },
+];
+
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+let scenarioIdx = 0;
+let questionIdx = 0;
+let score = 0;
+let correctCount = 0;
+let wrongCount = 0;
+let firstTryCount = 0; // questions answered correctly on first try
+let currentScenarioComplete = false;
+let questionAnswered = false;
+
+// ═══════════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════════
+function render() {
+  if (scenarioIdx >= SCENARIOS.length) {
+    showResults();
+    return;
+  }
+
+  const sc = SCENARIOS[scenarioIdx];
+  updateProgress();
+
+  const area = document.getElementById('scenarioArea');
+  area.innerHTML = `
+    <div class="scenario-card">
+      <div class="scenario-num">SITUACIÓN ${scenarioIdx+1} DE ${SCENARIOS.length}</div>
+      <span class="scenario-emoji">${sc.emoji}</span>
+      <div class="scenario-title">${sc.title}</div>
+      <div class="scenario-desc">${sc.desc}</div>
+      <div class="scenario-badge">${sc.badge}</div>
+    </div>
+    <div id="questionsArea"></div>
+  `;
+
+  questionIdx = 0;
+  currentScenarioComplete = false;
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const sc = SCENARIOS[scenarioIdx];
+  const q  = sc.questions[questionIdx];
+  const isGrid2 = q.options.length === 2;
+  const area = document.getElementById('questionsArea');
+
+  const div = document.createElement('div');
+  div.className = 'question-block';
+  div.id = `q_${questionIdx}`;
+
+  const opts = q.options.map((opt,i) => `
+    <button class="opt-btn" id="opt_${questionIdx}_${i}" onclick="answerQ(${i})">
+      <span class="opt-icon">${opt.icon}</span>
+      <span class="opt-text">${opt.text}</span>
+    </button>
+  `).join('');
+
+  div.innerHTML = `
+    <div class="question-text">
+      <span class="question-number">${questionIdx+1}</span>${q.text}
+    </div>
+    <div class="options ${isGrid2?'grid2':''}" id="opts_${questionIdx}">${opts}</div>
+    <div class="feedback" id="fb_${questionIdx}"></div>
+  `;
+
+  area.appendChild(div);
+  questionAnswered = false;
+}
+
+function answerQ(optIdx) {
+  if (questionAnswered) return;
+  questionAnswered = true;
+
+  const sc = SCENARIOS[scenarioIdx];
+  const q  = sc.questions[questionIdx];
+  const opt = q.options[optIdx];
+  const isFirstTry = !document.getElementById(`opt_${questionIdx}_0`).classList.contains('was-tried');
+
+  if (opt.correct) {
+    // Correct answer
+    document.getElementById(`opt_${questionIdx}_${optIdx}`).classList.add('correct');
+    disableOptions(questionIdx);
+
+    const pts = isFirstTry ? 100 : 50;
+    score += pts;
+    correctCount++;
+    if (isFirstTry) firstTryCount++;
+
+    updateScore();
+    showFeedback(questionIdx, true, q.feedback_ok);
+    showPtsPopup(`+${pts}`, '#10b981');
+
+    // Move to next question or finish scenario
+    setTimeout(() => {
+      questionIdx++;
+      if (questionIdx < sc.questions.length) {
+        renderQuestion();
+        questionAnswered = false;
+      } else {
+        // Scenario complete
+        currentScenarioComplete = true;
+        document.getElementById('nextBtn').classList.add('show');
+      }
+    }, 1400);
+
+  } else {
+    // Wrong answer
+    questionAnswered = false; // allow retry
+    document.getElementById(`opt_${questionIdx}_${optIdx}`).classList.add('wrong');
+    document.getElementById(`opt_${questionIdx}_${optIdx}`).disabled = true;
+    // Mark as tried
+    document.getElementById(`opt_${questionIdx}_0`).classList.add('was-tried');
+
+    score = Math.max(0, score - 10);
+    wrongCount++;
+    updateScore();
+    showFeedback(questionIdx, false, q.feedback_fail);
+    showPtsPopup('-10', '#ef4444');
+
+    // Hide feedback after a moment, let them try again
+    setTimeout(() => {
+      const fb = document.getElementById(`fb_${questionIdx}`);
+      if (fb) { fb.classList.remove('show'); }
+    }, 2200);
+  }
+}
+
+function disableOptions(qIdx) {
+  const opts = document.querySelectorAll(`[id^="opt_${qIdx}_"]`);
+  opts.forEach(o => o.disabled = true);
+}
+
+function showFeedback(qIdx, ok, msg) {
+  const fb = document.getElementById(`fb_${qIdx}`);
+  if (!fb) return;
+  fb.className = `feedback ${ok?'ok':'fail'} show`;
+  fb.textContent = msg;
+}
+
+function showPtsPopup(text, color) {
+  const popup = document.createElement('div');
+  popup.className = 'pts-popup';
+  popup.textContent = text;
+  popup.style.color = color;
+  // Position near score bar
+  const bar = document.querySelector('.score-bar');
+  const rect = bar.getBoundingClientRect();
+  popup.style.top = (rect.top + window.scrollY - 10) + 'px';
+  popup.style.left = (rect.left + rect.width/2 - 30) + 'px';
+  document.body.appendChild(popup);
+  setTimeout(() => popup.remove(), 1300);
+}
+
+function updateScore() {
+  document.getElementById('scoreVal').textContent = score;
+  document.getElementById('correctVal').textContent = correctCount;
+  document.getElementById('wrongVal').textContent = wrongCount;
+}
+
+function updateProgress() {
+  const pct = Math.round((scenarioIdx / SCENARIOS.length) * 100);
+  document.getElementById('progLabel').textContent = `Situación ${scenarioIdx+1} de ${SCENARIOS.length}`;
+  document.getElementById('progPct').textContent = pct + '%';
+  document.getElementById('progFill').style.width = pct + '%';
+}
+
+function nextScenario() {
+  scenarioIdx++;
+  document.getElementById('nextBtn').classList.remove('show');
+  if (scenarioIdx >= SCENARIOS.length) {
+    showResults();
+  } else {
+    render();
+    window.scrollTo({top:0, behavior:'smooth'});
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// RESULTS
+// ═══════════════════════════════════════════════════════════
+function showResults() {
+  document.getElementById('scenarioArea').innerHTML = '';
+  document.getElementById('nextBtn').style.display = 'none';
+  document.getElementById('progFill').style.width = '100%';
+  document.getElementById('progPct').textContent = '100%';
+  document.getElementById('progLabel').textContent = `¡Completado!`;
+
+  const totalQuestions = SCENARIOS.reduce((s,sc)=>s+sc.questions.length,0);
+  const pct = Math.round((firstTryCount / totalQuestions)*100);
+
+  let emoji, title, msg;
+  if (pct >= 90) { emoji='🏆'; title='¡Experto en tecnología!'; msg='Dominas perfectamente qué red usa cada dispositivo. ¡Sobresaliente!'; }
+  else if (pct >= 70) { emoji='🥇'; title='¡Muy buen resultado!'; msg='Tienes una sólida comprensión de las redes y el consumo de datos. ¡Muy bien!'; }
+  else if (pct >= 50) { emoji='🥈'; title='¡Buen trabajo!'; msg='Has aprendido bastante. Repasa los escenarios donde tuviste dudas.'; }
+  else { emoji='📚'; title='¡Sigue practicando!'; msg='Hoy has aprendido muchas cosas nuevas. Vuelve a intentarlo para afianzarlos.'; }
+
+  const medal = pct>=90?'🏆':pct>=70?'🥇':pct>=50?'🥈':'🥉';
+
+  const rc = document.getElementById('resultsCard');
+  rc.innerHTML = `
+    <span class="results-emoji">${emoji}</span>
+    <div class="results-title">${title}</div>
+    <div class="results-score">${score} pts</div>
+    <div class="results-sub">${msg}</div>
+    <div class="results-stats">
+      <div class="rstat"><div class="rstat-val">${correctCount}</div><div class="rstat-lbl">✅ Respuestas correctas</div></div>
+      <div class="rstat"><div class="rstat-val">${wrongCount}</div><div class="rstat-lbl">❌ Intentos fallidos</div></div>
+      <div class="rstat"><div class="rstat-val">${pct}%</div><div class="rstat-lbl">⭐ A la primera</div></div>
+    </div>
+    <button class="restart-btn" onclick="restartGame()">🔄 Jugar de nuevo</button>
+  `;
+  rc.classList.add('show');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function restartGame() {
+  scenarioIdx = 0; questionIdx = 0;
+  score = 0; correctCount = 0; wrongCount = 0; firstTryCount = 0;
+  updateScore();
+  document.getElementById('resultsCard').classList.remove('show');
+  document.getElementById('nextBtn').style.display = '';
+  render();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ── INIT ──
+render();
+</script>
+</body>
+</html>

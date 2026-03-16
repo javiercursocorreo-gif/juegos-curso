@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DNS Visual — Cómo viaja una consulta</title>
+<link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#020c14; --bg2:#041220; --panel:#06192e; --border:#0a2a46;
+  --neon:#00d4ff; --neon2:#00ff9d; --amber:#ffaa00; --red:#ff3344;
+  --purple:#bb44ff; --dim:#2a5a7a; --white:#c8e8f8;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); font-family:'Source Code Pro',monospace; color:var(--white); min-height:100vh; overflow-x:hidden; user-select:none; }
+.page { max-width:1000px; margin:0 auto; padding:14px 12px 50px; }
+header { text-align:center; padding:18px 20px 14px; border-bottom:1px solid var(--border); margin-bottom:16px; }
+.header-tag { font-size:9px; letter-spacing:5px; color:var(--dim); margin-bottom:6px; }
+h1 { font-family:'Orbitron',sans-serif; font-size:clamp(16px,3vw,26px); font-weight:900; letter-spacing:3px; color:var(--white); margin-bottom:4px; }
+.header-sub { font-size:11px; color:var(--dim); letter-spacing:2px; }
+.domain-bar { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-bottom:10px; }
+.domain-btn { background:var(--panel); border:1px solid var(--border); color:var(--dim); font-family:'Source Code Pro',monospace; font-size:12px; padding:7px 14px; cursor:pointer; transition:all 0.2s; }
+.domain-btn:hover { border-color:var(--neon); color:var(--neon); }
+.domain-btn.selected { border-color:var(--neon); color:var(--neon); background:rgba(0,212,255,0.08); }
+.legend { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-bottom:14px; font-size:10px; }
+.info-strip { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+.info-card { background:var(--panel); border:1px solid var(--border); padding:10px 14px; flex:1; min-width:140px; font-size:11px; }
+.info-card-title { font-family:'Orbitron',sans-serif; font-size:8px; letter-spacing:3px; color:var(--dim); margin-bottom:6px; }
+.info-val { font-size:13px; font-weight:700; color:var(--neon); }
+.info-sub { font-size:10px; color:var(--dim); margin-top:2px; }
+.canvas-wrap { background:var(--bg2); border:1px solid var(--border); border-top:2px solid var(--neon); margin-bottom:10px; overflow:hidden; }
+#cv { display:block; width:100%; }
+.controls { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-bottom:10px; }
+.ctrl-btn { background:transparent; border:2px solid var(--neon); color:var(--neon); font-family:'Orbitron',sans-serif; font-size:10px; letter-spacing:3px; padding:10px 22px; cursor:pointer; transition:all 0.2s; }
+.ctrl-btn:hover { background:var(--neon); color:var(--bg); }
+.ctrl-btn:disabled { border-color:#0a1e30; color:#0a1e30; cursor:default; background:transparent; }
+.ctrl-btn.sec { border-color:var(--border); color:var(--dim); }
+.ctrl-btn.sec:hover { border-color:var(--amber); color:var(--amber); background:transparent; }
+.speed-row { display:flex; align-items:center; gap:8px; justify-content:center; font-size:10px; color:var(--dim); margin-bottom:10px; }
+.sp { background:var(--panel); border:1px solid var(--border); color:var(--dim); font-family:'Source Code Pro',monospace; font-size:10px; padding:4px 10px; cursor:pointer; }
+.sp.on { border-color:var(--amber); color:var(--amber); }
+.log-box { background:var(--bg); border:1px solid var(--border); border-top:2px solid var(--neon2); padding:10px 14px; height:120px; overflow-y:auto; font-size:12px; line-height:1.8; }
+.log-box::-webkit-scrollbar { width:4px; }
+.log-box::-webkit-scrollbar-thumb { background:var(--border); }
+.ll { opacity:0; animation:lf 0.3s forwards; }
+@keyframes lf { to { opacity:1; } }
+.lt { color:var(--dim); margin-right:8px; }
+.lq { color:var(--neon); }
+.lr { color:var(--neon2); }
+.le { color:var(--amber); }
+.lerr { color:var(--red); }
+.lc { color:var(--white); }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div class="header-tag">// TELECOMUNICACIONES · TEORÍA 6 · DNS VISUAL</div>
+    <h1>DNS — SIMULADOR VISUAL</h1>
+    <p class="header-sub">Fase 1: resolución DNS &nbsp;·&nbsp; Fase 2: conexión TCP/IP con rutas múltiples</p>
+  </header>
+
+  <div class="domain-bar" id="dbar">
+    <button class="domain-btn selected" onclick="selDom(0)">⚡ google.com</button>
+    <button class="domain-btn" onclick="selDom(1)">💾 wikipedia.org</button>
+    <button class="domain-btn" onclick="selDom(2)">📋 youtube.com</button>
+    <button class="domain-btn" onclick="selDom(3)">🔍 mi-banco.es</button>
+    <button class="domain-btn" onclick="selDom(4)">🆕 api.nuevo-servicio.com</button>
+  </div>
+
+  <div class="legend">
+    <span style="color:#ffaa00">⚡ Caché local &lt;2ms</span>
+    <span style="color:#2a5a7a">·</span>
+    <span style="color:#00d4ff">💾 Caché ISP ~18ms</span>
+    <span style="color:#2a5a7a">·</span>
+    <span style="color:#00ff9d">📋 Caché TLD ~32ms</span>
+    <span style="color:#2a5a7a">·</span>
+    <span style="color:#ff9944">🔍 Consulta completa ~67ms</span>
+    <span style="color:#2a5a7a">·</span>
+    <span style="color:#ff3344">🆕 Sin caché ~74ms</span>
+  </div>
+
+  <div class="info-strip">
+    <div class="info-card">
+      <div class="info-card-title">DOMINIO</div>
+      <div class="info-val" id="iDom">www.google.com</div>
+      <div class="info-sub" id="iDomSub">buscador web</div>
+    </div>
+    <div class="info-card">
+      <div class="info-card-title">IP RESUELTA</div>
+      <div class="info-val" id="iIp" style="color:var(--dim)">pendiente...</div>
+      <div class="info-sub" id="iIpSub">esperando</div>
+    </div>
+    <div class="info-card">
+      <div class="info-card-title">TIEMPO</div>
+      <div class="info-val" id="iTime" style="color:var(--amber)">0 ms</div>
+      <div class="info-sub" id="iCache">DNS</div>
+    </div>
+    <div class="info-card">
+      <div class="info-card-title">PASO ACTUAL</div>
+      <div class="info-val" id="iStep" style="color:var(--white);font-size:11px">Listo</div>
+      <div class="info-sub" id="iSub">pulsa Iniciar</div>
+    </div>
+  </div>
+
+  <div class="canvas-wrap"><canvas id="cv" height="440"></canvas></div>
+
+  <div class="controls">
+    <button class="ctrl-btn" id="btnStart" onclick="startQuery()">▶ Iniciar consulta</button>
+    <button class="ctrl-btn sec" onclick="resetAll()">↺ Reiniciar</button>
+  </div>
+  <div class="speed-row">
+    VELOCIDAD:
+    <button class="sp on" id="sp1" onclick="setSpd(1)">NORMAL</button>
+    <button class="sp" id="sp2" onclick="setSpd(2)">RÁPIDO</button>
+    <button class="sp" id="sp3" onclick="setSpd(3)">MUY RÁPIDO</button>
+  </div>
+
+  <div class="log-box" id="logBox">
+    <div class="ll"><span class="lt">[00:00]</span><span class="le">Sistema listo. Selecciona dominio y pulsa Iniciar.</span></div>
+  </div>
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────
+const DOMS = [
+  { name:'www.google.com',         ip:'142.250.185.46', tld:'.com', ttl:300,   desc:'buscador web',          sc:'A', ms:1  },
+  { name:'www.wikipedia.org',      ip:'185.15.58.224',  tld:'.org', ttl:3600,  desc:'enciclopedia',          sc:'B', ms:18 },
+  { name:'www.youtube.com',        ip:'216.58.215.110', tld:'.com', ttl:300,   desc:'plataforma video',      sc:'C', ms:32 },
+  { name:'mi-banco.es',            ip:'91.213.144.101', tld:'.es',  ttl:86400, desc:'banca online',          sc:'D', ms:67 },
+  { name:'api.nuevo-servicio.com', ip:'54.239.28.85',   tld:'.com', ttl:30,    desc:'API nueva',             sc:'D', ms:74 },
+];
+
+// Phase 2 routes
+const ROUTES = [
+  { id:'ATL', name:'Cable Atlántico', icon:'🌊', col:'#4499ff',
+    info:'Fibra submarina Madrid→Frankfurt→Nueva York', lat:'~80ms',
+    hops:['rh0','rh1','rh2'], labs:['Frankfurt','Cable Atlántico','Nueva York'] },
+  { id:'SAT', name:'Satélite GEO',    icon:'🛰', col:'#bb44ff',
+    info:'Via satélite geoestacionario 36.000km', lat:'~550ms',
+    hops:['rh0','rh1','rh2'], labs:['Antena uplink','Satélite GEO','Downlink Miami'] },
+  { id:'MED', name:'Mediterráneo',    icon:'🔴', col:'#ff6644',
+    info:'Cable submarino via Marsella y Dubai', lat:'~130ms',
+    hops:['rh0','rh1','rh2'], labs:['Marsella','Dubai','Los Angeles'] },
+  { id:'CDN', name:'CDN Local',       icon:'⚡', col:'#ffaa00',
+    info:'Servidor CDN en Barcelona, sin cruzar el Atlantico', lat:'~8ms',
+    hops:['rh0'], labs:['CDN Barcelona'] },
+];
+
+const PKTCOLS  = ['#00d4ff','#ff9944','#00ff9d'];
+
+// ── CANVAS ────────────────────────────────────────────────────
+const cv  = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+let W, H;
+function resize() { W = cv.parentElement.clientWidth; H = 440; cv.width = W; cv.height = H; }
+resize();
+window.addEventListener('resize', () => { resize(); redraw(); });
+
+// ── STATE ─────────────────────────────────────────────────────
+let selDomIdx = 0;
+let spd = 1;
+const DUR = 900;
+
+// Phase 1
+let p1on = false, p1q = [], p1i = 0;
+let p1ns = {}, p1lk = [], p1pkt = null, p1raf = null, p1t = 0;
+
+// Phase 2
+let p2on = false, p2rt = null;
+let p2pkts = [], p2ns = {}, p2lk = [];
+let p2arr = 0, p2ret = false, p2retArr = 0;
+let p2raf = null, p2t = 0;
+
+let tmr = null;
+
+// ── NODES ─────────────────────────────────────────────────────
+function getP1Nodes() {
+  const p = 30, u = W - p*2;
+  return [
+    { id:'browser', x:p+u*.03, y:H*.18, lbl:'Tu navegador', ic:'💻', col:'#00d4ff', sub:'Madrid' },
+    { id:'cache',   x:p+u*.18, y:H*.06, lbl:'Cache local',  ic:'💾', col:'#ffaa00', sub:'RAM' },
+    { id:'isp',     x:p+u*.35, y:H*.18, lbl:'DNS del ISP',  ic:'📡', col:'#00d4ff', sub:'Movistar' },
+    { id:'root',    x:p+u*.53, y:H*.04, lbl:'DNS Raiz',     ic:'🌐', col:'#bb44ff', sub:'13 servidores' },
+    { id:'tld',     x:p+u*.70, y:H*.18, lbl:'DNS TLD',      ic:'📋', col:'#00ff9d', sub:'.com .org .es' },
+    { id:'auth',    x:p+u*.87, y:H*.30, lbl:'DNS Autoritativo', ic:'🎯', col:'#ff9944', sub:'respuesta final' },
+  ];
+}
+
+function getP2Nodes(rt) {
+  if (!rt) return [];
+  const p = 30, u = W - p*2;
+  const nodes = [{ id:'p2s', x:p+u*.03, y:H*.82, lbl:'Tu navegador', ic:'💻', col:'#00d4ff', sub:'HTTP GET' }];
+  rt.hops.forEach((hid, i) => {
+    const frac = 0.22 + (i+1) * (0.62 / (rt.hops.length+1));
+    nodes.push({ id:hid, x:p+u*frac, y:H*.82, lbl:rt.labs[i], ic:'●', col:rt.col, sub:'nodo' });
+  });
+  nodes.push({ id:'p2e', x:p+u*.97, y:H*.82, lbl:'Servidor web', ic:'🖥', col:'#00ff9d', sub:'responde' });
+  return nodes;
+}
+
+// ── PHASE 1 STEPS ─────────────────────────────────────────────
+function buildSteps(d) {
+  const n=d.name, ip=d.ip, ttl=d.ttl, ms=d.ms;
+  const ah=`ns1.${n.split('.').slice(-2).join('.')}`;
+  if (d.sc==='A') return [
+    {f:'browser',t:'cache',  col:'#ffaa00',lbl:'Cache?',     lc:'lq',lm:`Navegador→Cache: tengo IP de "${n}"?`, sl:'1. Cache local', ss:'buscando en RAM...'},
+    {f:'cache',  t:'browser',col:'#00ff9d',lbl:`✓ ${ip}`,   lc:'lr',lm:`Cache→Navegador: SI. IP=${ip} (TTL:${ttl}s)`, sl:'Cache: encontrado!', ss:`${ms}ms`, res:true,ip,ms,cache:true},
+  ];
+  if (d.sc==='B') return [
+    {f:'browser',t:'cache',  col:'#ffaa00',lbl:'Cache?',     lc:'lq',lm:`Navegador→Cache: tengo IP de "${n}"?`, sl:'1. Cache local', ss:'buscando...'},
+    {f:'cache',  t:'browser',col:'#ff3344',lbl:'No',         lc:'lerr',lm:`Cache: No esta. Pregunto al ISP.`, sl:'Cache: fallo', ss:'no en memoria'},
+    {f:'browser',t:'isp',    col:'#00d4ff',lbl:`"${n}"?`,   lc:'lq',lm:`Navegador→DNS ISP: IP de "${n}"?`, sl:'2. DNS ISP', ss:'ISP tiene su cache...'},
+    {f:'isp',    t:'browser',col:'#00ff9d',lbl:`✓ ${ip}`,   lc:'lr',lm:`DNS ISP→Navegador: SI. IP=${ip} (TTL:${ttl}s)`, sl:'Cache ISP: encontrado!', ss:`${ms}ms`, res:true,ip,ms,cache:true},
+  ];
+  if (d.sc==='C') return [
+    {f:'browser',t:'cache',  col:'#ffaa00',lbl:'Cache?',     lc:'lq',lm:`Navegador→Cache: tengo IP de "${n}"?`, sl:'1. Cache local', ss:'buscando...'},
+    {f:'cache',  t:'browser',col:'#ff3344',lbl:'No',         lc:'lerr',lm:`Cache: No esta.`, sl:'Cache: fallo', ss:'no en memoria'},
+    {f:'browser',t:'isp',    col:'#00d4ff',lbl:`"${n}"?`,   lc:'lq',lm:`Navegador→DNS ISP: IP de "${n}"?`, sl:'2. DNS ISP', ss:'consultando...'},
+    {f:'isp',    t:'browser',col:'#ff3344',lbl:'No',         lc:'lerr',lm:`ISP: No tengo. Voy al DNS Raiz.`, sl:'ISP: fallo', ss:'consultando DNS Raiz...'},
+    {f:'isp',    t:'root',   col:'#bb44ff',lbl:`TLD${d.tld}?`,lc:'lq',lm:`ISP→DNS Raiz: quien gestiona "${d.tld}"?`, sl:'3. DNS Raiz', ss:'consultando...'},
+    {f:'root',   t:'isp',    col:'#bb44ff',lbl:`→TLD${d.tld}`,lc:'lr',lm:`DNS Raiz→ISP: TLD "${d.tld}" lo gestiona tld${d.tld}.`, sl:'DNS Raiz: responde', ss:'TLD encontrado'},
+    {f:'isp',    t:'tld',    col:'#00ff9d',lbl:`"${n}"?`,   lc:'lq',lm:`ISP→DNS TLD: IP de "${n}"?`, sl:`4. DNS TLD ${d.tld}`, ss:'tiene cache del TLD...'},
+    {f:'tld',    t:'isp',    col:'#00ff9d',lbl:`IP:${ip}`,  lc:'lr',lm:`TLD→ISP: SI tengo en cache. IP=${ip}`, sl:'TLD: encontrado!', ss:'devolviendo al ISP...'},
+    {f:'isp',    t:'browser',col:'#00d4ff',lbl:`✓ ${ip}`,   lc:'lr',lm:`ISP→Navegador: IP=${ip}. Guardando ${ttl}s.`, sl:'Cache TLD: completo', ss:`${ms}ms`, res:true,ip,ms,cache:true},
+  ];
+  return [
+    {f:'browser',t:'cache',  col:'#ffaa00',lbl:'Cache?',     lc:'lq',lm:`Navegador→Cache: tengo IP de "${n}"?`, sl:'1. Cache local', ss:'buscando...'},
+    {f:'cache',  t:'browser',col:'#ff3344',lbl:'No',         lc:'lerr',lm:`Cache: No esta.`, sl:'Cache: fallo', ss:''},
+    {f:'browser',t:'isp',    col:'#00d4ff',lbl:`"${n}"?`,   lc:'lq',lm:`Navegador→DNS ISP: IP de "${n}"?`, sl:'2. DNS ISP', ss:''},
+    {f:'isp',    t:'browser',col:'#ff3344',lbl:'No',         lc:'lerr',lm:`ISP: No tengo. Busqueda completa desde DNS Raiz.`, sl:'ISP: fallo', ss:''},
+    {f:'isp',    t:'root',   col:'#bb44ff',lbl:`TLD${d.tld}?`,lc:'lq',lm:`ISP→DNS Raiz: quien gestiona "${d.tld}"?`, sl:'3. DNS Raiz', ss:'13 servidores raiz...'},
+    {f:'root',   t:'isp',    col:'#bb44ff',lbl:`→TLD`,       lc:'lr',lm:`DNS Raiz→ISP: TLD "${d.tld}"=tld${d.tld}. Preguntale autoritativo.`, sl:'DNS Raiz: responde', ss:'TLD localizado'},
+    {f:'isp',    t:'tld',    col:'#00ff9d',lbl:'Autorit?',   lc:'lq',lm:`ISP→DNS TLD: quien es autoritativo de "${n}"?`, sl:`4. DNS TLD ${d.tld}`, ss:''},
+    {f:'tld',    t:'isp',    col:'#00ff9d',lbl:`→${ah}`,    lc:'lr',lm:`TLD→ISP: Autoritativo es "${ah}".`, sl:'TLD: responde', ss:'autoritativo identificado'},
+    {f:'isp',    t:'auth',   col:'#ff9944',lbl:`"${n}"?`,   lc:'lq',lm:`ISP→DNS Autoritativo: IP exacta de "${n}"?`, sl:'5. DNS Autoritativo', ss:'respuesta definitiva...'},
+    {f:'auth',   t:'isp',    col:'#ff9944',lbl:`IP:${ip}`,  lc:'lr',lm:`Autoritativo→ISP: "${n}"=${ip} (TTL:${ttl}s). Definitivo.`, sl:'Autoritativo: responde', ss:`IP: ${ip}`},
+    {f:'isp',    t:'browser',col:'#00d4ff',lbl:`✓ ${ip}`,   lc:'lr',lm:`ISP→Navegador: IP=${ip}. Guardando ${ttl}s.`, sl:'Consulta completa', ss:`${ms}ms`, res:true,ip,ms},
+  ];
+}
+
+// ── PHASE 1 ANIM ──────────────────────────────────────────────
+function runStep(s) {
+  const ns = getP1Nodes();
+  const fn = ns.find(n=>n.id===s.f), tn = ns.find(n=>n.id===s.t);
+  if (!fn||!tn) return;
+  p1ns[s.f] = 'active';
+  setInfo(s.sl, s.ss);
+  addLog(s.lc, s.lm);
+  if (s.res) {
+    document.getElementById('iIp').textContent = s.ip;
+    document.getElementById('iIp').style.color = 'var(--neon2)';
+    document.getElementById('iIpSub').textContent = 'TTL: '+DOMS[selDomIdx].ttl+'s';
+    document.getElementById('iTime').textContent = s.ms+' ms';
+    document.getElementById('iTime').style.color = s.ms<5?'var(--neon2)':'var(--amber)';
+    document.getElementById('iCache').textContent = s.cache?'cache local':'consulta DNS completa';
+    stopTmr();
+  }
+  p1pkt = { fx:fn.x, fy:fn.y, tx:tn.x, ty:tn.y, col:s.col, lbl:s.lbl, prog:0, fid:s.f, tid:s.t };
+  p1t = performance.now();
+  p1raf = requestAnimationFrame(p1loop);
+}
+
+function p1loop(ts) {
+  const dt = Math.min(ts-p1t, 50); p1t = ts;
+  if (p1pkt) {
+    p1pkt.prog += dt / (DUR/spd);
+    if (p1pkt.prog >= 1) {
+      p1pkt.prog = 1;
+      p1ns[p1pkt.tid] = 'active';
+      p1lk.push({f:p1pkt.fid, t:p1pkt.tid, col:p1pkt.col});
+      p1pkt = null;
+      redraw();
+      setTimeout(() => {
+        p1i++;
+        if (p1i < p1q.length) { runStep(p1q[p1i]); }
+        else {
+          p1on = false;
+          addLog('lc','─── DNS completado ───');
+          addLog('le','Navegador tiene la IP. Iniciando conexion TCP/IP...');
+          setTimeout(()=>{ p2t=performance.now(); startP2(); }, 700/spd);
+        }
+      }, 350/spd);
+      return;
+    }
+  }
+  redraw();
+  if (p1pkt) p1raf = requestAnimationFrame(p1loop);
+}
+
+// ── PHASE 2 ANIM ──────────────────────────────────────────────
+function startP2() {
+  p2rt = ROUTES[Math.floor(Math.random()*ROUTES.length)];
+  p2on = true; p2arr = 0; p2ret = false; p2retArr = 0;
+  p2ns = {}; p2lk = []; p2pkts = [];
+
+  addLog('lc', `── FASE 2: ${p2rt.icon} ${p2rt.name} — ${p2rt.info}`);
+  addLog('le', `Latencia estimada: ${p2rt.lat}`);
+  if (p2rt.id==='CDN') addLog('lc','Contenido en CDN local. Sin cruzar el Atlantico.');
+  setInfo(`FASE 2: ${p2rt.icon} ${p2rt.name}`, p2rt.info+' '+p2rt.lat);
+
+  const full = ['p2s', ...p2rt.hops, 'p2e'];
+  // Alt route: skip middle hop for 3-hop routes
+  const alt  = p2rt.hops.length===3 ? ['p2s', p2rt.hops[0], p2rt.hops[2], 'p2e'] : full;
+  const sets = [full, alt, full];
+
+  addLog('lq','Peticion fragmentada en 3 paquetes: PKT·1, PKT·2, PKT·3');
+  if (p2rt.hops.length===3) addLog('lq','PKT·2 tomara sub-ruta alternativa (sin nodo central)');
+
+  const p2n = getP2Nodes(p2rt);
+  const sn  = p2n.find(n=>n.id==='p2s');
+  p2ns['p2s'] = 'active';
+
+  sets.forEach((hops,i)=>{
+    p2pkts.push({
+      id:i, lbl:`PKT·${i+1}`, col:PKTCOLS[i],
+      hops, hi:0, prog:0,
+      delay: i*220, started:false, done:false,
+      x:sn.x, y:sn.y,
+      rethops:null, ri:0, returning:false, rdone:false,
+      _st:0, _rst:0,
+    });
+  });
+
+  p2t = performance.now();
+  p2raf = requestAnimationFrame(p2loop);
+}
+
+function p2loop(ts) {
+  const dt = Math.min(ts-p2t, 50); p2t = ts;
+  const dur = (DUR*0.75)/spd;
+  const p2n = getP2Nodes(p2rt);
+  let busy = false;
+
+  p2pkts.forEach(pk => {
+    if (pk.rdone) return;
+
+    if (!pk.returning) {
+      // Forward
+      if (!pk.started) {
+        if (!pk._st) pk._st = ts + pk.delay/spd;
+        if (ts < pk._st) { busy=true; return; }
+        pk.started = true;
+      }
+      if (pk.done) return;
+
+      pk.prog += dt/dur;
+      if (pk.prog >= 1) {
+        pk.prog = 0;
+        const prev = p2n.find(n=>n.id===pk.hops[pk.hi]);
+        pk.hi++;
+        const cur  = p2n.find(n=>n.id===pk.hops[pk.hi]);
+        if (cur) { pk.x=cur.x; pk.y=cur.y; }
+        if (prev&&cur) p2lk.push({f:prev.id, t:cur.id, col:pk.col+'77'});
+        if (cur) p2ns[cur.id]='active';
+
+        if (pk.hi >= pk.hops.length-1) {
+          pk.done = true;
+          addLog('lr', `${pk.lbl}: llego al servidor`);
+          p2arr++;
+          if (p2arr===3) {
+            setTimeout(()=>{
+              addLog('lc','Servidor reensambla PKT·1+PKT·2+PKT·3 → respuesta HTTP 200 OK');
+              addLog('lr','Servidor envia respuesta fragmentada en 3 paquetes de vuelta');
+              setInfo('FASE 2: Servidor responde','paquetes viajando de vuelta...');
+              p2ret = true;
+              const en = p2n.find(n=>n.id==='p2e');
+              p2pkts.forEach((rp,ri)=>{
+                rp.returning=true; rp.rethops=[...rp.hops].reverse();
+                rp.ri=0; rp.prog=0; rp.x=en.x; rp.y=en.y;
+                rp._rst = ts + ri*180/spd;
+              });
+            }, 500/spd);
+          }
+          return;
+        }
+      }
+      if (!pk.done) {
+        const fn2=p2n.find(n=>n.id===pk.hops[pk.hi]);
+        const tn2=p2n.find(n=>n.id===pk.hops[pk.hi+1]);
+        if (fn2&&tn2) { pk.x=fn2.x+(tn2.x-fn2.x)*pk.prog; pk.y=fn2.y+(tn2.y-fn2.y)*pk.prog; }
+        busy=true;
+      }
+    } else {
+      // Return
+      if (ts < pk._rst) { busy=true; return; }
+      pk.prog += dt/dur;
+      if (pk.prog >= 1) {
+        pk.prog=0;
+        const prev=p2n.find(n=>n.id===pk.rethops[pk.ri]);
+        pk.ri++;
+        const cur=p2n.find(n=>n.id===pk.rethops[pk.ri]);
+        if (cur) { pk.x=cur.x; pk.y=cur.y; }
+        if (prev&&cur) p2lk.push({f:prev.id, t:cur.id, col:pk.col+'44'});
+        if (cur) p2ns[cur.id]='active';
+        if (pk.ri >= pk.rethops.length-1) {
+          pk.rdone=true;
+          addLog('lr',`${pk.lbl}: respuesta recibida en navegador`);
+          p2retArr++;
+          if (p2retArr===3) {
+            p2on=false;
+            document.getElementById('btnStart').disabled=false;
+            setTimeout(()=>{
+              addLog('lc','Navegador reensambla: pagina web completa');
+              addLog('lc','─── Comunicacion completa: DNS + TCP/IP ───');
+              setInfo('Pagina cargada', `${p2rt.icon} ${p2rt.name} · ${p2rt.lat}`);
+            }, 200/spd);
+          }
+          return;
+        }
+      }
+      if (!pk.rdone) {
+        const fn2=p2n.find(n=>n.id===pk.rethops[pk.ri]);
+        const tn2=p2n.find(n=>n.id===pk.rethops[pk.ri+1]);
+        if (fn2&&tn2) { pk.x=fn2.x+(tn2.x-fn2.x)*pk.prog; pk.y=fn2.y+(tn2.y-fn2.y)*pk.prog; }
+        busy=true;
+      }
+    }
+  });
+
+  redraw();
+  if (busy || p2pkts.some(p=>!p.rdone)) p2raf = requestAnimationFrame(p2loop);
+}
+
+// ── DRAW ──────────────────────────────────────────────────────
+function redraw() {
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#041220'; ctx.fillRect(0,0,W,H);
+
+  // Grid
+  ctx.strokeStyle='rgba(0,212,255,0.04)'; ctx.lineWidth=1;
+  for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+
+  // Separator
+  const sep=H*0.52;
+  ctx.save(); ctx.strokeStyle='rgba(0,212,255,0.1)'; ctx.setLineDash([6,6]); ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(0,sep); ctx.lineTo(W,sep); ctx.stroke(); ctx.restore();
+  ctx.save(); ctx.font='bold 8px Orbitron,sans-serif';
+  ctx.fillStyle='rgba(0,212,255,0.3)'; ctx.fillText('FASE 1 — RESOLUCIÓN DNS',10,sep-5);
+  ctx.fillStyle='rgba(0,255,157,0.3)'; ctx.fillText('FASE 2 — CONEXIÓN TCP/IP AL SERVIDOR',10,sep+13);
+  ctx.restore();
+
+  const p1n=getP1Nodes();
+  const p2n=p2rt?getP2Nodes(p2rt):[];
+
+  // P1 static links
+  [['browser','cache'],['browser','isp'],['isp','root'],['isp','tld'],['isp','auth'],['root','tld'],['tld','auth']].forEach(([a,b])=>{
+    const na=p1n.find(n=>n.id===a), nb=p1n.find(n=>n.id===b);
+    if(!na||!nb) return;
+    ctx.save(); ctx.strokeStyle='rgba(10,42,70,0.9)'; ctx.lineWidth=1; ctx.setLineDash([3,6]);
+    ctx.beginPath(); ctx.moveTo(na.x,na.y); ctx.lineTo(nb.x,nb.y); ctx.stroke(); ctx.restore();
+  });
+
+  // P2 route backbone
+  if (p2n.length>0) {
+    ctx.save(); ctx.strokeStyle=(p2rt?p2rt.col:'#4499ff')+'22'; ctx.lineWidth=1.5; ctx.setLineDash([4,5]);
+    ctx.beginPath(); p2n.forEach((n,i)=>{i===0?ctx.moveTo(n.x,n.y):ctx.lineTo(n.x,n.y);}); ctx.stroke(); ctx.restore();
+    // Alt route for 3-hop
+    if (p2rt && p2rt.hops.length===3) {
+      const ai=['p2s',p2rt.hops[0],p2rt.hops[2],'p2e'];
+      ctx.save(); ctx.strokeStyle=PKTCOLS[1]+'22'; ctx.lineWidth=1; ctx.setLineDash([2,8]);
+      ctx.beginPath(); ai.forEach((id,i)=>{ const n=p2n.find(nd=>nd.id===id); if(!n) return; i===0?ctx.moveTo(n.x,n.y):ctx.lineTo(n.x,n.y);}); ctx.stroke(); ctx.restore();
+    }
+  }
+
+  // Completed links P1
+  p1lk.forEach(lk=>{
+    const fn=p1n.find(n=>n.id===lk.f), tn=p1n.find(n=>n.id===lk.t);
+    if(!fn||!tn) return;
+    ctx.save(); ctx.strokeStyle=lk.col; ctx.lineWidth=2; ctx.globalAlpha=0.4;
+    ctx.setLineDash([5,4]); ctx.shadowColor=lk.col; ctx.shadowBlur=6;
+    ctx.beginPath(); ctx.moveTo(fn.x,fn.y); ctx.lineTo(tn.x,tn.y); ctx.stroke(); ctx.restore();
+  });
+
+  // Completed links P2
+  p2lk.forEach(lk=>{
+    const fn=p2n.find(n=>n.id===lk.f), tn=p2n.find(n=>n.id===lk.t);
+    if(!fn||!tn) return;
+    ctx.save(); ctx.strokeStyle=lk.col; ctx.lineWidth=1.5; ctx.globalAlpha=0.5;
+    ctx.setLineDash([]); ctx.shadowColor=lk.col; ctx.shadowBlur=3;
+    ctx.beginPath(); ctx.moveTo(fn.x,fn.y); ctx.lineTo(tn.x,tn.y); ctx.stroke(); ctx.restore();
+  });
+
+  // Nodes P1
+  p1n.forEach(n=>drawNode(n, p1ns[n.id]||'idle'));
+  // Nodes P2
+  p2n.forEach(n=>drawNode(n, p2ns[n.id]||'idle'));
+
+  // Route label
+  if (p2rt && p2n.length>0) {
+    ctx.save(); ctx.font='bold 9px Orbitron,sans-serif';
+    ctx.fillStyle=p2rt.col; ctx.globalAlpha=0.8; ctx.textAlign='center';
+    ctx.fillText(`${p2rt.icon} ${p2rt.name}  ${p2rt.lat}`, W/2, sep+26);
+    ctx.restore();
+  }
+
+  // P1 packet
+  if (p1pkt) {
+    const x=p1pkt.fx+(p1pkt.tx-p1pkt.fx)*Math.min(p1pkt.prog,1);
+    const y=p1pkt.fy+(p1pkt.ty-p1pkt.fy)*Math.min(p1pkt.prog,1);
+    drawPkt(x,y,p1pkt.col,p1pkt.lbl);
+  }
+
+  // P2 packets
+  p2pkts.forEach(pk=>{
+    if (pk.rdone) return;
+    if (!pk.started && !pk.returning) return;
+    if (pk.done && !pk.returning) return;
+    drawPkt(pk.x, pk.y, pk.col, pk.lbl);
+  });
+}
+
+function drawNode(nd, state) {
+  const r=Math.min(24,W*0.024);
+  const act=state==='active', dn=state==='done';
+  if (act) {
+    ctx.save(); ctx.beginPath(); ctx.arc(nd.x,nd.y,r+7,0,Math.PI*2);
+    const g=ctx.createRadialGradient(nd.x,nd.y,r,nd.x,nd.y,r+7);
+    g.addColorStop(0,nd.col+'55'); g.addColorStop(1,'transparent');
+    ctx.fillStyle=g; ctx.fill(); ctx.restore();
+  }
+  ctx.save(); ctx.beginPath(); ctx.arc(nd.x,nd.y,r,0,Math.PI*2);
+  ctx.fillStyle=act?nd.col+'22':(dn?'#00ff9d11':'#06192e');
+  ctx.strokeStyle=act?nd.col:(dn?'#00ff9d':'#0a2a46');
+  ctx.lineWidth=act?2.5:1.5;
+  if(act){ctx.shadowColor=nd.col; ctx.shadowBlur=14;}
+  ctx.fill(); ctx.stroke(); ctx.restore();
+
+  ctx.save(); ctx.font=`${Math.min(15,r*0.65)}px serif`;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(nd.ic,nd.x,nd.y); ctx.restore();
+
+  const fs=Math.max(8,Math.min(10,W*0.01));
+  ctx.save(); ctx.font=`600 ${fs}px Source Code Pro,monospace`;
+  ctx.textAlign='center';
+  ctx.fillStyle=act?nd.col:(dn?'#00ff9d':'#3a6a8a');
+  if(act){ctx.shadowColor=nd.col; ctx.shadowBlur=5;}
+  ctx.fillText(nd.lbl,nd.x,nd.y+r+11);
+  ctx.font=`${fs-1}px Source Code Pro,monospace`;
+  ctx.fillStyle=act?nd.col+'99':'#1a3a5a';
+  ctx.fillText(nd.sub,nd.x,nd.y+r+21); ctx.restore();
+}
+
+function drawPkt(x,y,col,lbl) {
+  ctx.save(); ctx.globalAlpha=0.25; ctx.fillStyle=col; ctx.shadowColor=col; ctx.shadowBlur=18;
+  ctx.beginPath(); ctx.arc(x,y,9,0,Math.PI*2); ctx.fill(); ctx.restore();
+  ctx.save(); ctx.fillStyle=col; ctx.shadowColor=col; ctx.shadowBlur=10;
+  ctx.beginPath(); ctx.arc(x,y,5,0,Math.PI*2); ctx.fill(); ctx.restore();
+  ctx.save(); ctx.fillStyle=col; ctx.font='bold 9px Source Code Pro,monospace';
+  ctx.textAlign='center'; ctx.shadowColor=col; ctx.shadowBlur=5;
+  ctx.fillText(lbl,x,y-11); ctx.restore();
+}
+
+// ── CONTROLS ─────────────────────────────────────────────────
+function startQuery() {
+  if (p1on||p2on) return;
+  resetState();
+  const d=DOMS[selDomIdx];
+  p1q=buildSteps(d); p1i=0; p1on=true;
+  document.getElementById('btnStart').disabled=true;
+  addLog('lc',`─── Consulta DNS: "${d.name}" ───`);
+  startTmr(); runStep(p1q[0]);
+}
+
+function resetAll() {
+  resetState();
+  document.getElementById('btnStart').disabled=false;
+  document.getElementById('iIp').textContent='pendiente...';
+  document.getElementById('iIp').style.color='var(--dim)';
+  document.getElementById('iIpSub').textContent='esperando';
+  document.getElementById('iTime').textContent='0 ms';
+  document.getElementById('iTime').style.color='var(--amber)';
+  document.getElementById('iCache').textContent='DNS';
+  setInfo('Listo','pulsa Iniciar');
+  addLog('le','Sistema reiniciado.');
+  redraw();
+}
+
+function resetState() {
+  p1on=false; p2on=false;
+  p1q=[]; p1i=0; p1ns={}; p1lk=[]; p1pkt=null;
+  if(p1raf){cancelAnimationFrame(p1raf);p1raf=null;}
+  p2rt=null; p2pkts=[]; p2ns={}; p2lk=[];
+  p2arr=0; p2ret=false; p2retArr=0;
+  if(p2raf){cancelAnimationFrame(p2raf);p2raf=null;}
+  stopTmr();
+}
+
+function selDom(i) {
+  if(p1on||p2on) return;
+  selDomIdx=i;
+  document.querySelectorAll('.domain-btn').forEach((b,j)=>b.classList.toggle('selected',j===i));
+  const d=DOMS[i];
+  document.getElementById('iDom').textContent=d.name;
+  document.getElementById('iDomSub').textContent=d.desc;
+  document.getElementById('iIp').textContent='pendiente...';
+  document.getElementById('iIp').style.color='var(--dim)';
+  document.getElementById('iIpSub').textContent='esperando';
+  document.getElementById('iTime').textContent='0 ms';
+  document.getElementById('iTime').style.color='var(--amber)';
+  document.getElementById('iCache').textContent='DNS';
+  setInfo('Listo','pulsa Iniciar');
+  resetState(); addLog('le',`Dominio: ${d.name} — ${d.desc}`); redraw();
+}
+
+function setSpd(s) {
+  spd=s; [1,2,3].forEach(i=>document.getElementById(`sp${i}`).classList.toggle('on',i===s));
+}
+function setInfo(s,sub) { document.getElementById('iStep').textContent=s; document.getElementById('iSub').textContent=sub; }
+
+function startTmr() {
+  let ms=0; stopTmr();
+  tmr=setInterval(()=>{ ms+=17; if(document.getElementById('iIp').textContent==='pendiente...') document.getElementById('iTime').textContent=ms+' ms'; },17);
+}
+function stopTmr() { if(tmr){clearInterval(tmr);tmr=null;} }
+
+function addLog(cls, msg) {
+  const box=document.getElementById('logBox');
+  const t=new Date();
+  const ts=`${String(t.getMinutes()).padStart(2,'0')}:${String(t.getSeconds()).padStart(2,'0')}`;
+  const d=document.createElement('div'); d.className='ll';
+  d.innerHTML=`<span class="lt">[${ts}]</span><span class="${cls}">${msg}</span>`;
+  box.appendChild(d); box.scrollTop=box.scrollHeight;
+  while(box.children.length>100) box.removeChild(box.firstChild);
+}
+
+// ── INIT ─────────────────────────────────────────────────────
+redraw();
+</script>
+</body>
+</html>

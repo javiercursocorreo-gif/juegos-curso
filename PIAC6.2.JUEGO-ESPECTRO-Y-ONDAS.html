@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Espectro y Ondas — Taller Interactivo</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#060d14; --panel:#0a1520; --panel2:#0e1e2e;
+  --border:#1a3048; --border2:#1e3a56;
+  --text:#c8e8f8; --text2:#5a8aaa; --text3:#3a6080;
+  --cyan:#00d4ff; --cyan2:#00a8cc;
+  --green:#00ff88; --green2:#00cc66;
+  --yellow:#ffdd00; --orange:#ff8800;
+  --purple:#aa44ff; --red:#ff3355;
+  --mono:'Share Tech Mono',monospace;
+  --sans:'Exo 2',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);font-family:var(--sans);color:var(--text);min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;top:0;left:0;right:0;bottom:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px);
+  pointer-events:none;z-index:1000;}
+.page{max-width:900px;margin:0 auto;padding:16px 14px 60px;}
+
+header{text-align:center;padding:24px 0 20px;border-bottom:1px solid var(--border);margin-bottom:20px;position:relative;}
+header::after{content:'';position:absolute;bottom:-1px;left:25%;right:25%;height:1px;
+  background:linear-gradient(90deg,transparent,var(--cyan),transparent);}
+.htag{font-family:var(--mono);font-size:10px;letter-spacing:4px;color:var(--cyan2);margin-bottom:10px;}
+h1{font-family:var(--sans);font-weight:900;font-size:clamp(20px,4.5vw,36px);color:var(--text);
+  text-shadow:0 0 30px rgba(0,212,255,0.3);margin-bottom:4px;}
+h1 span{color:var(--cyan);}
+.hsub{font-family:var(--mono);font-size:12px;color:var(--text2);}
+
+/* PHASE TABS — always clickable */
+.phase-bar{display:flex;gap:0;margin-bottom:20px;border:1px solid var(--border);border-radius:4px;overflow:hidden;}
+.phase-step{flex:1;padding:10px 8px;text-align:center;background:var(--panel);
+  border-right:1px solid var(--border);cursor:pointer;transition:all 0.2s;
+  font-size:10px;font-weight:700;letter-spacing:2px;color:var(--text3);font-family:var(--mono);}
+.phase-step:last-child{border-right:none;}
+.phase-step:hover{color:var(--text2);background:var(--panel2);}
+.phase-step.active{background:rgba(0,212,255,0.1);color:var(--cyan);border-bottom:2px solid var(--cyan);}
+.phase-step.done{background:rgba(0,255,136,0.08);color:var(--green2);}
+
+.score-bar{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:20px;}
+.schip{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:7px 14px;
+  display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:13px;}
+.schip .val{color:var(--cyan);font-weight:700;}
+.schip .lbl{color:var(--text3);font-size:10px;}
+
+.lab-card{background:var(--panel);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:16px;}
+.lab-head{background:var(--panel2);padding:14px 20px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:12px;}
+.lab-phase-tag{font-family:var(--mono);font-size:9px;letter-spacing:3px;padding:4px 10px;border-radius:2px;font-weight:700;}
+.tag-cyan{background:rgba(0,212,255,0.15);color:var(--cyan);border:1px solid rgba(0,212,255,0.3);}
+.tag-yellow{background:rgba(255,221,0,0.12);color:var(--yellow);border:1px solid rgba(255,221,0,0.25);}
+.tag-green{background:rgba(0,255,136,0.12);color:var(--green);border:1px solid rgba(0,255,136,0.25);}
+.tag-purple{background:rgba(170,68,255,0.15);color:var(--purple);border:1px solid rgba(170,68,255,0.3);}
+.lab-head h2{font-size:15px;font-weight:800;color:var(--text);}
+.lab-body{padding:20px;}
+
+/* ── FASE 1 ── */
+.canvas-wrap{position:relative;background:#030a10;border:1px solid var(--border2);border-radius:4px;overflow:hidden;margin-bottom:18px;}
+canvas{display:block;width:100%;}
+.canvas-label{position:absolute;top:8px;left:10px;font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:2px;}
+.sliders-row{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px;}
+.slider-group{flex:1;min-width:200px;}
+.slider-label{font-family:var(--mono);font-size:11px;color:var(--text2);margin-bottom:8px;display:flex;justify-content:space-between;}
+.slider-label span{color:var(--cyan);font-size:13px;}
+input[type=range]{width:100%;-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;
+  background:linear-gradient(90deg,var(--cyan) var(--pct,50%),var(--border2) var(--pct,50%));outline:none;cursor:pointer;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;
+  background:var(--cyan);border:2px solid var(--bg);cursor:pointer;box-shadow:0 0 8px rgba(0,212,255,0.6);}
+.amp-slider input[type=range]{background:linear-gradient(90deg,var(--green) var(--pct,50%),var(--border2) var(--pct,50%));}
+.amp-slider input[type=range]::-webkit-slider-thumb{background:var(--green);box-shadow:0 0 8px rgba(0,255,136,0.6);}
+.wave-stats{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+.wstat{background:#030a10;border:1px solid var(--border);border-radius:4px;padding:10px 16px;flex:1;min-width:120px;}
+.wstat-label{font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:2px;margin-bottom:4px;}
+.wstat-val{font-family:var(--mono);font-size:18px;color:var(--cyan);font-weight:700;}
+.wstat-val.green{color:var(--green);}
+
+/* ── FASE 2 — ESPECTRO ── */
+.spectrum-line{
+  display:flex;align-items:stretch;margin-bottom:10px;
+  border:1px solid var(--border2);border-radius:6px;overflow:hidden;
+}
+.freq-arrow{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:6px 10px;margin-bottom:18px;
+  font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:2px;
+  border-top:1px solid var(--border);border-bottom:1px solid var(--border);
+}
+.spec-slot-col{
+  flex:1;border-right:1px solid var(--border2);
+  display:flex;flex-direction:column;
+}
+.spec-slot-col:last-child{border-right:none;}
+.spec-freq-label{
+  background:var(--panel2);padding:5px 4px;
+  font-family:var(--mono);font-size:8px;color:var(--text3);
+  text-align:center;border-bottom:1px solid var(--border2);
+  line-height:1.3;
+}
+.spec-slot-drop{
+  flex:1;min-height:70px;padding:6px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  transition:all 0.18s;gap:4px;cursor:default;
+}
+.spec-slot-drop.empty{border:1px dashed var(--border2);margin:4px;border-radius:4px;color:var(--text3);font-size:9px;font-family:var(--mono);}
+.spec-slot-drop.drag-over{background:rgba(0,212,255,0.08);border-color:var(--cyan)!important;}
+.spec-slot-drop.placed{background:rgba(0,255,136,0.08);border:1px solid var(--green2);margin:4px;border-radius:4px;}
+.spec-slot-drop.placed-wrong{background:rgba(255,51,85,0.08);border:1px solid var(--red)!important;margin:4px;border-radius:4px;animation:shake 0.4s ease;}
+.placed-icon{font-size:22px;}
+.placed-name{font-family:var(--mono);font-size:8px;color:var(--green);text-align:center;line-height:1.3;}
+.placed-uses{font-family:var(--mono);font-size:7px;color:var(--text3);text-align:center;line-height:1.3;margin-top:2px;}
+
+.spec-cards{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:16px;}
+.spec-card{background:var(--panel2);border:1px solid var(--border2);border-radius:6px;padding:10px 12px;
+  cursor:grab;transition:all 0.18s;font-size:12px;font-weight:700;color:var(--text);
+  display:flex;flex-direction:column;align-items:center;gap:4px;user-select:none;min-width:80px;}
+.spec-card:active{cursor:grabbing;}
+.spec-card.dragging{opacity:0.3;transform:scale(0.95);}
+.spec-card.gone{display:none;}
+.spec-card .sicon{font-size:22px;}
+.spec-card .sname{font-family:var(--mono);font-size:9px;letter-spacing:1px;text-align:center;}
+
+/* ── FASE 3 ── */
+.tech-card{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:16px;}
+.tech-emoji{font-size:48px;display:block;margin-bottom:10px;text-align:center;}
+.tech-name{font-size:clamp(15px,3vw,20px);font-weight:800;text-align:center;margin-bottom:6px;}
+.tech-desc{font-size:13px;color:var(--text2);text-align:center;margin-bottom:16px;line-height:1.5;}
+.unit-btns{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;}
+.unit-btn{background:var(--panel);border:2px solid var(--border2);border-radius:6px;padding:12px 18px;
+  font-family:var(--mono);font-size:15px;font-weight:700;color:var(--text2);cursor:pointer;transition:all 0.16s;min-width:80px;}
+.unit-btn:hover:not(:disabled){border-color:var(--cyan);color:var(--cyan);background:rgba(0,212,255,0.06);}
+.unit-btn:disabled{cursor:default;}
+.unit-btn.correct{background:rgba(0,255,136,0.12);border-color:var(--green);color:var(--green);}
+.unit-btn.wrong{background:rgba(255,51,85,0.1);border-color:var(--red);color:var(--red);text-decoration:line-through;opacity:0.5;}
+.f3-progress{font-family:var(--mono);font-size:10px;color:var(--text3);letter-spacing:2px;text-align:center;margin-bottom:14px;}
+
+/* ── FASE 4 ── */
+.rainbow-bar{height:12px;border-radius:6px;margin-bottom:20px;
+  background:linear-gradient(90deg,#7f00ff,#4400ff,#0099ff,#00ff44,#ffee00,#ff6600,#ff0000);
+  box-shadow:0 0 16px rgba(255,255,255,0.12);}
+.color-chip{border-radius:6px;padding:12px 14px;font-weight:800;font-size:14px;text-align:center;}
+.color-select{background:var(--panel2);border:2px solid var(--border2);border-radius:6px;padding:10px;
+  font-family:var(--mono);font-size:12px;color:var(--text);cursor:pointer;width:100%;
+  appearance:none;-webkit-appearance:none;text-align:center;}
+.color-select:disabled{opacity:0.7;cursor:default;}
+.color-select.correct{border-color:var(--green);color:var(--green);background:rgba(0,255,136,0.08);}
+.color-select.wrong{border-color:var(--red);color:var(--red);}
+.f4-calc{background:#030a10;border:1px solid var(--border);border-radius:6px;padding:14px 16px;margin-bottom:16px;}
+.calc-title{font-family:var(--mono);font-size:10px;color:var(--cyan);letter-spacing:3px;margin-bottom:8px;}
+.calc-formula{font-family:var(--mono);font-size:16px;color:var(--text);text-align:center;margin-bottom:8px;
+  padding:10px;background:rgba(0,212,255,0.04);border-radius:4px;}
+.calc-inputs{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.calc-inp{background:var(--panel2);border:1px solid var(--border2);border-radius:4px;padding:8px 12px;
+  font-family:var(--mono);font-size:13px;color:var(--cyan);width:130px;text-align:right;}
+.calc-inp:focus{outline:none;border-color:var(--cyan);}
+.calc-eq{font-family:var(--mono);color:var(--text3);font-size:18px;}
+.calc-result{font-family:var(--mono);font-size:14px;color:var(--yellow);padding:8px 12px;
+  background:rgba(255,221,0,0.05);border:1px solid rgba(255,221,0,0.2);border-radius:4px;min-width:120px;text-align:center;}
+
+/* SHARED */
+.feedback-box{border-radius:6px;padding:12px 16px;margin-top:12px;font-size:13px;font-weight:700;
+  line-height:1.6;display:none;animation:fadeUp 0.3s ease;font-family:var(--mono);}
+.feedback-box.show{display:block;}
+.feedback-box.ok{background:rgba(0,255,136,0.1);border:1px solid var(--green2);color:var(--green);}
+.feedback-box.hint{background:rgba(255,221,0,0.07);border:1px solid rgba(255,221,0,0.3);color:var(--yellow);}
+.next-btn{display:none;margin-top:16px;background:linear-gradient(135deg,rgba(0,212,255,0.15),rgba(0,212,255,0.05));
+  border:1px solid var(--cyan);color:var(--cyan);border-radius:6px;padding:13px 28px;
+  font-family:var(--sans);font-size:15px;font-weight:800;cursor:pointer;transition:all 0.18s;
+  width:100%;letter-spacing:1px;}
+.next-btn.show{display:block;}
+.next-btn:hover{background:rgba(0,212,255,0.2);}
+
+.results-card{background:var(--panel);border:1px solid var(--cyan);border-radius:12px;
+  padding:32px 24px;text-align:center;display:none;animation:fadeUp 0.4s ease;
+  box-shadow:0 0 40px rgba(0,212,255,0.1);}
+.results-card.show{display:block;}
+.res-emoji{font-size:64px;display:block;margin-bottom:14px;}
+.res-title{font-family:var(--sans);font-weight:900;font-size:clamp(20px,4vw,32px);color:var(--cyan);margin-bottom:6px;}
+.res-score{font-family:var(--mono);font-size:clamp(36px,7vw,56px);color:var(--text);margin:8px 0;}
+.res-sub{font-size:14px;color:var(--text2);margin-bottom:20px;}
+.res-stats{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:22px;}
+.rstat{background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:12px 18px;}
+.rstat-v{font-family:var(--mono);font-size:24px;color:var(--cyan);}
+.rstat-l{font-size:10px;color:var(--text3);font-family:var(--mono);margin-top:2px;letter-spacing:1px;}
+.restart-btn{background:var(--cyan);color:var(--bg);border:none;border-radius:6px;padding:13px 32px;
+  font-family:var(--sans);font-size:16px;font-weight:800;cursor:pointer;transition:all 0.18s;letter-spacing:1px;}
+.restart-btn:hover{filter:brightness(1.1);transform:translateY(-1px);}
+
+.pts-pop{position:fixed;font-family:var(--mono);font-size:24px;pointer-events:none;z-index:9999;animation:popUp 1.1s ease forwards;}
+@keyframes popUp{0%{opacity:1;transform:translateY(0) scale(1)}60%{opacity:1;transform:translateY(-45px) scale(1.15)}100%{opacity:0;transform:translateY(-80px) scale(0.9)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+
+@media(max-width:600px){
+  .sliders-row{flex-direction:column;}
+  .spec-freq-label{font-size:7px;}
+  .placed-name,.placed-uses{display:none;}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <div class="htag">// TELECOMUNICACIONES · LABORATORIO DE ONDAS</div>
+  <h1>📡 <span>Espectro y Ondas</span> — Taller Interactivo</h1>
+  <p class="hsub">4 fases independientes · haz clic en cualquier pestaña para navegar</p>
+</header>
+
+<div class="phase-bar">
+  <div class="phase-step active" id="pstep1" onclick="goPhase(1)">F1 · CONSTRUCTOR</div>
+  <div class="phase-step"        id="pstep2" onclick="goPhase(2)">F2 · ESPECTRO</div>
+  <div class="phase-step"        id="pstep3" onclick="goPhase(3)">F3 · FRECUENCIAS</div>
+  <div class="phase-step"        id="pstep4" onclick="goPhase(4)">F4 · LUZ</div>
+</div>
+
+<div class="score-bar">
+  <div class="schip"><span class="val" id="scoreVal">0</span><span class="lbl">PTS</span></div>
+  <div class="schip"><span class="val" id="corrVal">0</span><span class="lbl">ACIERTOS</span></div>
+  <div class="schip"><span class="val" id="phaseVal">F1</span><span class="lbl">FASE</span></div>
+</div>
+
+<div id="gameArea"></div>
+<div class="results-card" id="resultsCard"></div>
+
+</div>
+<script>
+// ═══════════════════════════ STATE ═══════════════════════════
+let score=0, corrCount=0, wrongCount=0;
+let f1Anim=null, f1Freq=3, f1Amp=0.5, f1Phase=0;
+let f2Placed={}, f2DragId=null, f2TouchId=null, f2TouchClone=null;
+let f3Idx=0, f3List=[], f3Done=false;
+let f4ColorState={}, f4Answered=0;
+let currentPhase=1;
+
+// ═══════════════════════════ NAV ═══════════════════════════
+function goPhase(n) {
+  if(f1Anim){cancelAnimationFrame(f1Anim);f1Anim=null;}
+  currentPhase=n;
+  [1,2,3,4].forEach(i=>{
+    const el=document.getElementById('pstep'+i);
+    el.className='phase-step'+(i===n?' active':'')+(i!==n&&el.classList.contains('done')?' done':'');
+  });
+  document.getElementById('phaseVal').textContent='F'+n;
+  document.getElementById('resultsCard').classList.remove('show');
+  if(n===1) renderF1();
+  else if(n===2) renderF2();
+  else if(n===3) renderF3();
+  else if(n===4) renderF4();
+}
+
+function markDone(n){document.getElementById('pstep'+n).classList.add('done');}
+
+// ══════════════════════════════════════════════════
+// FASE 1 — CONSTRUCTOR LIBRE
+// ══════════════════════════════════════════════════
+function renderF1(){
+  document.getElementById('gameArea').innerHTML=`
+    <div class="lab-card">
+      <div class="lab-head">
+        <span class="lab-phase-tag tag-cyan">FASE 1</span>
+        <h2>Constructor de Onda</h2>
+      </div>
+      <div class="lab-body">
+        <p style="font-size:12px;color:var(--text2);font-family:var(--mono);margin-bottom:14px">
+          // Mueve los sliders y observa cómo cambia la onda en tiempo real
+        </p>
+        <div class="canvas-wrap" style="height:160px">
+          <span class="canvas-label">OSCILOSCOPIO</span>
+          <canvas id="c1" height="160"></canvas>
+        </div>
+        <div class="wave-stats">
+          <div class="wstat">
+            <div class="wstat-label">FRECUENCIA</div>
+            <div class="wstat-val" id="statFreq">3 Hz</div>
+          </div>
+          <div class="wstat">
+            <div class="wstat-label">AMPLITUD</div>
+            <div class="wstat-val green" id="statAmp">50%</div>
+          </div>
+          <div class="wstat">
+            <div class="wstat-label">LONG. DE ONDA (λ)</div>
+            <div class="wstat-val" id="statPeriodo">100.000 km</div>
+          </div>
+          <div class="wstat">
+            <div class="wstat-label">CICLOS/VISTA</div>
+            <div class="wstat-val" id="statCiclos">3</div>
+          </div>
+        </div>
+        <div class="sliders-row">
+          <div class="slider-group">
+            <div class="slider-label">FRECUENCIA (Hz) <span id="freqVal">3</span></div>
+            <input type="range" id="freqSlider" min="1" max="10" step="0.5" value="3"
+              oninput="setF1Freq(this.value)">
+          </div>
+          <div class="slider-group amp-slider">
+            <div class="slider-label">AMPLITUD <span id="ampVal">50%</span></div>
+            <input type="range" id="ampSlider" min="0.1" max="1" step="0.05" value="0.5"
+              oninput="setF1Amp(this.value)">
+          </div>
+        </div>
+        <div style="background:#030a10;border:1px solid var(--border);border-radius:6px;padding:12px 16px;
+          font-family:var(--mono);font-size:11px;color:var(--text2);line-height:1.8;margin-bottom:14px;">
+          <span style="color:var(--cyan)">// QUÉ OBSERVAR:</span><br>
+          → Mayor frecuencia = más ciclos por segundo = onda más comprimida<br>
+          → Mayor amplitud = cresta más alta = señal más potente<br>
+          → Frecuencia y longitud de onda son <span style="color:var(--yellow)">inversamente proporcionales</span>
+        </div>
+        <button class="next-btn show" onclick="goPhase(2)">Continuar a Fase 2 →</button>
+      </div>
+    </div>`;
+  setSliderCSS('freqSlider',1,10,f1Freq);
+  setSliderCSS('ampSlider',0.1,1,f1Amp);
+  startF1Loop();
+}
+
+function startF1Loop(){
+  if(f1Anim) cancelAnimationFrame(f1Anim);
+  function loop(){
+    drawF1Wave();
+    f1Phase+=0.04;
+    f1Anim=requestAnimationFrame(loop);
+  }
+  loop();
+}
+
+function drawF1Wave(){
+  const canvas=document.getElementById('c1');
+  if(!canvas) return;
+  const ctx=canvas.getContext('2d');
+  const W=canvas.parentElement.offsetWidth||700;
+  canvas.width=W; const H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  // Grid
+  ctx.strokeStyle='rgba(26,48,72,0.7)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(0,H/2);ctx.lineTo(W,H/2);ctx.stroke();
+  for(let x=0;x<W;x+=W/8){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.strokeStyle='rgba(26,48,72,0.35)';ctx.stroke();}
+  // Wave
+  const g=ctx.createLinearGradient(0,0,W,0);
+  g.addColorStop(0,'rgba(0,212,255,0.4)');g.addColorStop(0.5,'#00d4ff');g.addColorStop(1,'rgba(0,212,255,0.4)');
+  ctx.strokeStyle=g;ctx.lineWidth=2.5;ctx.shadowColor='#00d4ff';ctx.shadowBlur=10;
+  ctx.beginPath();
+  for(let x=0;x<=W;x++){
+    const y=H/2 - f1Amp*(H*0.38)*Math.sin(2*Math.PI*f1Freq*(x/W)+f1Phase);
+    x===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  }
+  ctx.stroke();ctx.shadowBlur=0;
+}
+
+function setF1Freq(v){
+  f1Freq=parseFloat(v);
+  document.getElementById('freqVal').textContent=v;
+  document.getElementById('statFreq').textContent=v+' Hz';
+  // λ = c/f, c = 3×10⁸ m/s
+  const lambda = 3e8 / f1Freq;
+  let lambdaStr;
+  if(lambda>=1e9)       lambdaStr=(lambda/1e9).toFixed(1)+' Gm';
+  else if(lambda>=1e6)  lambdaStr=(lambda/1e6).toFixed(0)+' km';
+  else if(lambda>=1e3)  lambdaStr=(lambda/1e3).toFixed(1)+' km';
+  else if(lambda>=1)    lambdaStr=lambda.toFixed(1)+' m';
+  else if(lambda>=1e-2) lambdaStr=(lambda*100).toFixed(1)+' cm';
+  else if(lambda>=1e-3) lambdaStr=(lambda*1000).toFixed(1)+' mm';
+  else                  lambdaStr=(lambda*1e6).toFixed(0)+' µm';
+  document.getElementById('statPeriodo').textContent=lambdaStr;
+  document.getElementById('statCiclos').textContent=Math.round(f1Freq);
+  setSliderCSS('freqSlider',1,10,v);
+}
+function setF1Amp(v){
+  f1Amp=parseFloat(v);
+  document.getElementById('ampVal').textContent=Math.round(v*100)+'%';
+  document.getElementById('statAmp').textContent=Math.round(v*100)+'%';
+  setSliderCSS('ampSlider',0.1,1,v);
+}
+function setSliderCSS(id,min,max,val){
+  const el=document.getElementById(id);if(!el)return;
+  el.style.setProperty('--pct',((val-min)/(max-min))*100+'%');
+}
+
+// ══════════════════════════════════════════════════
+// FASE 2 — ESPECTRO (barra neutra con rangos)
+// ══════════════════════════════════════════════════
+const SPECTRUM=[
+  {id:'radio',   name:'Radio',      icon:'📻', freq:'3 Hz–300 GHz',   uses:'AM/FM, Wi-Fi, BT, 5G'},
+  {id:'micro',   name:'Microondas', icon:'📡', freq:'300 MHz–300 GHz',uses:'Hornos, radar, satélites'},
+  {id:'infra',   name:'Infrarrojo', icon:'🌡', freq:'300 GHz–430 THz',uses:'Mandos, cámaras térmicas'},
+  {id:'visible', name:'Luz Visible',icon:'👁', freq:'430–750 THz',    uses:'Lo que ven nuestros ojos'},
+  {id:'uv',      name:'Ultravioleta',icon:'☀️',freq:'750 THz–30 PHz', uses:'Esterilización, bronceado'},
+  {id:'xray',    name:'Rayos X',    icon:'🦴', freq:'30 PHz–300 EHz', uses:'Radiografías médicas'},
+  {id:'gamma',   name:'Rayos Gamma',icon:'⚛️', freq:'>300 EHz',       uses:'Radioterapia'},
+];
+
+function renderF2(){
+  // Restore cards that were placed (in case user navigates back)
+  document.getElementById('gameArea').innerHTML=`
+    <div class="lab-card">
+      <div class="lab-head">
+        <span class="lab-phase-tag tag-yellow">FASE 2</span>
+        <h2>Ordena el Espectro Electromagnético</h2>
+      </div>
+      <div class="lab-body">
+        <p style="font-size:12px;color:var(--text2);font-family:var(--mono);margin-bottom:14px">
+          // Arrastra cada tarjeta al slot con el rango de frecuencia correcto
+        </p>
+        <div class="freq-arrow">
+          <span>← MENOR FRECUENCIA · MAYOR LONGITUD DE ONDA</span>
+          <span>MAYOR FRECUENCIA · MENOR LONGITUD DE ONDA →</span>
+        </div>
+        <div class="spectrum-line" id="specLine">
+          ${SPECTRUM.map((s,i)=>`
+            <div class="spec-slot-col">
+              <div class="spec-freq-label">${s.freq}</div>
+              <div class="spec-slot-drop ${f2Placed[i]?'placed':'empty'}"
+                id="slot${i}"
+                ondragover="f2Over(event,${i})"
+                ondragleave="f2Leave(event)"
+                ondrop="f2Drop(event,${i})">
+                ${f2Placed[i] ? renderPlacedCard(f2Placed[i]) : '<span style="opacity:0.4">?</span>'}
+              </div>
+            </div>`).join('')}
+        </div>
+        <div class="spec-cards" id="specCards">
+          ${[...SPECTRUM].sort(()=>Math.random()-0.5).map(s=>`
+            <div class="spec-card ${f2Placed[Object.keys(f2Placed).find(k=>f2Placed[k]===s.id)]!==undefined?'gone':''}"
+              id="scard_${s.id}" draggable="true"
+              ondragstart="f2DragStart(event,'${s.id}')"
+              ondragend="f2DragEnd(event,'${s.id}')"
+              ontouchstart="f2TouchStart(event,'${s.id}')"
+              ontouchmove="f2TouchMove(event)"
+              ontouchend="f2TouchEnd(event)">
+              <span class="sicon">${s.icon}</span>
+              <span class="sname">${s.name.toUpperCase()}</span>
+            </div>`).join('')}
+        </div>
+        <div class="feedback-box" id="f2fb"></div>
+        <button class="next-btn ${Object.keys(f2Placed).length===SPECTRUM.length?'show':''}" 
+          id="f2next" onclick="goPhase(3)">Continuar a Fase 3 →</button>
+      </div>
+    </div>`;
+}
+
+function renderPlacedCard(id){
+  const s=SPECTRUM.find(x=>x.id===id);if(!s)return'';
+  return `<span class="placed-icon">${s.icon}</span>
+    <span class="placed-name">${s.name}</span>
+    <span class="placed-uses">${s.uses}</span>`;
+}
+
+function f2DragStart(e,id){f2DragId=id;setTimeout(()=>document.getElementById('scard_'+id)?.classList.add('dragging'),0);}
+function f2DragEnd(e,id){document.getElementById('scard_'+id)?.classList.remove('dragging');}
+function f2Over(e,i){e.preventDefault();if(!f2Placed[i])document.getElementById('slot'+i).classList.add('drag-over');}
+function f2Leave(e){e.currentTarget.classList.remove('drag-over');}
+function f2Drop(e,i){
+  e.preventDefault();
+  document.getElementById('slot'+i).classList.remove('drag-over');
+  if(f2DragId) placeF2(f2DragId,i);
+  f2DragId=null;
+}
+
+// Touch
+function f2TouchStart(e,id){
+  f2TouchId=id;
+  const el=document.getElementById('scard_'+id);
+  f2TouchClone=el.cloneNode(true);
+  f2TouchClone.style.cssText='position:fixed;opacity:0.8;pointer-events:none;z-index:9999;width:'+el.offsetWidth+'px;border-radius:6px;';
+  document.body.appendChild(f2TouchClone);
+  el.classList.add('dragging');
+}
+function f2TouchMove(e){
+  e.preventDefault();
+  const t=e.touches[0];
+  if(f2TouchClone){f2TouchClone.style.left=(t.clientX-50)+'px';f2TouchClone.style.top=(t.clientY-35)+'px';}
+  document.querySelectorAll('.spec-slot-drop').forEach(d=>{
+    const r=d.getBoundingClientRect();
+    const over=t.clientX>=r.left&&t.clientX<=r.right&&t.clientY>=r.top&&t.clientY<=r.bottom;
+    if(!f2Placed[parseInt(d.id.replace('slot',''))]) d.classList.toggle('drag-over',over);
+  });
+}
+function f2TouchEnd(e){
+  if(f2TouchClone){f2TouchClone.remove();f2TouchClone=null;}
+  document.getElementById('scard_'+f2TouchId)?.classList.remove('dragging');
+  const t=e.changedTouches[0];
+  const target=document.elementsFromPoint(t.clientX,t.clientY).find(el=>el.classList.contains('spec-slot-drop'));
+  document.querySelectorAll('.spec-slot-drop').forEach(d=>d.classList.remove('drag-over'));
+  if(target&&f2TouchId){const i=parseInt(target.id.replace('slot',''));placeF2(f2TouchId,i);}
+  f2TouchId=null;
+}
+
+function placeF2(cardId,slotIdx){
+  if(f2Placed[slotIdx]) return; // slot ocupado
+  const item=SPECTRUM.find(s=>s.id===cardId);
+  if(!item) return;
+
+  if(item.correct===slotIdx){
+    // CORRECTO — fijar tarjeta en slot
+    f2Placed[slotIdx]=cardId;
+    const slot=document.getElementById('slot'+slotIdx);
+    slot.className='spec-slot-drop placed';
+    slot.innerHTML=renderPlacedCard(cardId);
+    // Ocultar tarjeta de la zona de cartas
+    document.getElementById('scard_'+cardId).classList.add('gone');
+    score+=80;corrCount++;updateScore();showPop('+80','#00ff88');
+    const fb=document.getElementById('f2fb');
+    fb.className='feedback-box ok show';
+    fb.textContent=`✅ ${item.icon} ${item.name} — ${item.freq} — ${item.uses}`;
+    // Comprobar si se han colocado todas
+    if(Object.keys(f2Placed).length===SPECTRUM.length){
+      markDone(2);
+      setTimeout(()=>document.getElementById('f2next').classList.add('show'),500);
+    }
+  } else {
+    // INCORRECTO
+    score=Math.max(0,score-10);wrongCount++;updateScore();showPop('-10','#ff3355');
+    const card=document.getElementById('scard_'+cardId);
+    const slot=document.getElementById('slot'+slotIdx);
+    slot.classList.add('placed-wrong');
+    setTimeout(()=>slot.classList.remove('placed-wrong'),500);
+    const fb=document.getElementById('f2fb');
+    fb.className='feedback-box hint show';
+    fb.textContent=`💡 Posición incorrecta para ${item.name}. El slot indica el rango ${SPECTRUM[slotIdx].freq}. ¿Encaja ahí?`;
+  }
+}
+
+// ══════════════════════════════════════════════════
+// FASE 3 — ADIVINA LA UNIDAD (una por cada unidad)
+// ══════════════════════════════════════════════════
+const F3_TECHS=[
+  {emoji:'⚡',name:'Red eléctrica (50 Hz)',shortName:'Red eléctrica',desc:'La corriente alterna de los enchufes de casa. Oscila a muy baja frecuencia, 50 veces por segundo.',ans:'Hz',
+   ok:'✅ La red eléctrica opera a 50 Hz (hercios). Es la unidad base: 1 Hz = 1 ciclo por segundo. ¡La más baja del espectro cotidiano!'},
+  {emoji:'📻',name:'Radio AM (738 kHz)',shortName:'Radio AM',desc:'La radio clásica del coche. Sus emisoras tienen números como "738" o "1080" seguidos de su unidad.',ans:'kHz',
+   ok:'✅ Radio AM opera en kHz (kilohercios). 1 kHz = 1.000 Hz. Las emisoras europeas están entre 540 y 1.600 kHz.'},
+  {emoji:'📺',name:'TV Digital TDT (650 MHz)',shortName:'TDT',desc:'La televisión digital terrestre. Sus canales se agrupan en múltiplos de cientos de su unidad.',ans:'MHz',
+   ok:'✅ La TDT opera en MHz (megahercios), entre 174 y 862 MHz. 1 MHz = 1.000.000 Hz = 1.000 kHz.'},
+  {emoji:'📡',name:'Wi-Fi (2,4 GHz)',shortName:'Wi-Fi',desc:'La red inalámbrica de casa. Sus dos bandas más comunes son 2,4 y 5 de su unidad.',ans:'GHz',
+   ok:'✅ Wi-Fi opera en GHz (gigahercios). 1 GHz = 1.000 MHz = 10⁹ Hz. Las bandas 2,4 GHz y 5 GHz son las más usadas en hogares.'},
+  {emoji:'🌡',name:'Cámara termográfica (3 THz)',shortName:'Cámara térmica',desc:'Detecta el calor del cuerpo humano. Opera en la frontera entre microondas e infrarrojo, en la banda de los terahercios.',ans:'THz',
+   ok:'✅ Las cámaras térmicas trabajan en THz (terahercios). 1 THz = 10¹² Hz = 1.000 GHz. La radiación infrarroja está justo aquí.'},
+  {emoji:'🦴',name:'Rayos X médicos (30 EHz)',shortName:'Rayos X',desc:'Las radiografías del médico atraviesan los tejidos blandos. Sus frecuencias son enormes, del orden de 10¹⁸ de la unidad base.',ans:'EHz',
+   ok:'✅ Los rayos X operan en EHz (exahercios). 1 EHz = 10¹⁸ Hz. Son millones de veces más energéticos que el Wi-Fi.'},
+];
+const UNITS=['Hz','kHz','MHz','GHz','THz','EHz'];
+
+function renderF3(){
+  f3List=[...F3_TECHS].sort(()=>Math.random()-0.5);
+  f3Idx=0;
+  document.getElementById('gameArea').innerHTML=`
+    <div class="lab-card">
+      <div class="lab-head">
+        <span class="lab-phase-tag tag-green">FASE 3</span>
+        <h2>Adivina la Unidad de Frecuencia</h2>
+      </div>
+      <div class="lab-body">
+        <div id="f3summary" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;padding:10px;background:#030a10;border:1px solid var(--border);border-radius:6px;"></div>
+        <div id="f3techcard"></div>
+        <div class="unit-btns" id="f3btns" style="justify-content:center;margin:14px 0;">
+          ${UNITS.map(u=>`<button class="unit-btn" id="ub_${u}" onclick="answerF3('${u}')">${u}</button>`).join('')}
+        </div>
+        <div class="feedback-box" id="f3fb"></div>
+      </div>
+    </div>`;
+  updateF3Summary();
+  updateF3Card();
+}
+
+function updateF3Summary(){
+  const el=document.getElementById('f3summary');
+  if(!el) return;
+  el.innerHTML=f3List.map((q,i)=>{
+    const done=i<f3Idx, active=i===f3Idx;
+    return `<div style="display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:4px;
+      font-family:var(--mono);font-size:11px;
+      background:${done?'rgba(0,255,136,0.13)':active?'rgba(0,212,255,0.08)':'rgba(0,0,0,0.2)'};
+      border:1px solid ${done?'var(--green)':active?'var(--cyan)':'var(--border)'};
+      color:${done?'var(--green)':active?'var(--cyan)':'var(--text3)'};">
+      <span>${q.emoji}</span>
+      <span>${q.shortName}</span>
+      ${done?`<span style="background:var(--green);color:#000;font-weight:900;padding:1px 6px;border-radius:3px;margin-left:2px;font-size:10px">${q.ans} ✓</span>`:''}
+    </div>`;
+  }).join('');
+}
+
+function updateF3Card(){
+  const q=f3List[f3Idx];
+  document.getElementById('f3techcard').innerHTML=`
+    <div class="tech-card">
+      <span class="tech-emoji">${q.emoji}</span>
+      <div class="tech-name">${q.name}</div>
+      <div class="tech-desc">${q.desc}</div>
+    </div>`;
+  // Reset buttons (they persist in the DOM — just clear state)
+  UNITS.forEach(u=>{
+    const b=document.getElementById('ub_'+u);
+    if(!b) return;
+    b.className='unit-btn';
+    b.disabled=false;
+  });
+  const fb=document.getElementById('f3fb');
+  if(fb){fb.className='feedback-box';fb.textContent='';}
+}
+
+function answerF3(unit){
+  const q=f3List[f3Idx];
+  const correct=unit===q.ans;
+  if(document.getElementById('ub_'+q.ans)?.classList.contains('correct')) return; // already answered
+  if(correct){
+    document.getElementById('ub_'+unit).classList.add('correct');
+    UNITS.forEach(u=>document.getElementById('ub_'+u).disabled=true);
+    const firstTry=!document.querySelector('#f3btns .unit-btn.wrong');
+    const pts=firstTry?100:50;
+    score+=pts;corrCount++;updateScore();showPop('+'+pts,'#00ff88');
+    document.getElementById('f3fb').className='feedback-box ok show';
+    document.getElementById('f3fb').textContent=q.ok;
+    setTimeout(()=>nextF3(), 1800);
+  } else {
+    document.getElementById('ub_'+unit).classList.add('wrong');
+    document.getElementById('ub_'+unit).disabled=true;
+    score=Math.max(0,score-10);wrongCount++;updateScore();showPop('-10','#ff3355');
+    document.getElementById('f3fb').className='feedback-box hint show';
+    document.getElementById('f3fb').textContent=`💡 No es ${unit}. Recuerda la escala: Hz → kHz → MHz → GHz → THz → EHz. Cada paso multiplica por 1.000.`;
+  }
+}
+
+function nextF3(){
+  f3Idx++;
+  updateF3Summary();
+  if(f3Idx<F3_TECHS.length) updateF3Card();
+  else { markDone(3); goPhase(4); }
+}
+
+// ══════════════════════════════════════════════════
+// FASE 4 — ORDENA LOS COLORES POR FRECUENCIA
+// ══════════════════════════════════════════════════
+const COLORS_ORDER=[
+  {name:'Rojo',    hex:'#ee2222', freq:'~400 THz', lambda:'~750 nm'},
+  {name:'Naranja', hex:'#ff6600', freq:'~484 THz', lambda:'~620 nm'},
+  {name:'Amarillo',hex:'#ffdd00', freq:'~508 THz', lambda:'~590 nm'},
+  {name:'Verde',   hex:'#00bb44', freq:'~526 THz', lambda:'~570 nm'},
+  {name:'Azul',    hex:'#1155ff', freq:'~670 THz', lambda:'~450 nm'},
+  {name:'Violeta', hex:'#7700cc', freq:'~790 THz', lambda:'~380 nm'},
+];
+let f4Placed={}, f4DragId=null, f4TouchId=null, f4TouchClone=null;
+
+function renderF4(){
+  f4Placed={};
+  const shuffled=[...COLORS_ORDER];
+  for(let i=shuffled.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[shuffled[i],shuffled[j]]=[shuffled[j],shuffled[i]];}
+  // Ensure it's not already in correct order
+  let ordered=shuffled.every((c,i)=>c===COLORS_ORDER[i]);
+  if(ordered){const tmp=shuffled[0];shuffled[0]=shuffled[shuffled.length-1];shuffled[shuffled.length-1]=tmp;}
+  document.getElementById('gameArea').innerHTML=`
+    <div class="lab-card">
+      <div class="lab-head">
+        <span class="lab-phase-tag tag-purple">FASE 4</span>
+        <h2>Ordena los Colores por Frecuencia</h2>
+      </div>
+      <div class="lab-body">
+        <p style="font-size:12px;color:var(--text2);font-family:var(--mono);margin-bottom:10px">
+          // Arrastra cada color a su posición, de menor a mayor frecuencia
+        </p>
+        <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;
+          color:var(--text3);margin-bottom:8px;letter-spacing:1px;">
+          <span>← MENOR FRECUENCIA · MAYOR LONGITUD DE ONDA</span>
+          <span>MAYOR FRECUENCIA →</span>
+        </div>
+        <div style="display:flex;gap:4px;margin-bottom:6px;" id="f4slots">
+          ${COLORS_ORDER.map((_,i)=>`
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;">
+              <div style="font-family:var(--mono);font-size:9px;color:var(--text3);text-align:center">${i+1}</div>
+              <div class="f4slot" id="f4slot${i}"
+                ondragover="f4Over(event,${i})" ondragleave="f4Leave(event)" ondrop="f4Drop(event,${i})"
+                style="width:100%;height:64px;border:2px dashed var(--border2);border-radius:6px;
+                  display:flex;flex-direction:column;align-items:center;justify-content:center;
+                  transition:all 0.18s;cursor:default;gap:2px;">
+                <span style="font-family:var(--mono);font-size:9px;color:var(--border2)">?</span>
+              </div>
+              <div style="font-family:var(--mono);font-size:8px;color:var(--text3);text-align:center;min-height:28px" id="f4lbl${i}"></div>
+            </div>`).join('')}
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:14px;" id="f4cards">
+          ${shuffled.map(c=>`
+            <div class="f4card" id="f4c_${c.name}"
+              draggable="true"
+              ondragstart="f4DS(event,'${c.name}')" ondragend="f4DE(event,'${c.name}')"
+              ontouchstart="f4TS(event,'${c.name}')" ontouchmove="f4TM(event)" ontouchend="f4TE(event)"
+              style="background:${c.hex};border-radius:8px;padding:11px 10px;cursor:grab;min-width:74px;
+                font-family:var(--mono);font-size:11px;font-weight:700;text-align:center;
+                color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.5);
+                border:2px solid rgba(255,255,255,0.2);transition:opacity 0.18s;user-select:none;">
+              ${c.name}
+            </div>`).join('')}
+        </div>
+        <div class="feedback-box" id="f4fb"></div>
+        <button class="next-btn" id="f4next" onclick="showResults()">Ver resultados finales →</button>
+      </div>
+    </div>`;
+}
+
+function f4DS(e,n){f4DragId=n;setTimeout(()=>{const el=document.getElementById('f4c_'+n);if(el)el.style.opacity='0.3';},0);}
+function f4DE(e,n){const el=document.getElementById('f4c_'+n);if(el)el.style.opacity='1';}
+function f4Over(e,i){e.preventDefault();if(!f4Placed[i])document.getElementById('f4slot'+i).style.borderColor='var(--cyan)';}
+function f4Leave(e){e.currentTarget.style.borderColor='var(--border2)';}
+function f4Drop(e,i){
+  e.preventDefault();
+  document.getElementById('f4slot'+i).style.borderColor='var(--border2)';
+  if(f4DragId) placeF4(f4DragId,i);
+  f4DragId=null;
+}
+function f4TS(e,n){
+  f4TouchId=n;
+  const el=document.getElementById('f4c_'+n);
+  f4TouchClone=el.cloneNode(true);
+  f4TouchClone.style.cssText='position:fixed;opacity:0.85;pointer-events:none;z-index:9999;width:'+el.offsetWidth+'px;border-radius:8px;';
+  document.body.appendChild(f4TouchClone);
+  el.style.opacity='0.3';
+}
+function f4TM(e){
+  e.preventDefault();
+  const t=e.touches[0];
+  if(f4TouchClone){f4TouchClone.style.left=(t.clientX-37)+'px';f4TouchClone.style.top=(t.clientY-28)+'px';}
+  document.querySelectorAll('.f4slot').forEach(d=>{
+    const r=d.getBoundingClientRect();
+    const idx=parseInt(d.id.replace('f4slot',''));
+    d.style.borderColor=(t.clientX>=r.left&&t.clientX<=r.right&&t.clientY>=r.top&&t.clientY<=r.bottom&&!f4Placed[idx])?'var(--cyan)':'var(--border2)';
+  });
+}
+function f4TE(e){
+  if(f4TouchClone){f4TouchClone.remove();f4TouchClone=null;}
+  const el=document.getElementById('f4c_'+f4TouchId);if(el)el.style.opacity='1';
+  const t=e.changedTouches[0];
+  const tgt=document.elementsFromPoint(t.clientX,t.clientY).find(x=>x.classList.contains('f4slot'));
+  document.querySelectorAll('.f4slot').forEach(d=>d.style.borderColor='var(--border2)');
+  if(tgt&&f4TouchId) placeF4(f4TouchId,parseInt(tgt.id.replace('f4slot','')));
+  f4TouchId=null;
+}
+
+function placeF4(name,idx){
+  if(f4Placed[idx]) return;
+  const correct=COLORS_ORDER[idx].name===name;
+  const card=COLORS_ORDER.find(c=>c.name===name);
+  const slot=document.getElementById('f4slot'+idx);
+
+  if(correct){
+    f4Placed[idx]=name;
+    slot.style.cssText=`width:100%;height:64px;border-radius:6px;display:flex;flex-direction:column;
+      align-items:center;justify-content:center;border:2px solid var(--green);
+      background:${card.hex};gap:1px;`;
+    slot.innerHTML=`<span style="font-family:var(--mono);font-size:10px;font-weight:700;color:#fff;
+      text-shadow:0 1px 3px rgba(0,0,0,0.6)">${card.name}</span>`;
+    document.getElementById('f4lbl'+idx).innerHTML=
+      `<span style="color:var(--green)">${card.freq}</span><br><span style="color:var(--text3)">${card.lambda}</span>`;
+    document.getElementById('f4c_'+name).style.display='none';
+    score+=80;corrCount++;updateScore();showPop('+80','#00ff88');
+    document.getElementById('f4fb').className='feedback-box ok show';
+    document.getElementById('f4fb').textContent=
+      `✅ ${card.name} en posición ${idx+1}: ${card.freq} · ${card.lambda}. Recuerda: mayor frecuencia = menor longitud de onda = más energía.`;
+    if(Object.keys(f4Placed).length===COLORS_ORDER.length){
+      markDone(4);
+      setTimeout(()=>document.getElementById('f4next').classList.add('show'),500);
+    }
+  } else {
+    score=Math.max(0,score-10);wrongCount++;updateScore();showPop('-10','#ff3355');
+    slot.style.borderColor='var(--red)';
+    setTimeout(()=>slot.style.borderColor='var(--border2)',600);
+    document.getElementById('f4fb').className='feedback-box hint show';
+    document.getElementById('f4fb').textContent=
+      `💡 ${name} no va en la posición ${idx+1}. ¿Tiene más o menos frecuencia que el Rojo (~400 THz) y el Violeta (~790 THz)?`;
+  }
+}
+
+// ══════════════════════════════════════════════════
+// RESULTS
+// ══════════════════════════════════════════════════
+function showResults(){
+  if(f1Anim){cancelAnimationFrame(f1Anim);f1Anim=null;}
+  document.getElementById('gameArea').innerHTML='';
+  const max=SPECTRUM.length*80+F3_TECHS.length*100+COLORS_ORDER.length*80;
+  const pct=Math.round((score/max)*100);
+  let emoji,title,msg;
+  if(pct>=85){emoji='🔬';title='¡Científico de élite!';msg='Dominas el espectro electromagnético y las ondas. ¡Sobresaliente!';}
+  else if(pct>=65){emoji='⚡';title='¡Laboratorio superado!';msg='Sólida comprensión de las ondas y el espectro.';}
+  else if(pct>=45){emoji='📡';title='¡Buen experimento!';msg='Conceptos fundamentales asimilados. Repasa los múltiplos del hercio.';}
+  else{emoji='🌊';title='¡Las ondas son fascinantes!';msg='Sigue explorando. Repasa las infografías y vuelve a intentarlo.';}
+  const rc=document.getElementById('resultsCard');
+  rc.innerHTML=`<span class="res-emoji">${emoji}</span>
+    <div class="res-title">${title}</div>
+    <div class="res-score">${score} pts</div>
+    <div class="res-sub">${msg}</div>
+    <div class="res-stats">
+      <div class="rstat"><div class="rstat-v">${corrCount}</div><div class="rstat-l">ACIERTOS</div></div>
+      <div class="rstat"><div class="rstat-v">${wrongCount}</div><div class="rstat-l">FALLOS</div></div>
+      <div class="rstat"><div class="rstat-v">${pct}%</div><div class="rstat-l">DEL MÁXIMO</div></div>
+    </div>
+    <button class="restart-btn" onclick="restartGame()">⟳ REINICIAR</button>`;
+  rc.classList.add('show');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ══════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════
+function updateScore(){
+  document.getElementById('scoreVal').textContent=score;
+  document.getElementById('corrVal').textContent=corrCount;
+}
+function showPop(text,color){
+  const el=document.createElement('div');
+  el.className='pts-pop';el.textContent=text;el.style.color=color;
+  const bar=document.querySelector('.score-bar');
+  const r=bar.getBoundingClientRect();
+  el.style.top=(r.top+window.scrollY-10)+'px';
+  el.style.left=(r.left+r.width/2-20)+'px';
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),1200);
+}
+function restartGame(){
+  score=0;corrCount=0;wrongCount=0;
+  f2Placed={};f3Idx=0;f4Placed={};
+  f1Freq=3;f1Amp=0.5;f1Phase=0;
+  if(f1Anim){cancelAnimationFrame(f1Anim);f1Anim=null;}
+  document.getElementById('resultsCard').classList.remove('show');
+  [1,2,3,4].forEach(i=>document.getElementById('pstep'+i).className='phase-step'+(i===1?' active':''));
+  updateScore();
+  goPhase(1);
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// Añadir correct index a SPECTRUM
+SPECTRUM.forEach((s,i)=>s.correct=i);
+
+// INIT
+renderF1();
+</script>
+</body>
+</html>

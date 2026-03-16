@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Seguridad en Internet — HTTPS</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;overflow:hidden;background:#07090f;color:#e2e8f0;font-family:'Space Grotesk',sans-serif;}
+
+#nav{display:flex;gap:8px;padding:12px 20px;background:#0a0d18;border-bottom:1px solid #1a2240;flex-shrink:0;flex-wrap:wrap;align-items:center;}
+#nav .logo{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:3px;color:#22c55e;margin-right:6px;}
+.tab{padding:8px 16px;border-radius:8px;border:1px solid #1a2240;background:transparent;color:#64748b;cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;transition:all .2s;}
+.tab:hover{border-color:#22c55e;color:#86efac;}
+.tab.active{background:#052e16;border-color:#22c55e;color:#4ade80;}
+
+#app{height:calc(100vh - 52px);overflow:hidden;display:flex;flex-direction:column;}
+.screen{display:none;flex:1;overflow-y:auto;flex-direction:column;}
+.screen.show{display:flex;}
+
+/* ── Shared components ── */
+.sub{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:4px;color:#334155;}
+.card-dark{background:#0d1117;border:1px solid #1a2240;border-radius:12px;padding:20px;}
+.btn-green{padding:10px 22px;border-radius:8px;border:none;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;}
+.btn-green:hover{box-shadow:0 0 20px #22c55e44;}
+.btn-green:disabled{opacity:.4;cursor:not-allowed;}
+.btn-outline{padding:9px 18px;border-radius:8px;border:1px solid #1a3a2a;background:#040810;color:#4ade80;cursor:pointer;font-size:12px;font-family:'Space Grotesk',sans-serif;transition:all .2s;}
+.btn-outline:hover{background:#052e16;}
+.feedback-ok{background:#052e16;border:1px solid #166534;border-radius:8px;padding:12px 16px;font-size:12px;color:#86efac;line-height:1.6;margin-top:10px;}
+.feedback-err{background:#2d0a0a;border:1px solid #7f1d1d;border-radius:8px;padding:12px 16px;font-size:12px;color:#fca5a5;line-height:1.6;margin-top:10px;}
+.feedback-hint{background:#1c1400;border:1px solid #854d0e;border-radius:8px;padding:12px 16px;font-size:12px;color:#fcd34d;line-height:1.6;margin-top:10px;}
+
+/* ══════════════════════════════════════
+   SCREEN 1 — HANDSHAKE TLS
+══════════════════════════════════════ */
+#s1{background:#07090f;padding:24px;gap:16px;}
+#s1-canvas-wrap{position:relative;width:100%;max-width:860px;margin:0 auto;}
+#c1{display:block;width:100%;border-radius:12px;border:1px solid #1a2240;}
+#s1-step-panel{width:100%;max-width:860px;margin:0 auto;}
+#s1-step-info{background:#0a1520;border:1px solid #1a2240;border-radius:12px;padding:16px 20px;}
+#s1-step-title{font-size:15px;font-weight:700;color:#4ade80;margin-bottom:6px;}
+#s1-step-desc{font-size:13px;color:#94a3b8;line-height:1.6;}
+#s1-q-box{margin-top:12px;display:none;}
+#s1-q-text{font-size:13px;font-weight:600;color:#f1f5f9;margin-bottom:10px;}
+#s1-opts{display:flex;flex-direction:column;gap:6px;}
+.s1-opt{padding:9px 14px;border-radius:8px;border:1px solid #1a2240;background:#0f1520;cursor:pointer;font-size:12px;color:#94a3b8;transition:all .2s;text-align:left;}
+.s1-opt:hover:not(:disabled){border-color:#22c55e;color:#e2e8f0;}
+.s1-opt.correct{background:#052e16;border-color:#22c55e;color:#4ade80;pointer-events:none;}
+.s1-opt.wrong{background:#2d0a0a;border-color:#ef4444;color:#f87171;pointer-events:none;}
+#s1-controls{display:flex;gap:10px;align-items:center;margin-top:12px;}
+#s1-progress{display:flex;gap:6px;}
+.s1-dot{width:10px;height:10px;border-radius:50%;background:#1a2240;transition:all .4s;}
+.s1-dot.done{background:#22c55e;box-shadow:0 0 6px #22c55e88;}
+.s1-dot.active{background:#60a5fa;box-shadow:0 0 6px #60a5fa88;}
+#s1-score{font-family:'JetBrains Mono',monospace;font-size:12px;color:#4ade80;margin-left:auto;}
+
+/* ══════════════════════════════════════
+   SCREEN 2 — DESCIFRA EL MENSAJE
+══════════════════════════════════════ */
+#s2{background:#07090f;padding:24px;gap:16px;align-items:center;}
+.s2-wrap{width:100%;max-width:820px;display:flex;flex-direction:column;gap:16px;}
+#s2-msg-box{background:#040810;border:2px solid #1e3a2a;border-radius:12px;padding:20px;text-align:center;}
+#s2-cipher{font-family:'JetBrains Mono',monospace;font-size:22px;color:#f59e0b;letter-spacing:4px;word-break:break-all;line-height:1.8;}
+#s2-keys{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;}
+.s2-key-btn{padding:10px 20px;border-radius:10px;border:2px solid #1a2240;background:#0d1117;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:12px;color:#94a3b8;transition:all .2s;text-align:center;}
+.s2-key-btn:hover{border-color:#22c55e;color:#4ade80;background:#052e16;}
+.s2-key-btn.selected{border-color:#22c55e;color:#4ade80;background:#052e16;}
+.s2-key-btn .k-label{font-size:10px;color:#475569;display:block;margin-bottom:3px;letter-spacing:2px;}
+.s2-key-btn .k-val{font-size:14px;font-weight:700;}
+#s2-result{font-family:'JetBrains Mono',monospace;font-size:18px;letter-spacing:3px;text-align:center;min-height:32px;color:#e2e8f0;}
+#s2-hint-row{display:flex;gap:8px;align-items:center;justify-content:center;}
+#s2-score-row{display:flex;gap:12px;justify-content:center;}
+.s2-chip{background:#0d1117;border:1px solid #1a2240;border-radius:8px;padding:8px 16px;text-align:center;}
+.s2-chip .cv{font-size:22px;font-weight:700;color:#4ade80;font-family:'JetBrains Mono',monospace;}
+.s2-chip .cl{font-size:9px;color:#334155;letter-spacing:3px;font-family:'JetBrains Mono',monospace;}
+
+/* ══════════════════════════════════════
+   SCREEN 3 — QUIZ TARJETAS
+══════════════════════════════════════ */
+#s3{background:#07090f;padding:24px;gap:16px;}
+#s3-top{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+#s3-prog{font-family:'JetBrains Mono',monospace;font-size:11px;color:#22c55e;margin-left:auto;}
+#s3-cards{display:flex;flex-wrap:wrap;gap:14px;}
+.fc3-wrap{width:calc(33.33% - 10px);min-width:220px;perspective:900px;cursor:pointer;}
+.fc3-inner{width:100%;position:relative;transform-style:preserve-3d;transition:transform .5s cubic-bezier(.4,0,.2,1);display:grid;}
+.fc3-wrap.flipped .fc3-inner{transform:rotateY(180deg);}
+.fc3-face{grid-area:1/1;border-radius:14px;backface-visibility:hidden;border:1px solid #1a2240;display:flex;flex-direction:column;padding:16px;background:#0d1117;transition:border-color .3s,box-shadow .3s;}
+.fc3-face.back{transform:rotateY(180deg);background:#0a1525;}
+.fc3-wrap:hover .fc3-face{border-color:var(--ac);box-shadow:0 4px 18px color-mix(in srgb,var(--ac) 18%,transparent);}
+.fc3-icon{font-size:26px;margin-bottom:6px;}
+.fc3-tag{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:3px;color:var(--ac);margin-bottom:3px;}
+.fc3-title{font-size:14px;font-weight:700;color:#f1f5f9;margin-bottom:5px;}
+.fc3-desc{font-size:11px;color:#64748b;line-height:1.5;flex:1;}
+.fc3-hint{font-size:9px;color:#1e3a5f;text-align:right;margin-top:5px;}
+.fc3-q{font-size:12px;font-weight:600;color:#e2e8f0;margin-bottom:9px;line-height:1.5;}
+.fc3-opts{display:flex;flex-direction:column;gap:5px;flex:1;}
+.fc3-opt{padding:6px 10px;border-radius:7px;border:1px solid #1a2240;background:#0f172a;font-size:11px;color:#94a3b8;cursor:pointer;transition:all .2s;text-align:left;}
+.fc3-opt:hover:not(.correct):not(.wrong):not(.reveal){border-color:var(--ac);color:#e2e8f0;}
+.fc3-opt.correct{background:#052e16;border-color:#22c55e;color:#4ade80;pointer-events:none;}
+.fc3-opt.wrong{background:#2d0a0a;border-color:#ef4444;color:#f87171;pointer-events:none;}
+.fc3-opt.reveal{background:#1e3a5f;border-color:#3b82f6;color:#93c5fd;pointer-events:none;}
+.fc3-result{font-family:'JetBrains Mono',monospace;font-size:10px;text-align:center;margin-top:4px;min-height:14px;}
+
+/* ══════════════════════════════════════
+   SCREEN 4 — INSPECTOR DE URLs
+══════════════════════════════════════ */
+#s4{background:#07090f;padding:24px;gap:16px;align-items:center;}
+.s4-wrap{width:100%;max-width:820px;display:flex;flex-direction:column;gap:16px;}
+#s4-url-card{background:#040810;border:2px solid #1e293b;border-radius:12px;padding:24px;text-align:center;}
+#s4-url-display{font-family:'JetBrains Mono',monospace;font-size:16px;color:#f1f5f9;word-break:break-all;line-height:1.8;margin-bottom:12px;}
+#s4-url-display .proto{font-weight:700;}
+#s4-url-display .proto.safe{color:#22c55e;}
+#s4-url-display .proto.unsafe{color:#ef4444;}
+#s4-url-display .domain{color:#60a5fa;}
+#s4-url-display .path{color:#94a3b8;}
+#s4-url-display .suspect{color:#f59e0b;text-decoration:underline wavy #f59e0b;}
+#s4-btns{display:flex;gap:12px;justify-content:center;}
+.s4-verdict-btn{padding:12px 32px;border-radius:10px;border:2px solid;cursor:pointer;font-size:14px;font-weight:700;font-family:'Space Grotesk',sans-serif;transition:all .2s;}
+#s4-safe-btn{border-color:#22c55e;color:#22c55e;background:#040810;}
+#s4-safe-btn:hover{background:#052e16;}
+#s4-danger-btn{border-color:#ef4444;color:#ef4444;background:#040810;}
+#s4-danger-btn:hover{background:#2d0a0a;}
+#s4-result{min-height:80px;}
+#s4-progress-row{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;}
+.s4-pdot{width:28px;height:28px;border-radius:50%;border:2px solid #1a2240;display:flex;align-items:center;justify-content:center;font-size:12px;transition:all .3s;}
+.s4-pdot.safe{border-color:#22c55e;background:#052e16;color:#4ade80;}
+.s4-pdot.danger{border-color:#ef4444;background:#2d0a0a;color:#f87171;}
+.s4-pdot.active{border-color:#60a5fa;background:#1e3a5f;color:#93c5fd;}
+#s4-score-row{display:flex;gap:12px;justify-content:center;}
+</style>
+</head>
+<body style="display:flex;flex-direction:column;height:100vh;">
+<div id="nav">
+  <span class="logo">HTTPS</span>
+  <button class="tab active" onclick="showScreen(1)">🔐 Handshake TLS</button>
+  <button class="tab" onclick="showScreen(2)">🔓 Descifra el Mensaje</button>
+  <button class="tab" onclick="showScreen(3)">🃏 Quiz HTTPS</button>
+  <button class="tab" onclick="showScreen(4)">🕵️ Inspector de URLs</button>
+</div>
+<div id="app">
+
+<!-- ══ S1: HANDSHAKE TLS ══ -->
+<div class="screen show" id="s1">
+  <div style="max-width:860px;margin:0 auto;width:100%;">
+    <div class="sub">SIMULADOR ANIMADO</div>
+    <h2 style="font-size:18px;font-weight:700;color:#f1f5f9;margin-bottom:4px;">¿Cómo se establece una conexión HTTPS?</h2>
+  </div>
+  <div id="s1-canvas-wrap"><canvas id="c1" height="200"></canvas></div>
+  <div id="s1-step-panel">
+    <div id="s1-step-info">
+      <div id="s1-step-title">Pulsa "Siguiente paso" para comenzar</div>
+      <div id="s1-step-desc">El handshake TLS es el proceso de negociación que ocurre al inicio de toda conexión HTTPS. Ocurre en milisegundos y es invisible para el usuario.</div>
+      <div id="s1-q-box">
+        <div id="s1-q-text"></div>
+        <div id="s1-opts"></div>
+        <div id="s1-fb"></div>
+      </div>
+    </div>
+    <div id="s1-controls">
+      <div id="s1-progress"></div>
+      <button class="btn-green" id="s1-next-btn" onclick="s1Next()">▶ Siguiente paso</button>
+      <button class="btn-outline" onclick="s1Reset()">↺</button>
+      <span id="s1-score">0 pts</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══ S2: DESCIFRA ══ -->
+<div class="screen" id="s2">
+  <div class="s2-wrap">
+    <div>
+      <div class="sub">CIFRADO Y CLAVES</div>
+      <h2 style="font-size:18px;font-weight:700;color:#f1f5f9;margin-bottom:4px;">Descifra el mensaje usando la clave correcta</h2>
+    </div>
+    <div id="s2-score-row">
+      <div class="s2-chip"><div class="cv" id="s2-score">0</div><div class="cl">PUNTOS</div></div>
+      <div class="s2-chip"><div class="cv" id="s2-round">1/6</div><div class="cl">RONDA</div></div>
+      <div class="s2-chip"><div class="cv" id="s2-correct">0</div><div class="cl">ACIERTOS</div></div>
+    </div>
+    <div id="s2-msg-box">
+      <div class="sub" style="margin-bottom:8px;">MENSAJE CIFRADO</div>
+      <div id="s2-cipher"></div>
+      <div id="s2-context" style="font-size:11px;color:#475569;margin-top:8px;font-style:italic;"></div>
+    </div>
+    <div>
+      <div class="sub" style="margin-bottom:10px;">ELIGE LA CLAVE PARA DESCIFRAR</div>
+      <div id="s2-keys"></div>
+    </div>
+    <div id="s2-result"></div>
+    <div id="s2-hint-row">
+      <div id="s2-feedback" style="flex:1;"></div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <button class="btn-green" id="s2-try-btn" onclick="s2Try()">🔓 Aplicar clave</button>
+      <button class="btn-outline" id="s2-next-btn" onclick="s2Next()" style="display:none;">Siguiente →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ S3: QUIZ ══ -->
+<div class="screen" id="s3">
+  <div id="s3-top">
+    <div>
+      <div class="sub">TARJETAS INTERACTIVAS</div>
+      <h2 style="font-size:18px;font-weight:700;color:#f1f5f9;">Quiz: Seguridad y HTTPS</h2>
+    </div>
+    <span id="s3-prog">✓ 0 / 8</span>
+    <button class="btn-outline" onclick="s3Reset()">↺ Reiniciar</button>
+  </div>
+  <div id="s3-cards"></div>
+</div>
+
+<!-- ══ S4: INSPECTOR URLs ══ -->
+<div class="screen" id="s4">
+  <div class="s4-wrap">
+    <div>
+      <div class="sub">DETECTIVE DE SEGURIDAD</div>
+      <h2 style="font-size:18px;font-weight:700;color:#f1f5f9;margin-bottom:4px;">¿Esta URL es segura o peligrosa?</h2>
+    </div>
+    <div id="s4-score-row">
+      <div class="s2-chip"><div class="cv" id="s4-score">0</div><div class="cl">PUNTOS</div></div>
+      <div class="s2-chip"><div class="cv" id="s4-qn">1/10</div><div class="cl">URL</div></div>
+      <div class="s2-chip"><div class="cv" id="s4-ok">0</div><div class="cl">ACIERTOS</div></div>
+    </div>
+    <div id="s4-url-card">
+      <div class="sub" style="margin-bottom:12px;">ANALIZA ESTA DIRECCIÓN WEB</div>
+      <div id="s4-url-display"></div>
+      <div id="s4-btns">
+        <button class="s4-verdict-btn" id="s4-safe-btn" onclick="s4Answer(true)">🔒 SEGURA</button>
+        <button class="s4-verdict-btn" id="s4-danger-btn" onclick="s4Answer(false)">⚠️ PELIGROSA</button>
+      </div>
+    </div>
+    <div id="s4-result"></div>
+    <div id="s4-progress-row"></div>
+  </div>
+</div>
+
+</div>
+
+<script>
+// ══════════════════════════════════════════════════
+// NAV
+// ══════════════════════════════════════════════════
+function showScreen(n){
+  document.querySelectorAll('.screen').forEach((s,i)=>s.classList.toggle('show',i===n-1));
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',i===n-1));
+  if(n===1) s1Init();
+}
+
+// ══════════════════════════════════════════════════
+// SCREEN 1 — HANDSHAKE TLS
+// ══════════════════════════════════════════════════
+const TLS_STEPS=[
+  {title:'1. El navegador dice "Hola" (Client Hello)',
+   desc:'Tu navegador envía un mensaje al servidor con las versiones de TLS que soporta y una lista de algoritmos de cifrado disponibles.',
+   color:'#60a5fa', from:'browser', to:'server', label:'Client Hello',
+   q:'¿Quién inicia siempre la conexión HTTPS?',
+   opts:['El navegador del usuario','El servidor web','El proveedor de Internet (ISP)','El certificado SSL'],ans:0,
+   ok:'Siempre es el cliente (tu navegador) quien inicia la conexión enviando el "Client Hello".'},
+  {title:'2. El servidor responde y envía su certificado',
+   desc:'El servidor elige el algoritmo de cifrado, envía su certificado digital (que contiene su clave pública) y lo firma con su clave privada.',
+   color:'#a78bfa', from:'server', to:'browser', label:'Certificado + Clave Pública',
+   q:'¿Qué contiene el certificado digital del servidor?',
+   opts:['Su clave pública y la firma de una autoridad de certificación','La contraseña del servidor','La clave privada del servidor','El código fuente de la web'],ans:0,
+   ok:'El certificado contiene la clave pública del servidor y la firma de una Autoridad de Certificación (CA) de confianza, como DigiCert o Let\'s Encrypt.'},
+  {title:'3. El navegador verifica el certificado',
+   desc:'El navegador comprueba que el certificado está firmado por una Autoridad de Certificación (CA) de confianza. Si es válido, muestra el candado verde.',
+   color:'#4ade80', from:'browser', to:'browser', label:'¿Certificado válido?',
+   q:'¿Qué indica el candado 🔒 en la barra del navegador?',
+   opts:['Que la conexión está cifrada y el certificado es válido','Que la web es de confianza y no tiene virus','Que el sitio web es de un banco','Que nadie puede ver la URL que visitas'],ans:0,
+   ok:'El candado significa que la conexión está cifrada (HTTPS) y el certificado es válido. No garantiza que la web sea legítima o segura en contenido.'},
+  {title:'4. Se acuerda la clave de sesión',
+   desc:'El navegador genera una clave de sesión (simétrica), la cifra con la clave pública del servidor y se la envía. Solo el servidor puede descifrarla con su clave privada.',
+   color:'#f59e0b', from:'browser', to:'server', label:'Clave sesión cifrada',
+   q:'¿Por qué se cifra la clave de sesión con la clave pública del servidor?',
+   opts:['Porque solo el servidor puede descifrarla con su clave privada','Porque es más rápido que el cifrado simétrico','Para que el ISP pueda verificarla','Porque la clave de sesión es pública'],ans:0,
+   ok:'La clave pública puede usarla cualquiera para cifrar, pero solo el poseedor de la clave privada puede descifrar. Así la clave de sesión viaja segura.'},
+  {title:'5. Confirmación — canal seguro establecido',
+   desc:'Ambas partes confirman que el handshake fue correcto. A partir de aquí, todos los datos (páginas, contraseñas, datos de tarjeta) se cifran con la clave de sesión.',
+   color:'#22c55e', from:'both', to:'both', label:'¡Canal seguro!',
+   q:'¿Qué tipo de cifrado se usa para el resto de la comunicación?',
+   opts:['Cifrado simétrico con la clave de sesión','Cifrado asimétrico con clave pública/privada','Sin cifrado, ya es seguro','Cifrado con la contraseña del usuario'],ans:0,
+   ok:'Una vez acordada la clave de sesión, se usa cifrado simétrico (más rápido) para todos los datos. El cifrado asimétrico solo se usa en el handshake inicial.'},
+];
+
+const c1=document.getElementById('c1');
+const ctx1=c1.getContext('2d');
+let s1Step=-1, s1Score=0, s1Answered=false, s1PacketAnim=null;
+let s1PacketX=0, s1PacketDir=1, s1Animating=false;
+
+function s1Init(){
+  resizeC1();
+  s1Step=-1; s1Score=0; s1Answered=false;
+  document.getElementById('s1-score').textContent='0 pts';
+  document.getElementById('s1-step-title').textContent='Pulsa "Siguiente paso" para comenzar';
+  document.getElementById('s1-step-desc').textContent='El handshake TLS es el proceso de negociación que ocurre al inicio de toda conexión HTTPS.';
+  document.getElementById('s1-q-box').style.display='none';
+  document.getElementById('s1-next-btn').disabled=false;
+  document.getElementById('s1-next-btn').textContent='▶ Siguiente paso';
+  s1BuildDots();
+  s1Draw(-1, null, 0);
+}
+
+function resizeC1(){
+  const w=c1.parentElement.offsetWidth;
+  c1.width=w; c1.height=200;
+}
+
+function s1BuildDots(){
+  const prog=document.getElementById('s1-progress');
+  prog.innerHTML='';
+  TLS_STEPS.forEach((_,i)=>{
+    const d=document.createElement('div');
+    d.className='s1-dot'; d.id='s1-dot-'+i;
+    prog.appendChild(d);
+  });
+}
+
+function s1Draw(step, packetX, packetAlpha){
+  const W=c1.width, H=c1.height;
+  ctx1.clearRect(0,0,W,H);
+  ctx1.fillStyle='#040810'; ctx1.fillRect(0,0,W,H);
+
+  // Grid
+  ctx1.strokeStyle='rgba(30,58,74,0.4)'; ctx1.lineWidth=1;
+  for(let x=0;x<W;x+=40){ctx1.beginPath();ctx1.moveTo(x,0);ctx1.lineTo(x,H);ctx1.stroke();}
+  for(let y=0;y<H;y+=40){ctx1.beginPath();ctx1.moveTo(0,y);ctx1.lineTo(W,y);ctx1.stroke();}
+
+  const bx=80, sx=W-80, cy2=H/2;
+
+  // Connection line
+  ctx1.strokeStyle='rgba(30,58,74,0.8)'; ctx1.lineWidth=2; ctx1.setLineDash([6,6]);
+  ctx1.beginPath(); ctx1.moveTo(bx,cy2); ctx1.lineTo(sx,cy2); ctx1.stroke();
+  ctx1.setLineDash([]);
+
+  // Completed step lines
+  for(let i=0;i<=step;i++){
+    const s=TLS_STEPS[i];
+    ctx1.strokeStyle=s.color+'88'; ctx1.lineWidth=1.5; ctx1.setLineDash([4,4]);
+    ctx1.beginPath(); ctx1.moveTo(bx,cy2); ctx1.lineTo(sx,cy2); ctx1.stroke();
+    ctx1.setLineDash([]);
+  }
+
+  // Browser node
+  const bActive=step>=0;
+  ctx1.beginPath(); ctx1.arc(bx,cy2,28,0,Math.PI*2);
+  ctx1.fillStyle=bActive?'#1e3a5f':'#0d1117'; ctx1.fill();
+  ctx1.strokeStyle=bActive?'#60a5fa':'#334155'; ctx1.lineWidth=2; ctx1.stroke();
+  ctx1.font='22px Arial'; ctx1.textAlign='center'; ctx1.fillText('💻',bx,cy2+8);
+  ctx1.font='bold 10px JetBrains Mono'; ctx1.fillStyle='#94a3b8'; ctx1.fillText('NAVEGADOR',bx,cy2+46);
+
+  // Server node
+  const sActive=step>=1;
+  ctx1.beginPath(); ctx1.arc(sx,cy2,28,0,Math.PI*2);
+  ctx1.fillStyle=sActive?'#1a2a1a':'#0d1117'; ctx1.fill();
+  ctx1.strokeStyle=sActive?'#22c55e':'#334155'; ctx1.lineWidth=2; ctx1.stroke();
+  ctx1.font='22px Arial'; ctx1.textAlign='center'; ctx1.fillText('🖥️',sx,cy2+8);
+  ctx1.font='bold 10px JetBrains Mono'; ctx1.fillStyle='#94a3b8'; ctx1.fillText('SERVIDOR',sx,cy2+46);
+
+  // Packet animation
+  if(packetX!==null && packetAlpha>0 && step>=0){
+    const s=TLS_STEPS[step];
+    const grd=ctx1.createRadialGradient(packetX,cy2,0,packetX,cy2,18);
+    grd.addColorStop(0,s.color+'55'); grd.addColorStop(1,'transparent');
+    ctx1.globalAlpha=packetAlpha;
+    ctx1.beginPath(); ctx1.arc(packetX,cy2,18,0,Math.PI*2);
+    ctx1.fillStyle=grd; ctx1.fill();
+    ctx1.beginPath(); ctx1.arc(packetX,cy2,8,0,Math.PI*2);
+    ctx1.fillStyle=s.color; ctx1.fill();
+    ctx1.font='bold 9px JetBrains Mono'; ctx1.fillStyle='#fff'; ctx1.textAlign='center';
+    ctx1.fillText(s.label, packetX, cy2-24);
+    ctx1.globalAlpha=1;
+  }
+
+  // Lock icon if complete
+  if(step>=TLS_STEPS.length-1){
+    ctx1.font='28px Arial'; ctx1.textAlign='center';
+    ctx1.fillText('🔒',(bx+sx)/2,cy2+12);
+    ctx1.font='bold 11px JetBrains Mono'; ctx1.fillStyle='#4ade80';
+    ctx1.fillText('CONEXIÓN SEGURA',(bx+sx)/2,cy2-20);
+  }
+}
+
+function s1AnimatePacket(step, onDone){
+  const W=c1.width, H=c1.height;
+  const bx=80, sx=W-80, cy=H/2;
+  const s=TLS_STEPS[step];
+  const goRight=s.from==='browser'||s.from==='both';
+  let x=goRight?bx:sx;
+  const target=goRight?sx:bx;
+  const speed=(target-x)/40;
+  let frame=0;
+  s1Animating=true;
+  function tick(){
+    x+=speed;
+    const progress=Math.abs(x-bx)/Math.abs(sx-bx);
+    const alpha=Math.sin(progress*Math.PI);
+    s1Draw(step-1, x, alpha);
+    if((speed>0&&x<target)||(speed<0&&x>target)){
+      requestAnimationFrame(tick);
+    } else {
+      s1Animating=false;
+      s1Draw(step, null, 0);
+      onDone();
+    }
+  }
+  requestAnimationFrame(tick);
+}
+
+function s1Next(){
+  if(s1Animating) return;
+  if(s1Answered===false && s1Step>=0) return; // must answer first
+  s1Step++;
+  if(s1Step>=TLS_STEPS.length){
+    document.getElementById('s1-next-btn').textContent='↺ Reiniciar';
+    document.getElementById('s1-next-btn').onclick=s1Reset;
+    return;
+  }
+  s1Answered=false;
+  // Update dots
+  for(let i=0;i<TLS_STEPS.length;i++){
+    const d=document.getElementById('s1-dot-'+i);
+    d.className='s1-dot'+(i<s1Step?' done':i===s1Step?' active':'');
+  }
+  document.getElementById('s1-next-btn').disabled=true;
+  document.getElementById('s1-q-box').style.display='none';
+  s1AnimatePacket(s1Step, ()=>{
+    const s=TLS_STEPS[s1Step];
+    document.getElementById('s1-step-title').textContent=s.title;
+    document.getElementById('s1-step-desc').textContent=s.desc;
+    // Show question
+    const qb=document.getElementById('s1-q-box');
+    qb.style.display='block';
+    document.getElementById('s1-q-text').textContent='❓ '+s.q;
+    document.getElementById('s1-fb').innerHTML='';
+    const opts=s.opts.map((o,i)=>({text:o,correct:i===s.ans})).sort(()=>Math.random()-.5);
+    document.getElementById('s1-opts').innerHTML='';
+    opts.forEach(o=>{
+      const btn=document.createElement('button');
+      btn.className='s1-opt'; btn.textContent=o.text;
+      btn.addEventListener('click',function(){
+        if(s1Answered) return;
+        const firstTry=!document.querySelector('.s1-opt.wrong');
+        if(o.correct){
+          s1Answered=true;
+          btn.classList.add('correct');
+          document.querySelectorAll('.s1-opt').forEach(b=>b.disabled=true);
+          const pts=firstTry?100:50;
+          s1Score+=pts;
+          document.getElementById('s1-score').textContent=s1Score+' pts';
+          document.getElementById('s1-fb').innerHTML=`<div class="feedback-ok">✓ ${s.ok}</div>`;
+          document.getElementById('s1-next-btn').disabled=false;
+          document.getElementById('s1-next-btn').textContent=s1Step<TLS_STEPS.length-1?'Siguiente paso →':'Ver resultado';
+        } else {
+          btn.classList.add('wrong'); btn.disabled=true;
+          s1Score=Math.max(0,s1Score-10);
+          document.getElementById('s1-score').textContent=s1Score+' pts';
+          document.getElementById('s1-fb').innerHTML='<div class="feedback-hint">💡 Incorrecto — sigue intentando.</div>';
+        }
+      });
+      document.getElementById('s1-opts').appendChild(btn);
+    });
+  });
+}
+
+function s1Reset(){
+  document.getElementById('s1-next-btn').onclick=s1Next;
+  s1Init();
+}
+s1Init();
+
+// ══════════════════════════════════════════════════
+// SCREEN 2 — DESCIFRA EL MENSAJE
+// ══════════════════════════════════════════════════
+// Simple Caesar cipher: shift letters by key value
+function caesarEncode(text, shift){
+  return text.toUpperCase().split('').map(c=>{
+    if(c>='A'&&c<='Z') return String.fromCharCode((c.charCodeAt(0)-65+shift)%26+65);
+    return c;
+  }).join('');
+}
+function caesarDecode(text, shift){
+  return caesarEncode(text, 26-shift);
+}
+
+const S2_ROUNDS=[
+  {plain:'HTTPS',shift:3,context:'Protocolo de navegación segura',
+   keys:[{label:'Clave A',val:3,correct:true},{label:'Clave B',val:7,correct:false},{label:'Clave C',val:1,correct:false}],
+   explain:'Con desplazamiento +3: H→K, T→W, T→W, P→S, S→V. Esta es la clave correcta de sesión.'},
+  {plain:'CLAVE PUBLICA',shift:5,context:'Tipo de clave que se comparte libremente',
+   keys:[{label:'Clave A',val:2,correct:false},{label:'Clave B',val:5,correct:true},{label:'Clave C',val:8,correct:false}],
+   explain:'La clave pública se puede compartir con todo el mundo. Solo permite cifrar, no descifrar.'},
+  {plain:'CANDADO VERDE',shift:4,context:'Lo que ves en el navegador con HTTPS',
+   keys:[{label:'Clave A',val:4,correct:true},{label:'Clave B',val:6,correct:false},{label:'Clave C',val:9,correct:false}],
+   explain:'El candado verde indica conexión HTTPS activa con certificado válido.'},
+  {plain:'BANCO SEGURO',shift:6,context:'Ejemplo de web que siempre debe usar HTTPS',
+   keys:[{label:'Clave A',val:3,correct:false},{label:'Clave B',val:11,correct:false},{label:'Clave C',val:6,correct:true}],
+   explain:'Los bancos y tiendas online siempre usan HTTPS para proteger tus datos financieros.'},
+  {plain:'CLAVE PRIVADA',shift:2,context:'Tipo de clave que NUNCA se comparte',
+   keys:[{label:'Clave A',val:2,correct:true},{label:'Clave B',val:5,correct:false},{label:'Clave C',val:8,correct:false}],
+   explain:'La clave privada nunca abandona el servidor. Es la que descifra todo lo que se cifró con la clave pública.'},
+  {plain:'TLS SEGURO',shift:7,context:'Protocolo que protege las comunicaciones web',
+   keys:[{label:'Clave A',val:4,correct:false},{label:'Clave B',val:7,correct:true},{label:'Clave C',val:10,correct:false}],
+   explain:'TLS (Transport Layer Security) es el protocolo que hace posible HTTPS, sustituyendo al antiguo SSL.'},
+];
+
+const S2 = {ri:0, score:0, correct:0, selKey:null, answered:false};
+
+function s2Build(){
+  const r=S2_ROUNDS[S2.ri];
+  S2.selKey=null; S2.answered=false;
+  const cipher=caesarEncode(r.plain, r.shift);
+  document.getElementById('s2-cipher').textContent=cipher;
+  document.getElementById('s2-context').textContent='Contexto: '+r.context;
+  document.getElementById('s2-result').textContent='';
+  document.getElementById('s2-feedback').innerHTML='';
+  document.getElementById('s2-next-btn').style.display='none';
+  document.getElementById('s2-round').textContent=(S2.ri+1)+'/'+S2_ROUNDS.length;
+  // Shuffle keys
+  const shuffled=[...r.keys].sort(()=>Math.random()-.5);
+  const keysDiv=document.getElementById('s2-keys');
+  keysDiv.innerHTML='';
+  shuffled.forEach(k=>{
+    const btn=document.createElement('button');
+    btn.className='s2-key-btn';
+    btn.innerHTML=`<span class="k-label">${k.label}</span><span class="k-val">+${k.val}</span>`;
+    btn.dataset.val=k.val; btn.dataset.correct=k.correct;
+    btn.addEventListener('click',()=>{
+      if(S2.answered) return;
+      document.querySelectorAll('.s2-key-btn').forEach(b=>b.classList.remove('selected'));
+      btn.classList.add('selected'); S2.selKey=k;
+      // Preview decode
+      const decoded=caesarDecode(document.getElementById('s2-cipher').textContent.replace(/\s/g,''),k.val);
+      document.getElementById('s2-result').textContent=decoded.split('').map((c,i)=>i>0&&(i)%r.plain.replace(/\s/g,'').length===0?' '+c:c).join('');
+    });
+    keysDiv.appendChild(btn);
+  });
+}
+
+function s2Try(){
+  if(!S2.selKey || S2.answered) return;
+  const r=S2_ROUNDS[S2.ri];
+  const firstTry=!S2.answered;
+  if(S2.selKey.correct){
+    S2.answered=true;
+    const pts=100;
+    S2.score+=pts; S2.correct++;
+    document.getElementById('s2-score').textContent=S2.score;
+    document.getElementById('s2-correct').textContent=S2.correct;
+    document.getElementById('s2-result').textContent=r.plain;
+    document.getElementById('s2-result').style.color='#4ade80';
+    document.getElementById('s2-feedback').innerHTML=`<div class="feedback-ok">✓ ¡Correcto! ${r.explain}</div>`;
+    document.getElementById('s2-next-btn').style.display='block';
+    document.querySelectorAll('.s2-key-btn').forEach(b=>b.disabled=true);
+  } else {
+    S2.score=Math.max(0,S2.score-10);
+    document.getElementById('s2-score').textContent=S2.score;
+    document.getElementById('s2-feedback').innerHTML='<div class="feedback-hint">💡 Esa no es la clave correcta. El texto descifrado no coincide. Prueba otra.</div>';
+    document.getElementById('s2-result').style.color='#f87171';
+  }
+}
+
+function s2Next(){
+  S2.ri++;
+  if(S2.ri>=S2_ROUNDS.length){
+    document.getElementById('s2-feedback').innerHTML=`<div class="feedback-ok">🏆 ¡Completado! ${S2.score} pts · ${S2.correct}/${S2_ROUNDS.length} aciertos
+      <button class="btn-outline" onclick="s2Restart()" style="margin-left:12px;">↺ Reiniciar</button></div>`;
+    document.getElementById('s2-next-btn').style.display='none';
+    document.getElementById('s2-cipher').textContent='—';
+    return;
+  }
+  document.getElementById('s2-result').style.color='#e2e8f0';
+  s2Build();
+}
+
+function s2Restart(){
+  S2.ri=0; S2.score=0; S2.correct=0;
+  document.getElementById('s2-score').textContent=0;
+  document.getElementById('s2-correct').textContent=0;
+  document.getElementById('s2-result').style.color='#e2e8f0';
+  s2Build();
+}
+s2Build();
+
+// ══════════════════════════════════════════════════
+// SCREEN 3 — QUIZ TARJETAS
+// ══════════════════════════════════════════════════
+const FC3_DATA=[
+  {icon:'🔒',tag:'PROTOCOLO',accent:'#22c55e',title:'HTTPS',
+   desc:'HyperText Transfer Protocol Secure. Versión segura del HTTP que cifra todos los datos en tránsito.',
+   quiz:{q:'¿Qué diferencia hay entre HTTP y HTTPS?',opts:['HTTPS cifra los datos, HTTP los envía en texto plano','HTTPS es más lento que HTTP','HTTP es más seguro que HTTPS','Son exactamente lo mismo'],ans:0}},
+  {icon:'🗝️',tag:'CRIPTOGRAFÍA',accent:'#60a5fa',title:'Clave pública',
+   desc:'Se comparte libremente. Sirve para cifrar mensajes. Cualquiera puede usarla pero solo el dueño de la clave privada puede descifrar.',
+   quiz:{q:'¿Qué puede hacer cualquier persona con la clave pública de un servidor?',opts:['Cifrar mensajes que solo ese servidor podrá descifrar','Descifrar mensajes del servidor','Acceder al servidor como administrador','Ver la clave privada del servidor'],ans:0}},
+  {icon:'🔐',tag:'CRIPTOGRAFÍA',accent:'#a78bfa',title:'Clave privada',
+   desc:'Nunca se comparte. Solo la tiene el servidor. Sirve para descifrar lo que se cifró con la clave pública.',
+   quiz:{q:'¿Dónde está guardada la clave privada de un servidor web?',opts:['Solo en el servidor, nunca sale de él','En el navegador del usuario','En el certificado SSL visible','En el ISP del servidor'],ans:0}},
+  {icon:'🤝',tag:'SESIÓN',accent:'#f59e0b',title:'Clave de sesión',
+   desc:'Clave simétrica acordada entre navegador y servidor para cifrar el resto de la comunicación. Cambia en cada sesión.',
+   quiz:{q:'¿Por qué se usa una clave de sesión distinta para cada conexión?',opts:['Para que aunque alguien intercepte una sesión no pueda descifrar las demás','Porque el servidor no tiene memoria suficiente','Porque la clave pública caduca en cada sesión','Para ahorrar ancho de banda'],ans:0}},
+  {icon:'📜',tag:'CONFIANZA',accent:'#06b6d4',title:'Certificado digital',
+   desc:'Documento electrónico que acredita la identidad del servidor y contiene su clave pública. Lo firma una Autoridad de Certificación.',
+   quiz:{q:'¿Quién firma el certificado digital de un servidor?',opts:['Una Autoridad de Certificación (CA) de confianza','El propio servidor','El ISP del usuario','Google o Microsoft'],ans:0}},
+  {icon:'⚠️',tag:'SEGURIDAD',accent:'#ef4444',title:'HTTP sin cifrar',
+   desc:'Sin HTTPS, cualquier persona en la misma red (café, aeropuerto) puede leer tus datos: contraseñas, datos bancarios, mensajes.',
+   quiz:{q:'¿Qué riesgo existe al usar HTTP (sin S) en una red Wi-Fi pública?',opts:['Cualquiera en la red puede leer tus datos en texto plano','La conexión es más lenta','La web no carga correctamente','El servidor puede bloquearte'],ans:0}},
+  {icon:'🏛️',tag:'INFRAESTRUCTURA',accent:'#10b981',title:'Autoridad de Certificación (CA)',
+   desc:'Organización de confianza que verifica la identidad de los servidores y firma sus certificados. Ej: Let\'s Encrypt, DigiCert.',
+   quiz:{q:'¿Qué pasa si un certificado está firmado por una CA desconocida?',opts:['El navegador muestra una advertencia de seguridad','La conexión se hace más lenta','El certificado se renueva automáticamente','Nada, sigue funcionando igual'],ans:0}},
+  {icon:'🔄',tag:'PROCESO',accent:'#f97316',title:'Handshake TLS',
+   desc:'Negociación inicial que establece la conexión segura. Ocurre en milisegundos antes de que se transmita cualquier dato.',
+   quiz:{q:'¿Cuándo ocurre el handshake TLS?',opts:['Al inicio de cada conexión HTTPS, antes de transmitir datos','Una vez al día para renovar las claves','Solo cuando se introducen contraseñas','Al cerrar la conexión'],ans:0}},
+];
+
+let s3Solved=0;
+function s3UpdateProg(){document.getElementById('s3-prog').textContent=`✓ ${s3Solved} / ${FC3_DATA.length}`;}
+
+function s3Build(){
+  s3Solved=0; s3UpdateProg();
+  const area=document.getElementById('s3-cards');
+  area.innerHTML='';
+  FC3_DATA.forEach(d=>{
+    const q=d.quiz;
+    const pairs=q.opts.map((o,j)=>({text:o,correct:j===q.ans}));
+    const wrap=document.createElement('div');
+    wrap.className='fc3-wrap'; wrap.style.setProperty('--ac',d.accent);
+    const optsHTML=pairs.map(p=>`<button class="fc3-opt" data-correct="${p.correct}">${p.text}</button>`).join('');
+    wrap.innerHTML=`<div class="fc3-inner">
+      <div class="fc3-face front">
+        <div class="fc3-icon">${d.icon}</div>
+        <div class="fc3-tag">${d.tag}</div>
+        <div class="fc3-title">${d.title}</div>
+        <div class="fc3-desc">${d.desc}</div>
+        <div class="fc3-hint">↻ TOCA PARA EL QUIZ</div>
+      </div>
+      <div class="fc3-face back">
+        <div class="fc3-tag">QUIZ · ${d.tag}</div>
+        <div class="fc3-q">${q.q}</div>
+        <div class="fc3-opts">${optsHTML}</div>
+        <div class="fc3-result"></div>
+      </div>
+    </div>`;
+    wrap.querySelector('.fc3-face.front').addEventListener('click',()=>wrap.classList.add('flipped'));
+    wrap.querySelectorAll('.fc3-opt').forEach(btn=>{
+      btn.addEventListener('click',e=>{
+        e.stopPropagation();
+        if(wrap.dataset.answered) return;
+        const ok=btn.dataset.correct==='true';
+        if(ok){
+          wrap.dataset.answered='1';
+          wrap.querySelectorAll('.fc3-opt').forEach(b=>{
+            b.classList.add(b.dataset.correct==='true'?'correct':'reveal');
+          });
+          wrap.querySelector('.fc3-result').textContent='✓ ¡CORRECTO!';
+          wrap.querySelector('.fc3-result').style.color='#4ade80';
+          s3Solved=Math.min(FC3_DATA.length,s3Solved+1); s3UpdateProg();
+        } else {
+          btn.classList.add('wrong');
+          wrap.querySelector('.fc3-result').textContent='✗ Incorrecto';
+          wrap.querySelector('.fc3-result').style.color='#f87171';
+        }
+      });
+    });
+    wrap.querySelector('.fc3-face.back').addEventListener('click',e=>{
+      if(e.target.classList.contains('fc3-opt')) return;
+      if(!wrap.dataset.answered) wrap.classList.remove('flipped');
+    });
+    area.appendChild(wrap);
+  });
+}
+function s3Reset(){s3Build();}
+s3Build();
+
+// ══════════════════════════════════════════════════
+// SCREEN 4 — INSPECTOR DE URLs
+// ══════════════════════════════════════════════════
+const S4_URLS=[
+  {display:'https://<span class="proto safe">https://</span><span class="domain">www.bbva.es</span><span class="path">/login</span>',
+   safe:true, ok:'✅ Segura. HTTPS activo, dominio oficial del banco (bbva.es), sin subdominios sospechosos.'},
+  {display:'http://<span class="proto unsafe">http://</span><span class="domain">www.tienda.com</span><span class="path">/pago</span>',
+   safe:false, ok:'⚠️ Peligrosa. HTTP sin cifrado en una página de pago. Tus datos bancarios viajarían en texto plano.'},
+  {display:'https://<span class="proto safe">https://</span><span class="suspect">bbva</span><span class="domain">.phishing-site.ru</span><span class="path">/login</span>',
+   safe:false, ok:'⚠️ Peligrosa. Aunque tiene HTTPS, el dominio real es "phishing-site.ru". "bbva" es solo un subdominio para engañarte.'},
+  {display:'https://<span class="proto safe">https://</span><span class="domain">www.amazon.es</span><span class="path">/checkout</span>',
+   safe:true, ok:'✅ Segura. HTTPS activo, dominio oficial amazon.es. Puedes introducir tus datos de pago con confianza.'},
+  {display:'https://<span class="proto safe">https://</span><span class="suspect">amazon-soporte-urgente</span><span class="domain">.com</span><span class="path">/verificar</span>',
+   safe:false, ok:'⚠️ Peligrosa. El dominio "amazon-soporte-urgente.com" no es Amazon. El HTTPS solo cifra la conexión, no garantiza que el sitio sea legítimo.'},
+  {display:'https://<span class="proto safe">https://</span><span class="domain">correos.es</span><span class="path">/seguimiento</span>',
+   safe:true, ok:'✅ Segura. HTTPS activo, dominio oficial de Correos España. Puedes consultar tus envíos.'},
+  {display:'http://<span class="proto unsafe">http://</span><span class="suspect">correos-tracking-es</span><span class="domain">.net</span><span class="path">/paquete</span>',
+   safe:false, ok:'⚠️ Peligrosa. Sin HTTPS y dominio sospechoso. Los SMS de phishing de "Correos" suelen llevar a páginas como esta.'},
+  {display:'https://<span class="proto safe">https://</span><span class="domain">mail.google.com</span><span class="path">/inbox</span>',
+   safe:true, ok:'✅ Segura. HTTPS activo, dominio oficial de Google. El subdominio "mail" pertenece a google.com.'},
+  {display:'https://<span class="proto safe">https://</span><span class="suspect">google-premios-ganador</span><span class="domain">.info</span><span class="path">/reclamar</span>',
+   safe:false, ok:'⚠️ Peligrosa. HTTPS no significa seguridad del contenido. El dominio "google-premios-ganador.info" es phishing.'},
+  {display:'https://<span class="proto safe">https://</span><span class="domain">www.agenciatributaria.es</span><span class="path">/renta</span>',
+   safe:true, ok:'✅ Segura. HTTPS activo, dominio oficial de la Agencia Tributaria española (.es garantiza registro en España).'},
+];
+
+const S4={qi:0, score:0, ok:0};
+
+function s4Build(){
+  S4.qi=0; S4.score=0; S4.ok=0;
+  document.getElementById('s4-score').textContent=0;
+  document.getElementById('s4-ok').textContent=0;
+  s4Render();
+  s4BuildDots();
+}
+
+function s4BuildDots(){
+  const row=document.getElementById('s4-progress-row');
+  row.innerHTML='';
+  S4_URLS.forEach((_,i)=>{
+    const d=document.createElement('div');
+    d.className='s4-pdot'+(i===0?' active':'');
+    d.id='s4-pd-'+i; d.textContent=i+1;
+    row.appendChild(d);
+  });
+}
+
+function s4Render(){
+  if(S4.qi>=S4_URLS.length){
+    document.getElementById('s4-url-display').innerHTML='— FIN —';
+    document.getElementById('s4-btns').style.display='none';
+    document.getElementById('s4-result').innerHTML=`<div class="feedback-ok" style="text-align:center;">
+      🏆 ¡Completado! ${S4.score} pts · ${S4.ok}/${S4_URLS.length} aciertos<br>
+      <button class="btn-outline" onclick="s4Build()" style="margin-top:10px;">↺ Reiniciar</button>
+    </div>`;
+    return;
+  }
+  document.getElementById('s4-btns').style.display='flex';
+  document.getElementById('s4-safe-btn').disabled=false;
+  document.getElementById('s4-danger-btn').disabled=false;
+  const u=S4_URLS[S4.qi];
+  document.getElementById('s4-url-display').innerHTML=u.display;
+  document.getElementById('s4-qn').textContent=(S4.qi+1)+'/'+S4_URLS.length;
+  document.getElementById('s4-result').innerHTML='';
+}
+
+function s4Answer(userSafe){
+  if(S4.qi>=S4_URLS.length) return;
+  const u=S4_URLS[S4.qi];
+  const correct=userSafe===u.safe;
+  const pts=correct?100:0;
+  S4.score+=pts; if(correct) S4.ok++;
+  document.getElementById('s4-score').textContent=S4.score;
+  document.getElementById('s4-ok').textContent=S4.ok;
+  document.getElementById('s4-safe-btn').disabled=true;
+  document.getElementById('s4-danger-btn').disabled=true;
+  document.getElementById('s4-result').innerHTML=`<div class="${correct?'feedback-ok':'feedback-err'}">${u.ok}
+    <button class="btn-outline" onclick="s4Next()" style="margin-top:10px;display:block;">Siguiente URL →</button>
+  </div>`;
+  // Update dot
+  const dot=document.getElementById('s4-pd-'+S4.qi);
+  if(dot){dot.className='s4-pdot '+(correct?'safe':'danger');}
+}
+
+function s4Next(){
+  S4.qi++;
+  if(S4.qi<S4_URLS.length){
+    const d=document.getElementById('s4-pd-'+S4.qi);
+    if(d) d.className='s4-pdot active';
+  }
+  s4Render();
+}
+s4Build();
+</script>
+</body>
+</html>

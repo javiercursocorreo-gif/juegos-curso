@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Juego 4 – Red Telefónica Conmutada (RTC)</title>
+<link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Courier+Prime:wght@400;700&family=Oswald:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cream:      #f2e8d0;
+  --cream-dark: #ddd0b0;
+  --bakelite:   #2a1f0e;
+  --bakelite2:  #3d2d14;
+  --bakelite3:  #5a4020;
+  --amber:      #e8960a;
+  --amber-glow: #ffb830;
+  --red-lamp:   #cc2200;
+  --green-lamp: #22aa44;
+  --copper:     #b87333;
+  --wire-red:   #cc3300;
+  --wire-blue:  #1a4499;
+  --wire-green: #228833;
+  --wire-yellow:#cc9900;
+  --ink:        #1a0f00;
+  --ink-mid:    #3d2800;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bakelite);
+  font-family: 'Courier Prime', monospace;
+  color: var(--cream);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Wood grain texture */
+body::before {
+  content:'';
+  position:fixed; inset:0;
+  background-image: repeating-linear-gradient(
+    92deg,
+    transparent 0px,
+    rgba(0,0,0,0.03) 1px,
+    transparent 2px,
+    transparent 8px
+  );
+  pointer-events:none; z-index:0;
+}
+
+.page {
+  position:relative; z-index:1;
+  max-width:960px;
+  margin:0 auto;
+  padding:20px 16px 60px;
+}
+
+/* ── HEADER ── */
+header {
+  background: var(--bakelite2);
+  border:3px solid var(--bakelite3);
+  border-bottom: 4px solid var(--copper);
+  padding:24px 28px 20px;
+  margin-bottom:22px;
+  position:relative;
+  text-align:center;
+}
+
+header::before, header::after {
+  content:'◆';
+  position:absolute; top:18px;
+  color:var(--copper);
+  font-size:18px;
+}
+header::before { left:20px; }
+header::after  { right:20px; }
+
+.header-tag {
+  font-family:'Courier Prime', monospace;
+  font-size:11px;
+  letter-spacing:4px;
+  color:var(--copper);
+  text-transform:uppercase;
+  margin-bottom:8px;
+}
+
+h1 {
+  font-family:'Special Elite', serif;
+  font-size: clamp(22px, 4vw, 40px);
+  letter-spacing:3px;
+  color:var(--cream);
+  text-shadow: 2px 2px 0 var(--bakelite);
+  margin-bottom:6px;
+  line-height:1.2;
+}
+
+.header-sub {
+  font-size:13px;
+  color:var(--cream-dark);
+  letter-spacing:1px;
+}
+
+/* ── SCORE BAR ── */
+.scorebar {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:10px 20px;
+  background:var(--bakelite2);
+  border:2px solid var(--bakelite3);
+  border-bottom:3px solid var(--copper);
+  margin-bottom:18px;
+  flex-wrap:wrap;
+  gap:10px;
+}
+
+.scores { display:flex; gap:24px; }
+.score-item { text-align:center; }
+.score-val {
+  font-family:'Oswald', sans-serif;
+  font-size:26px;
+  font-weight:700;
+  line-height:1;
+}
+.score-val.c { color:var(--green-lamp); text-shadow:0 0 8px var(--green-lamp); }
+.score-val.w { color:var(--red-lamp);   text-shadow:0 0 8px var(--red-lamp); }
+.score-lbl {
+  font-size:10px;
+  letter-spacing:2px;
+  color:var(--copper);
+  text-transform:uppercase;
+}
+
+.phase-tag {
+  font-family:'Special Elite', serif;
+  font-size:14px;
+  color:var(--amber);
+  letter-spacing:2px;
+  border:1px solid var(--bakelite3);
+  padding:5px 14px;
+  background:var(--bakelite);
+}
+
+/* ── INSTRUCTIONS ── */
+.instructions {
+  background: var(--bakelite2);
+  border-left:4px solid var(--copper);
+  padding:12px 18px;
+  font-size:14px;
+  color:var(--cream-dark);
+  margin-bottom:20px;
+  line-height:1.7;
+}
+.instructions strong { color:var(--amber); }
+
+/* ── NETWORK DIAGRAM ── */
+.network-wrap {
+  background:var(--bakelite2);
+  border:2px solid var(--bakelite3);
+  border-top:3px solid var(--copper);
+  padding:20px 16px;
+  margin-bottom:20px;
+  position:relative;
+}
+
+.network-title {
+  font-family:'Special Elite', serif;
+  font-size:12px;
+  letter-spacing:3px;
+  color:var(--copper);
+  text-transform:uppercase;
+  text-align:center;
+  margin-bottom:16px;
+}
+
+/* SVG network diagram */
+#networkSvg {
+  width:100%;
+  display:block;
+}
+
+/* Node styles */
+.node-group { cursor:default; }
+
+.node-box {
+  rx:4; ry:4;
+  stroke-width:2;
+}
+
+.node-label {
+  font-family:'Courier Prime', monospace;
+  font-size:11px;
+  text-anchor:middle;
+  dominant-baseline:middle;
+}
+
+.node-sublabel {
+  font-family:'Courier Prime', monospace;
+  font-size:9px;
+  text-anchor:middle;
+  fill:#b8a080;
+}
+
+/* Signal pulse animation */
+.signal-pulse {
+  fill: var(--amber);
+  r: 7;
+  opacity: 0;
+}
+
+@keyframes pulseMove {
+  0%   { opacity:0; }
+  10%  { opacity:1; }
+  90%  { opacity:1; }
+  100% { opacity:0; }
+}
+
+/* Wire glow when active */
+.wire-active {
+  stroke: var(--amber-glow) !important;
+  stroke-width: 3 !important;
+  filter: drop-shadow(0 0 4px var(--amber));
+  animation: wireGlow 0.5s ease-in-out;
+}
+
+@keyframes wireGlow {
+  from { stroke-opacity:0; }
+  to   { stroke-opacity:1; }
+}
+
+/* ── QUESTION CARD ── */
+.question-card {
+  background:var(--cream);
+  border:3px solid var(--bakelite3);
+  border-top:4px solid var(--amber);
+  padding:24px 26px 20px;
+  color:var(--ink);
+  margin-bottom:20px;
+  position:relative;
+}
+
+.q-node-badge {
+  position:absolute;
+  top:-14px; left:20px;
+  background:var(--amber);
+  color:var(--bakelite);
+  font-family:'Special Elite', serif;
+  font-size:12px;
+  letter-spacing:2px;
+  padding:3px 14px;
+  text-transform:uppercase;
+}
+
+.q-number {
+  font-family:'Courier Prime', monospace;
+  font-size:11px;
+  letter-spacing:3px;
+  color:var(--bakelite3);
+  margin-bottom:10px;
+  text-transform:uppercase;
+}
+
+.q-text {
+  font-family:'Special Elite', serif;
+  font-size:19px;
+  line-height:1.5;
+  color:var(--ink);
+  margin-bottom:18px;
+}
+
+.q-options {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+
+@media(max-width:520px) { .q-options { grid-template-columns:1fr; } }
+
+.q-btn {
+  background:var(--bakelite2);
+  border:2px solid var(--bakelite3);
+  color:var(--cream);
+  font-family:'Courier Prime', monospace;
+  font-size:14px;
+  padding:12px 16px;
+  cursor:pointer;
+  text-align:left;
+  line-height:1.4;
+  transition:all 0.15s;
+}
+
+.q-btn:hover:not(:disabled) {
+  border-color:var(--copper);
+  background:var(--bakelite3);
+  color:var(--amber);
+}
+
+.q-btn.correct {
+  background:rgba(34,170,68,0.15);
+  border-color:var(--green-lamp);
+  color:var(--green-lamp);
+}
+
+.q-btn.wrong {
+  background:rgba(204,34,0,0.1);
+  border-color:var(--red-lamp);
+  color:var(--red-lamp);
+}
+
+.q-btn:disabled { cursor:default; }
+
+/* ── FEEDBACK ── */
+.feedback-box {
+  display:none;
+  padding:16px 20px;
+  margin-bottom:18px;
+  border-left:4px solid var(--green-lamp);
+  background:var(--bakelite2);
+  font-size:14px;
+  line-height:1.7;
+  color:var(--cream-dark);
+}
+
+.feedback-box.show { display:block; }
+.feedback-box.correct-fb { border-left-color:var(--green-lamp); }
+.feedback-box.wrong-fb   { border-left-color:var(--red-lamp); }
+
+.fb-status {
+  font-family:'Special Elite', serif;
+  font-size:16px;
+  margin-bottom:6px;
+  letter-spacing:2px;
+}
+.correct-fb .fb-status { color:var(--green-lamp); }
+.wrong-fb   .fb-status { color:var(--red-lamp); }
+
+.next-btn {
+  display:none;
+  background:var(--amber);
+  border:none;
+  color:var(--bakelite);
+  font-family:'Special Elite', serif;
+  font-size:15px;
+  letter-spacing:2px;
+  padding:12px 28px;
+  cursor:pointer;
+  transition:all 0.2s;
+}
+.next-btn.show { display:inline-block; }
+.next-btn:hover { background:var(--amber-glow); }
+
+/* ── PROGRESS NODES ── */
+.progress-nodes {
+  display:flex;
+  justify-content:center;
+  gap:6px;
+  margin-bottom:18px;
+  flex-wrap:wrap;
+}
+
+.prog-node {
+  width:28px; height:28px;
+  border-radius:50%;
+  border:2px solid var(--bakelite3);
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Courier Prime', monospace;
+  font-size:10px;
+  color:var(--bakelite3);
+  transition:all 0.3s;
+}
+.prog-node.active  { border-color:var(--amber); color:var(--amber); background:rgba(232,150,10,0.1); box-shadow:0 0 8px rgba(232,150,10,0.3); }
+.prog-node.done    { border-color:var(--green-lamp); color:var(--green-lamp); background:rgba(34,170,68,0.1); }
+.prog-node.wrong-n { border-color:var(--red-lamp); color:var(--red-lamp); }
+
+/* ── VICTORY ── */
+#victory {
+  display:none;
+  background:var(--cream);
+  border:3px solid var(--copper);
+  padding:40px 30px;
+  text-align:center;
+  color:var(--ink);
+}
+
+#victory h2 {
+  font-family:'Special Elite', serif;
+  font-size:34px;
+  letter-spacing:3px;
+  color:var(--bakelite);
+  margin-bottom:10px;
+}
+
+#victory p {
+  font-family:'Courier Prime', monospace;
+  font-size:16px;
+  color:var(--ink-mid);
+  margin-bottom:24px;
+  line-height:1.7;
+}
+
+.restart-btn {
+  background:var(--bakelite2);
+  border:2px solid var(--copper);
+  color:var(--amber);
+  font-family:'Special Elite', serif;
+  font-size:14px;
+  letter-spacing:3px;
+  padding:12px 28px;
+  cursor:pointer;
+  transition:all 0.2s;
+}
+.restart-btn:hover { background:var(--bakelite3); }
+
+/* Lamp indicator */
+.lamp {
+  display:inline-block;
+  width:10px; height:10px;
+  border-radius:50%;
+  background:var(--bakelite3);
+  margin-right:6px;
+  vertical-align:middle;
+  transition:all 0.3s;
+}
+.lamp.on-green { background:var(--green-lamp); box-shadow:0 0 8px var(--green-lamp); }
+.lamp.on-amber { background:var(--amber); box-shadow:0 0 8px var(--amber); }
+.lamp.on-red   { background:var(--red-lamp); box-shadow:0 0 8px var(--red-lamp); }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="header-tag">// Telecomunicaciones · Teoría 6 · Juego 4</div>
+    <h1>RED TELEFÓNICA CONMUTADA</h1>
+    <p class="header-sub">Sigue el recorrido de una llamada de teléfono de Madrid a Barcelona</p>
+  </header>
+
+  <div class="scorebar">
+    <div class="scores">
+      <div class="score-item">
+        <div class="score-val c" id="sCorrect">0</div>
+        <div class="score-lbl">Correctos</div>
+      </div>
+      <div class="score-item">
+        <div class="score-val w" id="sWrong">0</div>
+        <div class="score-lbl">Errores</div>
+      </div>
+    </div>
+    <div class="phase-tag" id="phaseTag">ETAPA 1 / 8</div>
+  </div>
+
+  <div class="instructions">
+    <strong>¿Cómo se juega?</strong> Una llamada viaja de Madrid a Barcelona pasando por distintas centrales. En cada nodo, responde la pregunta para que la señal avance. Si aciertas, la llamada continúa su camino. Si fallas, sigue intentándolo hasta acertar.
+  </div>
+
+  <!-- Progress nodes -->
+  <div class="progress-nodes" id="progressNodes"></div>
+
+  <!-- Network diagram -->
+  <div class="network-wrap">
+    <div class="network-title">◆ Mapa de la llamada ◆</div>
+    <svg id="networkSvg" viewBox="0 0 900 200" xmlns="http://www.w3.org/2000/svg">
+
+      <!-- Wires / connections -->
+      <!-- Teléfono origen → Central local Madrid -->
+      <line id="wire0" x1="80" y1="100" x2="175" y2="100" stroke="#5a4020" stroke-width="2" stroke-dasharray="4,3"/>
+      <!-- Central local Madrid → Central regional Madrid -->
+      <line id="wire1" x1="255" y1="100" x2="340" y2="100" stroke="#5a4020" stroke-width="2"/>
+      <!-- Central regional Madrid → Central nacional -->
+      <line id="wire2" x1="420" y1="100" x2="480" y2="100" stroke="#5a4020" stroke-width="2"/>
+      <!-- Central nacional → Central regional Barcelona -->
+      <line id="wire3" x1="560" y1="100" x2="620" y2="100" stroke="#5a4020" stroke-width="2"/>
+      <!-- Central regional Barcelona → Central local Barcelona -->
+      <line id="wire4" x1="700" y1="100" x2="760" y2="100" stroke="#5a4020" stroke-width="2"/>
+      <!-- Central local Barcelona → Teléfono destino -->
+      <line id="wire5" x1="840" y1="100" x2="870" y2="100" stroke="#5a4020" stroke-width="2" stroke-dasharray="4,3"/>
+
+      <!-- Node: Origen (Teléfono Madrid) -->
+      <g id="node0" class="node-group">
+        <rect x="10" y="72" width="70" height="56" fill="#2a1f0e" stroke="#5a4020" stroke-width="2" rx="4"/>
+        <text x="45" y="91" class="node-label" fill="#e8960a" font-size="18">📞</text>
+        <text x="45" y="111" class="node-label" fill="#ddd0b0" font-size="9">ORIGEN</text>
+        <text x="45" y="122" class="node-sublabel">Madrid</text>
+      </g>
+
+      <!-- Node: Central local Madrid -->
+      <g id="node1" class="node-group">
+        <rect x="175" y="65" width="80" height="70" fill="#2a1f0e" stroke="#5a4020" stroke-width="2" rx="4"/>
+        <text x="215" y="88" class="node-label" fill="#b87333" font-size="11" font-weight="bold">CENTRAL</text>
+        <text x="215" y="102" class="node-label" fill="#b87333" font-size="10">LOCAL</text>
+        <text x="215" y="116" class="node-sublabel">Madrid</text>
+        <circle cx="185" cy="75" r="5" fill="#2a1f0e" stroke="#5a4020" id="lamp1"/>
+      </g>
+
+      <!-- Node: Central regional Madrid -->
+      <g id="node2" class="node-group">
+        <rect x="340" y="58" width="80" height="84" fill="#2a1f0e" stroke="#5a4020" stroke-width="2" rx="4"/>
+        <text x="380" y="82" class="node-label" fill="#b87333" font-size="11" font-weight="bold">CENTRAL</text>
+        <text x="380" y="96" class="node-label" fill="#b87333" font-size="10">REGIONAL</text>
+        <text x="380" y="110" class="node-sublabel">Madrid</text>
+        <circle cx="350" cy="68" r="5" fill="#2a1f0e" stroke="#5a4020" id="lamp2"/>
+      </g>
+
+      <!-- Node: Central Nacional -->
+      <g id="node3" class="node-group">
+        <rect x="480" y="52" width="80" height="96" fill="#2a1f0e" stroke="#5a4020" stroke-width="2" rx="4"/>
+        <text x="520" y="78" class="node-label" fill="#b87333" font-size="11" font-weight="bold">CENTRAL</text>
+        <text x="520" y="92" class="node-label" fill="#b87333" font-size="10">NACIONAL</text>
+        <text x="520" y="108" class="node-sublabel">España</text>
+        <circle cx="490" cy="62" r="5" fill="#2a1f0e" stroke="#5a4020" id="lamp3"/>
+      </g>
+
+      <!-- Node: Central regional Barcelona -->
+      <g id="node4" class="node-group">
+        <rect x="620" y="58" width="80" height="84" fill="#2a1f0e" stroke="#5a4020" stroke-width="2" rx="4"/>
+        <text x="660" y="82" class="node-label" fill="#b87333" font-size="11" font-weight="bold">CENTRAL</text>
+        <text x="660" y="96" class="node-label" fill="#b87333" font-size="10">REGIONAL</text>
+        <text x="660" y="110" class="node-sublabel">Barcelona</text>
+        <circle cx="630" cy="68" r="5" fill="#2a1f0e" stroke="#5a4020" id="lamp4"/>
+      </g>
+
+      <!-- Node: Central local Barcelona -->
+      <g id="node5" class="node-group">
+        <rect x="760" y="65" width="80" height="70" fill="#2a1f0e" stroke="#5a4020" stroke-width="2" rx="4"/>
+        <text x="800" y="88" class="node-label" fill="#b87333" font-size="11" font-weight="bold">CENTRAL</text>
+        <text x="800" y="102" class="node-label" fill="#b87333" font-size="10">LOCAL</text>
+        <text x="800" y="116" class="node-sublabel">Barcelona</text>
+        <circle cx="770" cy="75" r="5" fill="#2a1f0e" stroke="#5a4020" id="lamp5"/>
+      </g>
+
+      <!-- Node: Destino (Teléfono Barcelona) -->
+      <g id="node6" class="node-group">
+        <rect x="855" y="72" width="40" height="56" fill="#2a1f0e" stroke="#5a4020" stroke-width="2" rx="4"/>
+        <text x="875" y="91" class="node-label" fill="#e8960a" font-size="18">📞</text>
+        <text x="875" y="111" class="node-label" fill="#ddd0b0" font-size="9">BCN</text>
+      </g>
+
+      <!-- Signal pulse (hidden, animated via JS) -->
+      <circle id="signalPulse" cx="45" cy="100" r="7" fill="#ffb830" opacity="0">
+        <animate id="pulseAnim" attributeName="cx" from="45" to="875" dur="1.5s" begin="indefinite" fill="freeze"/>
+        <animate id="pulseOpacity" attributeName="opacity" values="0;1;1;0" dur="1.5s" begin="indefinite" fill="freeze"/>
+      </circle>
+
+      <!-- Labels on wires -->
+      <text x="128" y="92" font-family="Courier Prime, monospace" font-size="8" fill="#5a4020" text-anchor="middle">par cobre</text>
+      <text x="298" y="92" font-family="Courier Prime, monospace" font-size="8" fill="#5a4020" text-anchor="middle">fibra</text>
+      <text x="452" y="92" font-family="Courier Prime, monospace" font-size="8" fill="#5a4020" text-anchor="middle">fibra</text>
+      <text x="592" y="92" font-family="Courier Prime, monospace" font-size="8" fill="#5a4020" text-anchor="middle">fibra</text>
+      <text x="732" y="92" font-family="Courier Prime, monospace" font-size="8" fill="#5a4020" text-anchor="middle">fibra</text>
+    </svg>
+  </div>
+
+  <!-- Question card -->
+  <div class="question-card" id="questionCard" style="display:none;">
+    <div class="q-node-badge" id="qNodeBadge">Central local</div>
+    <div class="q-number" id="qNumber">Pregunta 1 de 8</div>
+    <div class="q-text" id="qText">Texto de la pregunta</div>
+    <div class="q-options" id="qOptions"></div>
+  </div>
+
+  <div class="feedback-box" id="feedbackBox">
+    <div class="fb-status" id="fbStatus">CORRECTO</div>
+    <div id="fbText"></div>
+  </div>
+
+  <button class="next-btn" id="nextBtn" onclick="nextStep()">
+    CONTINUAR LA LLAMADA →
+  </button>
+
+  <!-- Victory -->
+  <div id="victory">
+    <div style="font-size:52px;margin-bottom:12px">📞</div>
+    <h2>¡LLAMADA CONECTADA!</h2>
+    <p id="victoryMsg">La llamada ha llegado a Barcelona.</p>
+    <button class="restart-btn" onclick="initGame()">↺ Nueva llamada</button>
+  </div>
+
+</div>
+
+<script>
+// ── STEPS ─────────────────────────────────────────────────────
+// Each step: question at a node, answer advances the signal
+const STEPS = [
+  {
+    node: 1,
+    wire: 0,
+    badge: '📞 Teléfono — Origen',
+    text: 'Al descolgar el teléfono en Madrid, ¿qué tipo de señal genera la voz humana?',
+    options: ['Una señal digital de 0s y 1s', 'Una señal analógica: onda eléctrica continua', 'Un paquete de datos como en Internet', 'Una señal de radio FM'],
+    correct: 1,
+    feedback: '✓ La voz humana genera una señal ANALÓGICA: una onda eléctrica continua que varía con el sonido. El teléfono convierte las vibraciones del aire en variaciones de corriente eléctrica. Por eso la RTC es analógica en el "bucle de abonado" (el cable que llega a tu casa).'
+  },
+  {
+    node: 1,
+    wire: 0,
+    badge: '🔌 Bucle de abonado',
+    text: '¿Por qué medio físico viaja la señal desde el teléfono hasta la central local de Madrid?',
+    options: ['Por fibra óptica', 'Por ondas de radio (Wi-Fi)', 'Por par de cobre (el cable telefónico clásico)', 'Por cable coaxial de televisión'],
+    correct: 2,
+    feedback: '✓ El "bucle de abonado" es el tramo final que conecta tu casa con la central local, y en la mayoría de hogares sigue siendo par de cobre. Aunque la fibra óptica está reemplazándolo progresivamente, millones de hogares aún usan el viejo cable de cobre.'
+  },
+  {
+    node: 2,
+    wire: 1,
+    badge: '🏢 Central Local — Madrid',
+    text: 'En la central local, la señal analógica se convierte a digital. ¿Cómo se llama este proceso?',
+    options: ['Modulación FM', 'Digitalización o codificación PCM', 'Conmutación de paquetes', 'Amplificación de onda'],
+    correct: 1,
+    feedback: '✓ La señal analógica se convierte a digital mediante PCM (Modulación por Impulsos Codificados). Se muestrea la onda 8.000 veces por segundo y cada muestra se codifica en 8 bits, dando 64 Kbps por llamada. A partir de aquí, toda la red es DIGITAL.'
+  },
+  {
+    node: 2,
+    wire: 1,
+    badge: '🏢 Central Local — Madrid',
+    text: 'La RTC usa "conmutación de circuitos". ¿Qué significa esto?',
+    options: ['Los datos se dividen en paquetes que van por rutas distintas', 'Se reserva un camino único y exclusivo entre origen y destino durante toda la llamada', 'La señal salta de satélite en satélite', 'Cada central decide libremente por dónde enviar la señal'],
+    correct: 1,
+    feedback: '✓ En la conmutación de circuitos, se establece un camino DEDICADO y EXCLUSIVO entre los dos teléfonos durante toda la llamada. Nadie más puede usar ese circuito. Es diferente a Internet, donde los datos se fragmentan en paquetes que comparten las rutas.'
+  },
+  {
+    node: 3,
+    wire: 2,
+    badge: '🏙️ Central Regional — Madrid',
+    text: '¿Por qué medio viaja la señal entre las centrales regionales y nacionales?',
+    options: ['Por par de cobre telefónico', 'Por ondas de radio hertzianas', 'Por fibra óptica de alta capacidad', 'Por cable coaxial de televisión'],
+    correct: 2,
+    feedback: '✓ Entre centrales (local → regional → nacional) la señal viaja por FIBRA ÓPTICA. La fibra puede transportar miles de llamadas simultáneas a velocidades de Terabits por segundo, a diferencia del par de cobre que solo soporta unas pocas decenas de llamadas.'
+  },
+  {
+    node: 4,
+    wire: 3,
+    badge: '🏛️ Central Nacional — España',
+    text: 'La central nacional recibe llamadas de toda España. ¿Cómo sabe hacia dónde redirigir la llamada a Barcelona?',
+    options: ['Por el código postal del destinatario', 'Por el prefijo del número de teléfono (ej: 93 = Barcelona)', 'Por la voz del que llama', 'Lo decide aleatoriamente'],
+    correct: 1,
+    feedback: '✓ El número de teléfono es el sistema de DIRECCIONAMIENTO de la RTC. El prefijo territorial (91=Madrid, 93=Barcelona, 95=Sevilla…) le indica a cada central hacia qué central regional debe encaminar la llamada. Es el equivalente a la dirección IP en Internet.'
+  },
+  {
+    node: 5,
+    wire: 4,
+    badge: '🏙️ Central Regional — Barcelona',
+    text: '¿Qué ventaja tiene la conmutación de circuitos para una llamada de voz?',
+    options: ['Permite enviar más datos que Internet', 'Garantiza calidad constante: sin cortes ni retrasos durante la llamada', 'Es más barata que cualquier alternativa', 'Permite hablar con varias personas a la vez sin límite'],
+    correct: 1,
+    feedback: '✓ Al reservar un circuito exclusivo, la conmutación de circuitos garantiza CALIDAD CONSTANTE: sin variaciones de velocidad, sin cortes, sin retrasos. Por eso las llamadas de teléfono fijo suenan perfectas. La desventaja es que el circuito queda ocupado aunque haya silencios.'
+  },
+  {
+    node: 6,
+    wire: 5,
+    badge: '📞 Teléfono — Destino',
+    text: 'El teléfono de Barcelona recibe la señal digital y la convierte de nuevo en sonido. ¿Cómo se llama este proceso inverso?',
+    options: ['Re-digitalización', 'Decodificación digital-analógica (DAC)', 'Amplificación de señal', 'Modulación AM'],
+    correct: 1,
+    feedback: '✓ El teléfono receptor hace el proceso INVERSO: convierte la señal digital de vuelta a una señal analógica mediante un DAC (Convertidor Digital-Analógico). Esa señal analógica hace vibrar el altavoz del auricular, reproduciendo la voz original. ¡La llamada está conectada!'
+  },
+];
+
+let stepIndex = 0;
+let correct = 0, wrong = 0;
+let wrongAttempts = 0;
+let triedOptions = new Set();
+let answered = false;
+
+// Node x positions for signal animation
+const NODE_X = [45, 215, 380, 520, 660, 800, 875];
+
+function initGame() {
+  stepIndex = 0; correct = 0; wrong = 0;
+  document.getElementById('victory').style.display = 'none';
+  document.getElementById('feedbackBox').className = 'feedback-box';
+  document.getElementById('nextBtn').className = 'next-btn';
+  updateScore();
+  buildProgressNodes();
+  resetDiagram();
+  showStep();
+}
+
+function buildProgressNodes() {
+  const wrap = document.getElementById('progressNodes');
+  wrap.innerHTML = '';
+  STEPS.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'prog-node';
+    d.id = `pnode_${i}`;
+    d.textContent = i + 1;
+    wrap.appendChild(d);
+  });
+}
+
+function updateScore() {
+  document.getElementById('sCorrect').textContent = correct;
+  document.getElementById('sWrong').textContent = wrong;
+  document.getElementById('phaseTag').textContent = `ETAPA ${Math.min(stepIndex+1, STEPS.length)} / ${STEPS.length}`;
+}
+
+function resetDiagram() {
+  // Reset all wires and lamps
+  for (let i = 0; i <= 5; i++) {
+    const wire = document.getElementById(`wire${i}`);
+    if (wire) { wire.classList.remove('wire-active'); wire.setAttribute('stroke','#5a4020'); wire.setAttribute('stroke-width','2'); }
+  }
+  for (let i = 1; i <= 5; i++) {
+    const lamp = document.getElementById(`lamp${i}`);
+    if (lamp) { lamp.setAttribute('fill','#2a1f0e'); lamp.setAttribute('stroke','#5a4020'); lamp.style.filter = ''; }
+  }
+}
+
+function showStep() {
+  const step = STEPS[stepIndex];
+  wrongAttempts = 0;
+  triedOptions = new Set();
+  answered = false;
+
+  // Progress dots
+  STEPS.forEach((_, i) => {
+    const d = document.getElementById(`pnode_${i}`);
+    if (!d) return;
+    d.className = 'prog-node' + (i < stepIndex ? ' done' : i === stepIndex ? ' active' : '');
+  });
+
+  // Highlight current node in diagram
+  highlightNode(step.node);
+
+  // Question card
+  const card = document.getElementById('questionCard');
+  card.style.display = 'block';
+  document.getElementById('qNodeBadge').textContent = step.badge;
+  document.getElementById('qNumber').textContent = `Pregunta ${stepIndex + 1} de ${STEPS.length}`;
+  document.getElementById('qText').textContent = step.text;
+
+  const opts = document.getElementById('qOptions');
+  opts.innerHTML = '';
+  step.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'q-btn';
+    btn.innerHTML = `<span class="lamp"></span>${['A','B','C','D'][i]}) ${opt}`;
+    btn.onclick = () => selectOption(i, btn);
+    opts.appendChild(btn);
+  });
+
+  document.getElementById('feedbackBox').className = 'feedback-box';
+  document.getElementById('nextBtn').className = 'next-btn';
+  updateScore();
+}
+
+function highlightNode(nodeIdx) {
+  // Light up lamp for this node
+  const lamp = document.getElementById(`lamp${nodeIdx}`);
+  if (lamp) {
+    lamp.setAttribute('fill', '#e8960a');
+    lamp.style.filter = 'drop-shadow(0 0 6px #e8960a)';
+  }
+}
+
+function selectOption(idx, btnEl) {
+  if (answered || triedOptions.has(idx)) return;
+
+  const step = STEPS[stepIndex];
+  const allBtns = document.querySelectorAll('.q-btn');
+  const fb = document.getElementById('feedbackBox');
+
+  if (idx === step.correct) {
+    answered = true;
+    correct++;
+    btnEl.classList.add('correct');
+    // Light the lamp on the btn
+    btnEl.querySelector('.lamp').classList.add('on-green');
+    allBtns.forEach(b => b.disabled = true);
+
+    fb.className = 'feedback-box show correct-fb';
+    document.getElementById('fbStatus').textContent = '✓ CORRECTO — La señal avanza';
+    document.getElementById('fbText').textContent = step.feedback;
+
+    // Animate wire
+    animateWire(step.wire, step.node);
+
+    document.getElementById('nextBtn').className = 'next-btn show';
+  } else {
+    wrongAttempts++;
+    wrong++;
+    triedOptions.add(idx);
+    btnEl.classList.add('wrong');
+    btnEl.querySelector('.lamp').classList.add('on-red');
+    btnEl.disabled = true;
+
+    fb.className = 'feedback-box show wrong-fb';
+    document.getElementById('fbStatus').textContent = '✗ INCORRECTO — inténtalo de nuevo';
+    document.getElementById('fbText').textContent = 'Esa respuesta no es correcta. Prueba con otra opción.';
+  }
+
+  updateScore();
+}
+
+function animateWire(wireIdx, nodeIdx) {
+  const wire = document.getElementById(`wire${wireIdx}`);
+  if (wire) {
+    wire.setAttribute('stroke', '#ffb830');
+    wire.setAttribute('stroke-width', '3');
+    wire.style.filter = 'drop-shadow(0 0 4px #e8960a)';
+  }
+  // Light up destination lamp
+  setTimeout(() => {
+    const nextNode = nodeIdx + 1 <= 6 ? nodeIdx : nodeIdx;
+    const lamp = document.getElementById(`lamp${nodeIdx}`);
+    if (lamp) {
+      lamp.setAttribute('fill', '#22aa44');
+      lamp.style.filter = 'drop-shadow(0 0 6px #22aa44)';
+    }
+  }, 600);
+}
+
+function nextStep() {
+  stepIndex++;
+  if (stepIndex >= STEPS.length) {
+    showVictory();
+  } else {
+    document.getElementById('feedbackBox').className = 'feedback-box';
+    document.getElementById('nextBtn').className = 'next-btn';
+    showStep();
+  }
+}
+
+function showVictory() {
+  document.getElementById('questionCard').style.display = 'none';
+  document.getElementById('feedbackBox').className = 'feedback-box';
+  document.getElementById('nextBtn').className = 'next-btn';
+  document.getElementById('progressNodes').querySelectorAll('.prog-node').forEach(n => n.className = 'prog-node done');
+
+  // Light all lamps green
+  for (let i = 1; i <= 5; i++) {
+    const l = document.getElementById(`lamp${i}`);
+    if (l) { l.setAttribute('fill','#22aa44'); l.style.filter = 'drop-shadow(0 0 6px #22aa44)'; }
+  }
+
+  const pct = Math.round(correct / (correct + wrong) * 100);
+  let msg = '';
+  if (pct === 100) msg = '🏆 ¡Sin un solo error! Conoces la RTC como un ingeniero de Telefónica.';
+  else if (pct >= 70) msg = `✓ Muy bien. ${correct} aciertos a la primera (${pct}%). La llamada ha llegado perfecta.`;
+  else msg = `La llamada llegó, pero con interferencias. Repasa los conceptos de conmutación de circuitos y bucle de abonado.`;
+
+  document.getElementById('victoryMsg').textContent = msg;
+  document.getElementById('victory').style.display = 'block';
+  document.getElementById('victory').scrollIntoView({behavior:'smooth'});
+}
+
+// Start
+initGame();
+</script>
+</body>
+</html>

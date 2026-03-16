@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Juego 5 – Internet y los Paquetes de Datos</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:        #020812;
+  --bg2:       #05101f;
+  --bg3:       #071628;
+  --panel:     #0a1e35;
+  --border:    #0d3060;
+  --neon:      #00e5ff;
+  --neon2:     #00ff9d;
+  --neon-dim:  rgba(0,229,255,0.15);
+  --orange:    #ff6b00;
+  --orange2:   #ff9a00;
+  --red:       #ff2244;
+  --yellow:    #ffd600;
+  --white:     #cce8f4;
+  --dim:       #4a7a9b;
+  --pkt1:      #00e5ff;
+  --pkt2:      #ff6b00;
+  --pkt3:      #00ff9d;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  font-family: 'Share Tech Mono', monospace;
+  color: var(--white);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+/* Grid background */
+body::before {
+  content:'';
+  position:fixed; inset:0;
+  background-image:
+    linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events:none; z-index:0;
+}
+
+.page {
+  position:relative; z-index:1;
+  max-width:980px;
+  margin:0 auto;
+  padding:16px 14px 60px;
+}
+
+/* ── HEADER ── */
+header {
+  border:1px solid var(--border);
+  border-top:3px solid var(--neon);
+  background:var(--bg2);
+  padding:20px 24px 16px;
+  margin-bottom:16px;
+  position:relative;
+  overflow:hidden;
+}
+
+header::after {
+  content:'';
+  position:absolute;
+  top:0; left:0; right:0; height:3px;
+  background: linear-gradient(90deg, transparent, var(--neon), var(--neon2), transparent);
+  animation: scanH 3s linear infinite;
+}
+
+@keyframes scanH {
+  0%   { transform:translateX(-100%); }
+  100% { transform:translateX(100%); }
+}
+
+.header-tag {
+  font-size:10px;
+  letter-spacing:4px;
+  color:var(--neon);
+  opacity:0.7;
+  margin-bottom:6px;
+}
+
+h1 {
+  font-family:'Orbitron', sans-serif;
+  font-size: clamp(18px,3.5vw,34px);
+  font-weight:900;
+  letter-spacing:3px;
+  color:var(--white);
+  text-shadow: 0 0 20px rgba(0,229,255,0.4);
+  margin-bottom:4px;
+}
+
+.header-sub {
+  font-size:12px;
+  color:var(--dim);
+  letter-spacing:2px;
+}
+
+/* ── SCORE BAR ── */
+.scorebar {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:8px 18px;
+  background:var(--panel);
+  border:1px solid var(--border);
+  margin-bottom:14px;
+  flex-wrap:wrap;
+  gap:8px;
+}
+
+.scores { display:flex; gap:20px; align-items:center; }
+.score-item { text-align:center; }
+.score-val {
+  font-family:'Orbitron', sans-serif;
+  font-size:22px;
+  font-weight:700;
+  line-height:1;
+}
+.score-val.c { color:var(--neon2); text-shadow:0 0 8px var(--neon2); }
+.score-val.w { color:var(--red);   text-shadow:0 0 8px var(--red); }
+.score-lbl { font-size:9px; letter-spacing:2px; color:var(--dim); }
+
+.phase-tag {
+  font-family:'Orbitron', sans-serif;
+  font-size:11px;
+  color:var(--neon);
+  border:1px solid var(--border);
+  padding:4px 12px;
+  letter-spacing:2px;
+}
+
+/* ── PACKET VISUALIZER ── */
+.packet-section {
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-top:2px solid var(--orange);
+  padding:16px;
+  margin-bottom:14px;
+}
+
+.section-title {
+  font-family:'Orbitron', sans-serif;
+  font-size:10px;
+  letter-spacing:3px;
+  color:var(--orange);
+  margin-bottom:12px;
+}
+
+/* Message fragmentation display */
+.message-display {
+  background:var(--bg);
+  border:1px solid var(--border);
+  padding:12px 16px;
+  margin-bottom:12px;
+  font-size:13px;
+  color:var(--neon2);
+  letter-spacing:1px;
+  position:relative;
+  overflow:hidden;
+}
+
+.message-display::before {
+  content:'MSG >';
+  color:var(--dim);
+  margin-right:8px;
+}
+
+/* Packet blocks */
+.packets-row {
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+  margin-bottom:8px;
+}
+
+.packet {
+  border:2px solid;
+  padding:6px 10px;
+  font-size:11px;
+  letter-spacing:1px;
+  position:relative;
+  transition:all 0.3s;
+  cursor:default;
+  min-width:70px;
+  text-align:center;
+}
+
+.packet.p1 { border-color:var(--pkt1); color:var(--pkt1); background:rgba(0,229,255,0.05); }
+.packet.p2 { border-color:var(--pkt2); color:var(--pkt2); background:rgba(255,107,0,0.05); }
+.packet.p3 { border-color:var(--pkt3); color:var(--pkt3); background:rgba(0,255,157,0.05); }
+
+.packet.traveling {
+  animation: packetTravel 0.6s ease-in-out;
+}
+.packet.arrived {
+  opacity:0.4;
+}
+.packet.active-pkt {
+  box-shadow: 0 0 14px currentColor;
+  animation: pktPulse 1s ease-in-out infinite;
+}
+
+@keyframes pktPulse {
+  0%,100% { box-shadow: 0 0 8px currentColor; }
+  50%      { box-shadow: 0 0 20px currentColor; }
+}
+
+@keyframes packetTravel {
+  0%   { transform:translateX(0) scale(1); }
+  50%  { transform:translateX(30px) scale(1.1); }
+  100% { transform:translateX(0) scale(1); }
+}
+
+.packet-label {
+  font-size:9px;
+  color:var(--dim);
+  display:block;
+  margin-top:2px;
+}
+
+/* ── NETWORK MAP ── */
+.network-section {
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-top:2px solid var(--neon);
+  padding:16px;
+  margin-bottom:14px;
+}
+
+#netSvg {
+  width:100%;
+  display:block;
+}
+
+/* ── PROGRESS ── */
+.progress-row {
+  display:flex;
+  justify-content:center;
+  gap:5px;
+  margin-bottom:14px;
+  flex-wrap:wrap;
+}
+
+.pdot {
+  width:26px; height:26px;
+  border:2px solid var(--border);
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:9px;
+  color:var(--border);
+  font-family:'Orbitron', sans-serif;
+  transition:all 0.3s;
+}
+.pdot.active { border-color:var(--neon); color:var(--neon); box-shadow:0 0 8px rgba(0,229,255,0.4); }
+.pdot.done   { border-color:var(--neon2); color:var(--neon2); background:rgba(0,255,157,0.08); }
+
+/* ── QUESTION CARD ── */
+.question-card {
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-left:4px solid var(--neon);
+  padding:22px 24px 18px;
+  margin-bottom:14px;
+  position:relative;
+}
+
+.q-badge {
+  display:inline-block;
+  background:var(--neon);
+  color:var(--bg);
+  font-family:'Orbitron', sans-serif;
+  font-size:9px;
+  letter-spacing:2px;
+  padding:3px 10px;
+  margin-bottom:12px;
+}
+
+.q-num {
+  font-size:10px;
+  letter-spacing:3px;
+  color:var(--dim);
+  margin-bottom:8px;
+}
+
+.q-text {
+  font-family:'Rajdhani', sans-serif;
+  font-size:20px;
+  font-weight:600;
+  color:var(--white);
+  line-height:1.5;
+  margin-bottom:18px;
+  letter-spacing:0.5px;
+}
+
+.q-options {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+
+@media(max-width:520px) { .q-options { grid-template-columns:1fr; } }
+
+.q-btn {
+  background:var(--bg);
+  border:1px solid var(--border);
+  color:var(--dim);
+  font-family:'Share Tech Mono', monospace;
+  font-size:13px;
+  padding:11px 14px;
+  cursor:pointer;
+  text-align:left;
+  transition:all 0.15s;
+  line-height:1.5;
+}
+
+.q-btn:hover:not(:disabled) {
+  border-color:var(--neon);
+  color:var(--neon);
+  background:var(--neon-dim);
+}
+
+.q-btn.correct {
+  border-color:var(--neon2);
+  color:var(--neon2);
+  background:rgba(0,255,157,0.08);
+  box-shadow:0 0 10px rgba(0,255,157,0.2);
+}
+
+.q-btn.wrong {
+  border-color:var(--red);
+  color:var(--red);
+  background:rgba(255,34,68,0.06);
+}
+
+.q-btn:disabled { cursor:default; }
+
+/* ── FEEDBACK ── */
+.feedback-box {
+  display:none;
+  padding:14px 18px;
+  margin-bottom:14px;
+  border-left:3px solid var(--neon2);
+  background:var(--bg2);
+  font-size:13px;
+  line-height:1.7;
+  color:var(--white);
+}
+.feedback-box.show { display:block; }
+.feedback-box.correct-fb { border-left-color:var(--neon2); }
+.feedback-box.wrong-fb   { border-left-color:var(--red); }
+
+.fb-status {
+  font-family:'Orbitron', sans-serif;
+  font-size:12px;
+  letter-spacing:2px;
+  margin-bottom:6px;
+}
+.correct-fb .fb-status { color:var(--neon2); text-shadow:0 0 8px var(--neon2); }
+.wrong-fb   .fb-status { color:var(--red);   text-shadow:0 0 8px var(--red); }
+
+.next-btn {
+  display:none;
+  background:transparent;
+  border:2px solid var(--neon);
+  color:var(--neon);
+  font-family:'Orbitron', sans-serif;
+  font-size:11px;
+  letter-spacing:3px;
+  padding:11px 26px;
+  cursor:pointer;
+  transition:all 0.2s;
+  text-transform:uppercase;
+}
+.next-btn.show { display:inline-block; }
+.next-btn:hover { background:var(--neon); color:var(--bg); }
+
+/* ── VICTORY ── */
+#victory {
+  display:none;
+  background:var(--panel);
+  border:2px solid var(--neon);
+  padding:40px 30px;
+  text-align:center;
+  box-shadow:0 0 60px rgba(0,229,255,0.15);
+}
+
+#victory h2 {
+  font-family:'Orbitron', sans-serif;
+  font-size:28px;
+  font-weight:900;
+  letter-spacing:4px;
+  color:var(--neon);
+  text-shadow:0 0 20px var(--neon);
+  margin-bottom:10px;
+}
+
+#victory p {
+  font-size:14px;
+  color:var(--white);
+  margin-bottom:24px;
+  line-height:1.8;
+  max-width:500px;
+  margin-left:auto; margin-right:auto;
+}
+
+.restart-btn {
+  background:transparent;
+  border:2px solid var(--neon2);
+  color:var(--neon2);
+  font-family:'Orbitron', sans-serif;
+  font-size:11px;
+  letter-spacing:3px;
+  padding:11px 26px;
+  cursor:pointer;
+  transition:all 0.2s;
+}
+.restart-btn:hover { background:var(--neon2); color:var(--bg); }
+
+/* Blink cursor */
+.blink { animation:blink 1s step-end infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="header-tag">// TELECOMUNICACIONES · TEORÍA 6 · JUEGO 5</div>
+    <h1>RED DE DATOS — INTERNET</h1>
+    <p class="header-sub">Guía tus paquetes de datos desde el origen hasta el destino</p>
+  </header>
+
+  <div class="scorebar">
+    <div class="scores">
+      <div class="score-item">
+        <div class="score-val c" id="sCorrect">0</div>
+        <div class="score-lbl">Correctos</div>
+      </div>
+      <div class="score-item">
+        <div class="score-val w" id="sWrong">0</div>
+        <div class="score-lbl">Errores</div>
+      </div>
+    </div>
+    <div class="phase-tag" id="phaseTag">SALTO 1 / 9</div>
+  </div>
+
+  <!-- Packet visualizer -->
+  <div class="packet-section">
+    <div class="section-title">▶ FRAGMENTACIÓN DEL MENSAJE EN PAQUETES</div>
+    <div class="message-display" id="msgDisplay">Hola, ¿cómo estás? — enviando desde Madrid a Nueva York</div>
+    <div class="packets-row" id="packetsRow">
+      <div class="packet p1" id="pkt0">PKT·1<span class="packet-label">cabecera+datos</span></div>
+      <div class="packet p2" id="pkt1">PKT·2<span class="packet-label">cabecera+datos</span></div>
+      <div class="packet p3" id="pkt2">PKT·3<span class="packet-label">cabecera+datos</span></div>
+    </div>
+    <div style="font-size:11px;color:var(--dim);margin-top:4px;">
+      <span id="pktStatus">Paquete activo: <span style="color:var(--neon)">PKT·1</span> — enrutando por la red...</span>
+    </div>
+  </div>
+
+  <!-- Network map -->
+  <div class="network-section">
+    <div class="section-title">▶ MAPA DE LA RED — RUTA ACTUAL</div>
+    <svg id="netSvg" viewBox="0 0 920 170" xmlns="http://www.w3.org/2000/svg">
+
+      <!-- Background grid lines -->
+      <line x1="0" y1="85" x2="920" y2="85" stroke="#071628" stroke-width="1"/>
+
+      <!-- Connections -->
+      <line id="lnk0" x1="72"  y1="85" x2="148" y2="85" stroke="#0d3060" stroke-width="2"/>
+      <line id="lnk1" x1="222" y1="85" x2="298" y2="85" stroke="#0d3060" stroke-width="2"/>
+      <line id="lnk2" x1="372" y1="85" x2="448" y2="85" stroke="#0d3060" stroke-width="2"/>
+      <line id="lnk3" x1="522" y1="85" x2="598" y2="85" stroke="#0d3060" stroke-width="2"/>
+      <line id="lnk4" x1="672" y1="85" x2="748" y2="85" stroke="#0d3060" stroke-width="2"/>
+      <line id="lnk5" x1="822" y1="85" x2="880" y2="85" stroke="#0d3060" stroke-width="2"/>
+
+      <!-- Secondary route lines (showing redundancy) -->
+      <path d="M 222 75 Q 335 30 448 75" stroke="#071628" stroke-width="1.5" fill="none" stroke-dasharray="4,4" id="altRoute1"/>
+      <path d="M 372 95 Q 485 140 598 95" stroke="#071628" stroke-width="1.5" fill="none" stroke-dasharray="4,4" id="altRoute2"/>
+
+      <!-- Node: PC Origen -->
+      <g id="nd0">
+        <rect x="2" y="62" width="70" height="46" fill="#05101f" stroke="#0d3060" stroke-width="1.5" rx="3"/>
+        <text x="37" y="80" font-family="Share Tech Mono,monospace" font-size="16" fill="#00e5ff" text-anchor="middle">💻</text>
+        <text x="37" y="96" font-family="Share Tech Mono,monospace" font-size="8" fill="#4a7a9b" text-anchor="middle">ORIGEN</text>
+        <text x="37" y="106" font-family="Share Tech Mono,monospace" font-size="7" fill="#2a4a6a" text-anchor="middle">Madrid</text>
+      </g>
+
+      <!-- Node: Router local -->
+      <g id="nd1">
+        <rect x="148" y="58" width="74" height="54" fill="#05101f" stroke="#0d3060" stroke-width="1.5" rx="3"/>
+        <text x="185" y="79" font-family="Orbitron,sans-serif" font-size="9" fill="#00e5ff" text-anchor="middle" font-weight="700">ROUTER</text>
+        <text x="185" y="92" font-family="Share Tech Mono,monospace" font-size="7" fill="#4a7a9b" text-anchor="middle">LOCAL</text>
+        <text x="185" y="103" font-family="Share Tech Mono,monospace" font-size="7" fill="#2a4a6a" text-anchor="middle">Madrid</text>
+        <circle cx="158" cy="65" r="4" fill="#05101f" stroke="#0d3060" id="nd1lamp"/>
+      </g>
+
+      <!-- Node: Router ISP -->
+      <g id="nd2">
+        <rect x="298" y="54" width="74" height="62" fill="#05101f" stroke="#0d3060" stroke-width="1.5" rx="3"/>
+        <text x="335" y="75" font-family="Orbitron,sans-serif" font-size="9" fill="#00e5ff" text-anchor="middle" font-weight="700">ROUTER</text>
+        <text x="335" y="88" font-family="Share Tech Mono,monospace" font-size="7" fill="#4a7a9b" text-anchor="middle">ISP</text>
+        <text x="335" y="99" font-family="Share Tech Mono,monospace" font-size="7" fill="#2a4a6a" text-anchor="middle">Proveedor</text>
+        <text x="335" y="109" font-family="Share Tech Mono,monospace" font-size="7" fill="#2a4a6a" text-anchor="middle">España</text>
+        <circle cx="308" cy="61" r="4" fill="#05101f" stroke="#0d3060" id="nd2lamp"/>
+      </g>
+
+      <!-- Node: Router backbone -->
+      <g id="nd3">
+        <rect x="448" y="50" width="74" height="70" fill="#05101f" stroke="#0d3060" stroke-width="1.5" rx="3"/>
+        <text x="485" y="71" font-family="Orbitron,sans-serif" font-size="9" fill="#00e5ff" text-anchor="middle" font-weight="700">ROUTER</text>
+        <text x="485" y="84" font-family="Share Tech Mono,monospace" font-size="7" fill="#4a7a9b" text-anchor="middle">BACKBONE</text>
+        <text x="485" y="95" font-family="Share Tech Mono,monospace" font-size="7" fill="#2a4a6a" text-anchor="middle">Cable</text>
+        <text x="485" y="106" font-family="Share Tech Mono,monospace" font-size="7" fill="#2a4a6a" text-anchor="middle">Atlántico</text>
+        <circle cx="458" cy="57" r="4" fill="#05101f" stroke="#0d3060" id="nd3lamp"/>
+      </g>
+
+      <!-- Node: Router EEUU -->
+      <g id="nd4">
+        <rect x="598" y="54" width="74" height="62" fill="#05101f" stroke="#0d3060" stroke-width="1.5" rx="3"/>
+        <text x="635" y="75" font-family="Orbitron,sans-serif" font-size="9" fill="#00e5ff" text-anchor="middle" font-weight="700">ROUTER</text>
+        <text x="635" y="88" font-family="Share Tech Mono,monospace" font-size="7" fill="#4a7a9b" text-anchor="middle">ISP</text>
+        <text x="635" y="99" font-family="Share Tech Mono,monospace" font-size="7" fill="#2a4a6a" text-anchor="middle">Nueva</text>
+        <text x="635" y="109" font-family="Share Tech Mono,monospace" font-size="7" fill="#2a4a6a" text-anchor="middle">York</text>
+        <circle cx="608" cy="61" r="4" fill="#05101f" stroke="#0d3060" id="nd4lamp"/>
+      </g>
+
+      <!-- Node: Servidor web -->
+      <g id="nd5">
+        <rect x="748" y="58" width="74" height="54" fill="#05101f" stroke="#0d3060" stroke-width="1.5" rx="3"/>
+        <text x="785" y="79" font-family="Orbitron,sans-serif" font-size="9" fill="#00e5ff" text-anchor="middle" font-weight="700">SERVIDOR</text>
+        <text x="785" y="92" font-family="Share Tech Mono,monospace" font-size="7" fill="#4a7a9b" text-anchor="middle">WEB</text>
+        <text x="785" y="103" font-family="Share Tech Mono,monospace" font-size="7" fill="#2a4a6a" text-anchor="middle">N. York</text>
+        <circle cx="758" cy="65" r="4" fill="#05101f" stroke="#0d3060" id="nd5lamp"/>
+      </g>
+
+      <!-- Node: Destino -->
+      <g id="nd6">
+        <rect x="880" y="62" width="38" height="46" fill="#05101f" stroke="#0d3060" stroke-width="1.5" rx="3"/>
+        <text x="899" y="82" font-family="Share Tech Mono,monospace" font-size="15" fill="#00ff9d" text-anchor="middle">🖥️</text>
+        <text x="899" y="98" font-family="Share Tech Mono,monospace" font-size="7" fill="#4a7a9b" text-anchor="middle">DEST.</text>
+      </g>
+
+      <!-- Moving packet dot -->
+      <circle id="movingDot" cx="37" cy="85" r="6" fill="#00e5ff" opacity="0">
+        <animate id="dotMove" attributeName="cx" from="37" to="899" dur="2s" begin="indefinite" fill="freeze"/>
+        <animate id="dotOpacity" attributeName="opacity" values="0;1;1;0" dur="2s" begin="indefinite" fill="freeze"/>
+      </circle>
+    </svg>
+  </div>
+
+  <!-- Progress dots -->
+  <div class="progress-row" id="progressRow"></div>
+
+  <!-- Question card -->
+  <div class="question-card" id="questionCard" style="display:none;">
+    <div class="q-badge" id="qBadge">ROUTER LOCAL</div>
+    <div class="q-num" id="qNum">PREGUNTA 1 DE 9</div>
+    <div class="q-text" id="qText">Texto</div>
+    <div class="q-options" id="qOptions"></div>
+  </div>
+
+  <div class="feedback-box" id="feedbackBox">
+    <div class="fb-status" id="fbStatus"></div>
+    <div id="fbText"></div>
+  </div>
+
+  <button class="next-btn" id="nextBtn" onclick="nextStep()">SIGUIENTE SALTO →</button>
+
+  <!-- Victory -->
+  <div id="victory">
+    <div style="font-size:48px;margin-bottom:16px">📦</div>
+    <h2>TODOS LOS PAQUETES ENTREGADOS</h2>
+    <p id="victoryMsg"></p>
+    <button class="restart-btn" onclick="initGame()">↺ REENVIAR MENSAJE</button>
+  </div>
+
+</div>
+
+<script>
+const STEPS = [
+  {
+    node: 1, link: 0,
+    pkt: 0,
+    badge: '💻 PC ORIGEN — Madrid',
+    text: 'Antes de enviar un mensaje por Internet, este se divide en partes más pequeñas. ¿Cómo se llama cada una de esas partes?',
+    options: ['Canales', 'Paquetes de datos', 'Circuitos', 'Modulaciones'],
+    correct: 1,
+    feedback: 'En Internet, cualquier mensaje (email, foto, video) se divide en PAQUETES de datos. Cada paquete lleva una cabecera con la dirección de origen, la dirección de destino y el número de orden. Esto permite que cada paquete tome una ruta distinta por la red.'
+  },
+  {
+    node: 1, link: 0,
+    pkt: 0,
+    badge: '💻 PC ORIGEN — Madrid',
+    text: 'Cada paquete lleva una dirección de destino única que identifica al ordenador receptor. ¿Cómo se llama esa dirección?',
+    options: ['Número de teléfono', 'Dirección MAC', 'Dirección IP', 'Código postal digital'],
+    correct: 2,
+    feedback: 'Cada dispositivo conectado a Internet tiene una DIRECCIÓN IP (ej: 192.168.1.1 o 2001:db8::1). Es como la dirección postal de tu casa, pero para ordenadores. Sin ella, los paquetes no sabrían a dónde ir. IPv4 tiene direcciones de 32 bits e IPv6 de 128 bits.'
+  },
+  {
+    node: 2, link: 1,
+    pkt: 0,
+    badge: '📡 ROUTER LOCAL — Madrid',
+    text: '¿Cuál es la función de un router en la red?',
+    options: [
+      'Almacenar páginas web para que carguen más rápido',
+      'Convertir señales analógicas a digitales',
+      'Leer la dirección IP de cada paquete y decidir hacia qué router enviarlo',
+      'Amplificar la señal de Wi-Fi'
+    ],
+    correct: 2,
+    feedback: 'El ROUTER es el dispositivo que dirige el tráfico en Internet. Lee la dirección IP destino de cada paquete, consulta su tabla de enrutamiento y lo reenvía al siguiente router más cercano al destino. Es como un guardia de tráfico en un cruce de carreteras.'
+  },
+  {
+    node: 2, link: 1,
+    pkt: 1,
+    badge: '📡 ROUTER LOCAL — Madrid',
+    text: 'Internet usa "conmutación de paquetes". ¿Qué diferencia tiene respecto a la RTC (conmutación de circuitos)?',
+    options: [
+      'En Internet se reserva un camino exclusivo para cada conversación',
+      'Los paquetes de un mismo mensaje pueden ir por rutas diferentes y llegan desordenados, reordenándose al final',
+      'Internet solo puede manejar una conversación a la vez',
+      'Los paquetes viajan siempre en línea recta punto a punto'
+    ],
+    correct: 1,
+    feedback: 'En la conmutación de PAQUETES, no hay circuito reservado. Cada paquete viaja de forma independiente, puede tomar rutas distintas y llegar desordenado. El equipo receptor los reordena usando el número de secuencia de la cabecera. Esto hace Internet mucho más eficiente y resistente a fallos.'
+  },
+  {
+    node: 3, link: 2,
+    pkt: 1,
+    badge: '🏢 ROUTER ISP — España',
+    text: '¿Qué es un ISP y qué papel tiene en Internet?',
+    options: [
+      'Un tipo de cable de fibra óptica de alta velocidad',
+      'El proveedor de servicios de Internet (Movistar, Orange, Vodafone…) que conecta tu red local con el resto de Internet',
+      'Un protocolo de seguridad para cifrar los datos',
+      'El servidor donde se guardan las páginas web'
+    ],
+    correct: 1,
+    feedback: 'El ISP (Internet Service Provider) es tu operadora de Internet: Movistar, Orange, Vodafone, etc. Actúa como intermediario entre tu red doméstica y el "núcleo" de Internet (el backbone). Sin el ISP, tu paquete no podría salir de tu barrio hacia el resto del mundo.'
+  },
+  {
+    node: 3, link: 2,
+    pkt: 2,
+    badge: '🏢 ROUTER ISP — España',
+    text: 'El paquete necesita cruzar el Atlántico para llegar a Nueva York. ¿Por qué medio físico viaja la mayor parte del tráfico de Internet entre continentes?',
+    options: [
+      'Por satélites geoestacionarios',
+      'Por cables submarinos de fibra óptica en el fondo del océano',
+      'Por ondas de radio de larga distancia',
+      'Por cable coaxial de televisión'
+    ],
+    correct: 1,
+    feedback: 'Más del 95% del tráfico intercontinental de Internet viaja por CABLES SUBMARINOS de fibra óptica. Hay más de 400 cables submarinos que conectan todos los continentes, con capacidad de cientos de Terabits por segundo. Los satélites tienen demasiada latencia (600ms) para la mayoría de aplicaciones.'
+  },
+  {
+    node: 4, link: 3,
+    pkt: 0,
+    badge: '🌊 BACKBONE — Cable Atlántico',
+    text: '¿Qué protocolo fundamental garantiza que todos los paquetes lleguen correctamente y en orden al destino?',
+    options: [
+      'HTTP — el protocolo de las páginas web',
+      'TCP/IP — controla la transmisión fiable y el direccionamiento',
+      'Wi-Fi — el protocolo de las redes inalámbricas',
+      'DNS — el sistema de nombres de dominio'
+    ],
+    correct: 1,
+    feedback: 'TCP/IP es el protocolo base de Internet. IP se encarga del direccionamiento (llevar cada paquete al destino correcto) y TCP garantiza la entrega fiable: detecta paquetes perdidos, pide reenvíos y reordena los paquetes en el destino. Es la "gramática" que hablan todos los dispositivos de Internet.'
+  },
+  {
+    node: 5, link: 4,
+    pkt: 1,
+    badge: '🗽 ROUTER ISP — Nueva York',
+    text: 'Cuando escribes "www.google.com" en el navegador, ¿qué sistema convierte ese nombre en una dirección IP numérica?',
+    options: [
+      'El router Wi-Fi de tu casa',
+      'El sistema DNS (Domain Name System)',
+      'El protocolo HTTP',
+      'El sistema operativo de tu ordenador'
+    ],
+    correct: 1,
+    feedback: 'El DNS (Sistema de Nombres de Dominio) es la "guía telefónica" de Internet. Traduce nombres como "google.com" en direcciones IP como "142.250.185.46". Sin DNS tendrías que memorizar la IP numérica de cada web que quieres visitar. Es uno de los servicios más críticos de Internet.'
+  },
+  {
+    node: 6, link: 5,
+    pkt: 2,
+    badge: '🖥️ SERVIDOR WEB — Nueva York',
+    text: '¡Los 3 paquetes han llegado! Se reensamblan en orden. ¿Qué ventaja tiene Internet frente a la RTC ante un fallo en un nodo de la red?',
+    options: [
+      'Internet es más barato de construir',
+      'Si un router falla, los paquetes se redirigen automáticamente por otra ruta — la red es resiliente',
+      'Internet no puede fallar nunca',
+      'Internet avisa al usuario antes de que se produzca el fallo'
+    ],
+    correct: 1,
+    feedback: 'La conmutación de paquetes hace Internet muy RESILIENTE: si un router falla, los paquetes simplemente toman otra ruta. En la RTC, si se corta el circuito reservado, la llamada se cae. Internet fue diseñado por ARPA precisamente para sobrevivir a ataques nucleares redirigiendo el tráfico automáticamente.'
+  },
+];
+
+let stepIndex = 0;
+let correct = 0, wrong = 0;
+let wrongAttempts = 0;
+let triedOptions = new Set();
+let answered = false;
+
+const PKT_COLORS = ['#00e5ff', '#ff6b00', '#00ff9d'];
+const PKT_CLASSES = ['p1','p2','p3'];
+
+function initGame() {
+  stepIndex = 0; correct = 0; wrong = 0;
+  document.getElementById('victory').style.display = 'none';
+  document.getElementById('feedbackBox').className = 'feedback-box';
+  document.getElementById('nextBtn').className = 'next-btn';
+  updateScore();
+  buildProgress();
+  resetDiagram();
+  resetPackets();
+  showStep();
+}
+
+function buildProgress() {
+  const row = document.getElementById('progressRow');
+  row.innerHTML = '';
+  STEPS.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'pdot';
+    d.id = `pdot_${i}`;
+    d.textContent = i + 1;
+    row.appendChild(d);
+  });
+}
+
+function updateScore() {
+  document.getElementById('sCorrect').textContent = correct;
+  document.getElementById('sWrong').textContent = wrong;
+  document.getElementById('phaseTag').textContent = `SALTO ${Math.min(stepIndex+1, STEPS.length)} / ${STEPS.length}`;
+}
+
+function resetDiagram() {
+  for (let i = 0; i <= 5; i++) {
+    const l = document.getElementById(`lnk${i}`);
+    if (l) { l.setAttribute('stroke','#0d3060'); l.setAttribute('stroke-width','2'); l.style.filter=''; }
+  }
+  for (let i = 1; i <= 5; i++) {
+    const lamp = document.getElementById(`nd${i}lamp`);
+    if (lamp) { lamp.setAttribute('fill','#05101f'); lamp.setAttribute('stroke','#0d3060'); lamp.style.filter=''; }
+  }
+  // Alt routes dim
+  ['altRoute1','altRoute2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.setAttribute('stroke','#071628');
+  });
+}
+
+function resetPackets() {
+  for (let i = 0; i < 3; i++) {
+    const p = document.getElementById(`pkt${i}`);
+    p.className = `packet ${PKT_CLASSES[i]}`;
+  }
+  document.getElementById('pktStatus').innerHTML = 'Paquete activo: <span style="color:var(--neon)">PKT·1</span> — esperando enrutamiento...';
+}
+
+function showStep() {
+  const step = STEPS[stepIndex];
+  wrongAttempts = 0; triedOptions = new Set(); answered = false;
+
+  // Progress dots
+  STEPS.forEach((_,i) => {
+    const d = document.getElementById(`pdot_${i}`);
+    if (!d) return;
+    d.className = 'pdot' + (i < stepIndex ? ' done' : i === stepIndex ? ' active' : '');
+  });
+
+  // Highlight active packet
+  for (let i = 0; i < 3; i++) {
+    const p = document.getElementById(`pkt${i}`);
+    p.className = `packet ${PKT_CLASSES[i]}` + (i === step.pkt ? ' active-pkt' : '');
+  }
+  const pktNames = ['PKT·1','PKT·2','PKT·3'];
+  const pktCols  = ['var(--neon)','var(--orange)','var(--neon2)'];
+  document.getElementById('pktStatus').innerHTML =
+    `Paquete activo: <span style="color:${pktCols[step.pkt]}">${pktNames[step.pkt]}</span> — en tránsito hacia ${['router local','ISP España','backbone Atlántico','router EEUU','servidor web','destino'][Math.min(step.node,5)]}...`;
+
+  // Highlight active node lamp
+  const lamp = document.getElementById(`nd${step.node}lamp`);
+  if (lamp) {
+    lamp.setAttribute('fill', '#ff6b00');
+    lamp.setAttribute('stroke', '#ff6b00');
+    lamp.style.filter = 'drop-shadow(0 0 5px #ff6b00)';
+  }
+
+  // Question
+  const card = document.getElementById('questionCard');
+  card.style.display = 'block';
+  document.getElementById('qBadge').textContent = step.badge;
+  document.getElementById('qNum').textContent = `PREGUNTA ${stepIndex+1} DE ${STEPS.length}`;
+  document.getElementById('qText').textContent = step.text;
+
+  const opts = document.getElementById('qOptions');
+  opts.innerHTML = '';
+  step.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'q-btn';
+    btn.textContent = `${['A','B','C','D'][i]}) ${opt}`;
+    btn.onclick = () => selectOption(i, btn);
+    opts.appendChild(btn);
+  });
+
+  document.getElementById('feedbackBox').className = 'feedback-box';
+  document.getElementById('nextBtn').className = 'next-btn';
+  updateScore();
+}
+
+function selectOption(idx, btnEl) {
+  if (answered || triedOptions.has(idx)) return;
+  const step = STEPS[stepIndex];
+  const allBtns = document.querySelectorAll('.q-btn');
+  const fb = document.getElementById('feedbackBox');
+
+  if (idx === step.correct) {
+    answered = true;
+    correct++;
+    btnEl.classList.add('correct');
+    allBtns.forEach(b => b.disabled = true);
+
+    // Activate link and node lamp green
+    const lnk = document.getElementById(`lnk${step.link}`);
+    if (lnk) {
+      lnk.setAttribute('stroke', PKT_COLORS[step.pkt]);
+      lnk.setAttribute('stroke-width', '3');
+      lnk.style.filter = `drop-shadow(0 0 4px ${PKT_COLORS[step.pkt]})`;
+    }
+    setTimeout(() => {
+      const lamp = document.getElementById(`nd${step.node}lamp`);
+      if (lamp) {
+        lamp.setAttribute('fill', '#00ff9d');
+        lamp.setAttribute('stroke', '#00ff9d');
+        lamp.style.filter = 'drop-shadow(0 0 6px #00ff9d)';
+      }
+      // Mark packet as arrived if last step for this packet
+      const pktEl = document.getElementById(`pkt${step.pkt}`);
+      pktEl.classList.add('traveling');
+      setTimeout(() => pktEl.classList.remove('traveling'), 700);
+    }, 400);
+
+    fb.className = 'feedback-box show correct-fb';
+    document.getElementById('fbStatus').textContent = '✓ CORRECTO — Paquete enrutado';
+    document.getElementById('fbText').textContent = step.feedback;
+    document.getElementById('nextBtn').className = 'next-btn show';
+  } else {
+    wrongAttempts++;
+    wrong++;
+    triedOptions.add(idx);
+    btnEl.classList.add('wrong');
+    btnEl.disabled = true;
+    fb.className = 'feedback-box show wrong-fb';
+    document.getElementById('fbStatus').textContent = '✗ INCORRECTO — inténtalo de nuevo';
+    document.getElementById('fbText').textContent = 'Esa opción no es correcta. Prueba con otra.';
+  }
+  updateScore();
+}
+
+function nextStep() {
+  stepIndex++;
+  if (stepIndex >= STEPS.length) {
+    showVictory();
+  } else {
+    document.getElementById('feedbackBox').className = 'feedback-box';
+    document.getElementById('nextBtn').className = 'next-btn';
+    showStep();
+  }
+}
+
+function showVictory() {
+  // Mark all packets arrived
+  for (let i = 0; i < 3; i++) {
+    const p = document.getElementById(`pkt${i}`);
+    p.className = `packet ${PKT_CLASSES[i]} arrived`;
+  }
+  document.getElementById('pktStatus').innerHTML =
+    '<span style="color:var(--neon2)">✓ TODOS LOS PAQUETES ENTREGADOS — mensaje reensamblado correctamente</span>';
+
+  // All lamps green
+  for (let i = 1; i <= 5; i++) {
+    const l = document.getElementById(`nd${i}lamp`);
+    if (l) { l.setAttribute('fill','#00ff9d'); l.setAttribute('stroke','#00ff9d'); l.style.filter='drop-shadow(0 0 6px #00ff9d)'; }
+  }
+  // Alt routes visible (showing redundancy)
+  document.getElementById('altRoute1').setAttribute('stroke','#0d3060');
+  document.getElementById('altRoute2').setAttribute('stroke','#0d3060');
+
+  document.querySelectorAll('.pdot').forEach(d => d.className = 'pdot done');
+  document.getElementById('questionCard').style.display = 'none';
+  document.getElementById('feedbackBox').className = 'feedback-box';
+  document.getElementById('nextBtn').className = 'next-btn';
+
+  const pct = Math.round(correct / (correct + wrong) * 100);
+  let msg = '';
+  if (pct === 100) msg = '⚡ TASA DE ERROR: 0%. Dominas la conmutación de paquetes como un ingeniero de redes.';
+  else if (pct >= 70) msg = `✓ TRANSMISIÓN EXITOSA. ${correct} aciertos directos (${pct}%). Buena comprensión de cómo funciona Internet.`;
+  else msg = `Transmisión completada con retransmisiones. Repasa los conceptos de TCP/IP, DNS y conmutación de paquetes.`;
+
+  document.getElementById('victoryMsg').textContent = msg;
+  document.getElementById('victory').style.display = 'block';
+  document.getElementById('victory').scrollIntoView({behavior:'smooth'});
+}
+
+initGame();
+</script>
+</body>
+</html>
