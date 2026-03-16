@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Juego 1 – Evolución de las Telecomunicaciones</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --parchment: #f5ead0;
+  --parchment-dark: #e8d5a8;
+  --ink: #2c1a0e;
+  --ink-light: #5c3d1e;
+  --sepia: #8b5e3c;
+  --rust: #a0390a;
+  --gold: #c8952a;
+  --gold-light: #e8b84b;
+  --green-ok: #2d6a2d;
+  --red-err: #8b1a1a;
+  --line: #b8945a;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #1a0f05;
+  min-height: 100vh;
+  font-family: 'Crimson Text', Georgia, serif;
+  color: var(--ink);
+  overflow-x: hidden;
+}
+
+/* Texture overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23n)' opacity='0.08'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.4;
+}
+
+.page {
+  position: relative;
+  z-index: 1;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px 20px 60px;
+}
+
+/* Header */
+header {
+  text-align: center;
+  padding: 36px 20px 28px;
+  background: var(--parchment);
+  border: 3px double var(--line);
+  border-radius: 4px;
+  margin-bottom: 28px;
+  position: relative;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5), inset 0 0 60px rgba(184,148,90,0.2);
+}
+
+header::before, header::after {
+  content: '✦';
+  position: absolute;
+  top: 12px;
+  font-size: 18px;
+  color: var(--gold);
+}
+header::before { left: 20px; }
+header::after { right: 20px; }
+
+.header-tag {
+  font-family: 'Crimson Text', serif;
+  font-style: italic;
+  font-size: 13px;
+  letter-spacing: 3px;
+  color: var(--sepia);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(26px, 5vw, 46px);
+  font-weight: 900;
+  color: var(--ink);
+  line-height: 1.1;
+  margin-bottom: 8px;
+}
+
+.header-sub {
+  font-size: 15px;
+  color: var(--ink-light);
+  font-style: italic;
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+/* Score bar */
+.scorebar {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  padding: 12px 24px;
+  background: var(--ink);
+  border-radius: 4px;
+  margin-bottom: 24px;
+  border: 1px solid var(--gold);
+}
+
+.score-item {
+  text-align: center;
+  color: var(--parchment);
+}
+.score-val {
+  font-family: 'Playfair Display', serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--gold-light);
+  line-height: 1;
+}
+.score-lbl {
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--parchment-dark);
+  opacity: 0.7;
+}
+
+/* Instructions */
+.instructions {
+  background: var(--parchment);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 16px 22px;
+  margin-bottom: 24px;
+  font-size: 15px;
+  color: var(--ink-light);
+  line-height: 1.7;
+  text-align: center;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+}
+
+.instructions strong { color: var(--rust); font-weight: 600; }
+
+/* Cards bank */
+.cards-section {
+  background: var(--parchment);
+  border: 2px solid var(--line);
+  border-radius: 4px;
+  padding: 20px;
+  margin-bottom: 28px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4), inset 0 0 40px rgba(184,148,90,0.1);
+}
+
+.cards-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 14px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--sepia);
+  text-align: center;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--parchment-dark);
+}
+
+.cards-bank {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  min-height: 60px;
+}
+
+/* Event card */
+.event-card {
+  background: var(--ink);
+  color: var(--parchment);
+  border: 1px solid var(--gold);
+  border-radius: 4px;
+  padding: 10px 16px;
+  cursor: grab;
+  font-family: 'Crimson Text', serif;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+  text-align: center;
+  max-width: 180px;
+  transition: transform 0.15s, box-shadow 0.15s;
+  user-select: none;
+  position: relative;
+}
+
+.event-card .card-emoji {
+  display: block;
+  font-size: 22px;
+  margin-bottom: 4px;
+}
+
+.event-card:hover {
+  transform: translateY(-3px) rotate(-1deg);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+  border-color: var(--gold-light);
+  z-index: 10;
+}
+
+.event-card.dragging {
+  opacity: 0.5;
+  transform: rotate(3deg);
+  cursor: grabbing;
+}
+
+.event-card.correct {
+  background: var(--green-ok);
+  border-color: #4caf50;
+  cursor: default;
+  pointer-events: none;
+}
+
+.event-card.wrong {
+  background: var(--red-err);
+  border-color: #e57373;
+  animation: shake 0.4s ease;
+}
+
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(5px); }
+}
+
+/* Timeline */
+.timeline-wrap {
+  position: relative;
+  padding: 10px 0 20px;
+}
+
+/* Horizontal line */
+.timeline-line {
+  position: absolute;
+  top: 54px;
+  left: 0; right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--ink) 0%, var(--gold) 30%, var(--sepia) 70%, var(--ink) 100%);
+  border-radius: 2px;
+  z-index: 0;
+}
+
+.timeline-slots {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 12px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--sepia) var(--parchment-dark);
+}
+
+/* Slot */
+.slot {
+  flex: 0 0 130px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+
+.slot-year {
+  font-family: 'Playfair Display', serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--parchment);
+  background: var(--ink);
+  border: 1px solid var(--gold);
+  border-radius: 3px;
+  padding: 3px 10px;
+  margin-bottom: 6px;
+  white-space: nowrap;
+  position: relative;
+  z-index: 2;
+}
+
+.slot-dot {
+  width: 14px;
+  height: 14px;
+  background: var(--gold);
+  border: 3px solid var(--ink);
+  border-radius: 50%;
+  margin-bottom: 8px;
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+}
+
+.drop-zone {
+  width: 130px;
+  min-height: 90px;
+  border: 2px dashed var(--line);
+  border-radius: 4px;
+  background: var(--parchment);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  transition: background 0.2s, border-color 0.2s;
+  position: relative;
+}
+
+.drop-zone.over {
+  background: #ede0c0;
+  border-color: var(--gold);
+  border-style: solid;
+}
+
+.drop-zone.filled {
+  border-style: solid;
+  border-color: var(--gold);
+}
+
+.drop-zone .placeholder-text {
+  font-size: 11px;
+  color: var(--sepia);
+  font-style: italic;
+  text-align: center;
+  opacity: 0.6;
+}
+
+/* Fact overlay backdrop */
+.fact-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 99;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+.fact-backdrop.show {
+  opacity: 1;
+  pointer-events: all;
+  cursor: pointer;
+}
+
+/* Fact popup */
+.fact-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -46%) scale(0.92);
+  background: var(--ink);
+  color: var(--parchment);
+  border: 2px solid var(--gold);
+  border-radius: 6px;
+  padding: 28px 32px 22px;
+  max-width: 520px;
+  width: 92%;
+  font-size: 16px;
+  line-height: 1.7;
+  text-align: center;
+  z-index: 100;
+  opacity: 0;
+  transition: opacity 0.3s, transform 0.3s;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.8);
+  pointer-events: none;
+}
+
+.fact-popup.show {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+  pointer-events: all;
+}
+
+.fact-popup .fact-label {
+  font-family: 'Playfair Display', serif;
+  font-size: 13px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--gold-light);
+  margin-bottom: 10px;
+}
+
+.fact-popup .fact-close {
+  display: inline-block;
+  margin-top: 18px;
+  padding: 8px 28px;
+  background: var(--gold);
+  color: var(--ink);
+  font-family: 'Playfair Display', serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  border-radius: 3px;
+  cursor: pointer;
+  border: none;
+  transition: background 0.2s;
+}
+.fact-popup .fact-close:hover { background: var(--gold-light); }
+
+.fact-popup.correct-pop { border-color: #4caf50; }
+.fact-popup.wrong-pop { border-color: #e57373; }
+
+/* Victory */
+#victory {
+  display: none;
+  text-align: center;
+  background: var(--parchment);
+  border: 3px double var(--gold);
+  border-radius: 6px;
+  padding: 40px 30px;
+  margin-top: 24px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+
+#victory h2 {
+  font-family: 'Playfair Display', serif;
+  font-size: 36px;
+  color: var(--ink);
+  margin-bottom: 10px;
+}
+
+#victory p {
+  font-size: 18px;
+  color: var(--ink-light);
+  margin-bottom: 24px;
+}
+
+.restart-btn {
+  background: var(--ink);
+  color: var(--gold-light);
+  border: 2px solid var(--gold);
+  font-family: 'Playfair Display', serif;
+  font-size: 16px;
+  padding: 12px 32px;
+  border-radius: 4px;
+  cursor: pointer;
+  letter-spacing: 2px;
+  transition: all 0.2s;
+}
+
+.restart-btn:hover {
+  background: var(--gold);
+  color: var(--ink);
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .slot { flex: 0 0 110px; }
+  .drop-zone { width: 110px; }
+  .event-card { max-width: 150px; font-size: 13px; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="header-tag">Telecomunicaciones · Teoría 6 · Juego 1</div>
+    <h1>La Gran Historia<br>de las Telecomunicaciones</h1>
+    <p class="header-sub">Arrastra cada invento al año en que ocurrió y descubre los secretos de la historia</p>
+  </header>
+
+  <div class="scorebar">
+    <div class="score-item">
+      <div class="score-val" id="sCorrect">0</div>
+      <div class="score-lbl">Correctos</div>
+    </div>
+    <div class="score-item">
+      <div class="score-val" id="sWrong">0</div>
+      <div class="score-lbl">Errores</div>
+    </div>
+    <div class="score-item">
+      <div class="score-val" id="sLeft">9</div>
+      <div class="score-lbl">Quedan</div>
+    </div>
+  </div>
+
+  <div class="instructions">
+    <strong>¿Cómo se juega?</strong> Arrastra cada tarjeta al año correcto en la línea del tiempo.<br>
+    Si aciertas, verás un dato curioso. Si fallas, la tarjeta vuelve al banco para intentarlo de nuevo.
+  </div>
+
+  <!-- Cards bank -->
+  <div class="cards-section">
+    <div class="cards-title">✦ Inventos por colocar ✦</div>
+    <div class="cards-bank" id="cardsBank"></div>
+  </div>
+
+  <!-- Timeline -->
+  <div class="timeline-wrap">
+    <div class="timeline-line"></div>
+    <div class="timeline-slots" id="timelineSlots"></div>
+  </div>
+
+  <!-- Victory -->
+  <div id="victory">
+    <div style="font-size:52px;margin-bottom:12px">🏆</div>
+    <h2>¡Enhorabuena!</h2>
+    <p id="victoryMsg">Has completado la línea del tiempo.</p>
+    <button class="restart-btn" onclick="initGame()">↺ Jugar de nuevo</button>
+  </div>
+
+</div>
+
+<!-- Fact backdrop + popup -->
+<div class="fact-backdrop" id="factBackdrop" onclick="closeFactPopup()"></div>
+<div class="fact-popup" id="factPopup">
+  <div class="fact-label" id="factLabel">Dato curioso</div>
+  <div id="factText"></div>
+  <button class="fact-close" onclick="closeFactPopup()">Entendido ✓</button>
+</div>
+
+<script>
+const EVENTS = [
+  {
+    id: 'smoke',
+    emoji: '🔥',
+    name: 'Señales de humo',
+    year: '~3000 a.C.',
+    yearKey: 'prehistory',
+    fact: '¡Las señales de humo son una de las primeras telecomunicaciones! Los pueblos indígenas americanos y los ejércitos chinos usaban columnas de humo para transmitir mensajes a kilómetros de distancia.'
+  },
+  {
+    id: 'semaphore',
+    emoji: '🚩',
+    name: 'Telégrafo óptico (semáforo)',
+    year: '1792',
+    yearKey: '1792',
+    fact: 'Claude Chappe inventó una red de torres con brazos articulados en Francia. Napoleón la usó para coordinar sus ejércitos: un mensaje de París a Lille (200 km) tardaba solo 2 minutos.'
+  },
+  {
+    id: 'morse',
+    emoji: '📡',
+    name: 'Telégrafo eléctrico y código Morse',
+    year: '1837',
+    yearKey: '1837',
+    fact: 'Samuel Morse inventó el código de puntos y rayas. El primer mensaje oficial fue "¿Qué ha obrado Dios?" enviado en 1844 entre Washington y Baltimore. ¡El punto es la unidad base y la raya dura 3 veces más!'
+  },
+  {
+    id: 'telephone',
+    emoji: '☎️',
+    name: 'Teléfono de Graham Bell',
+    year: '1876',
+    yearKey: '1876',
+    fact: 'Alexander Graham Bell dijo por teléfono: "Sr. Watson, venga aquí, le necesito." Pero ojo: Elisha Gray presentó su patente el mismo día. Bell ganó por ¡solo 2 horas! La disputa duró años.'
+  },
+  {
+    id: 'radio',
+    emoji: '📻',
+    name: 'Radio de Marconi',
+    year: '1895',
+    yearKey: '1895',
+    fact: 'Guglielmo Marconi envió la primera señal de radio. En 1912, la radio salvó cientos de vidas del Titanic: el operador de radio del barco pudo pedir socorro. Ganó el Premio Nobel de Física en 1909.'
+  },
+  {
+    id: 'tv',
+    emoji: '📺',
+    name: 'Primera emisión de televisión',
+    year: '1926',
+    yearKey: '1926',
+    fact: 'John Logie Baird mostró públicamente el primer sistema de televisión en Londres. Las primeras imágenes eran borrosas figuras con solo 30 líneas. Hoy tenemos 4K con más de 2000 líneas. ¡Increíble evolución!'
+  },
+  {
+    id: 'satellite',
+    emoji: '🛰️',
+    name: 'Sputnik: primer satélite',
+    year: '1957',
+    yearKey: '1957',
+    fact: 'La URSS lanzó el Sputnik 1 el 4 de octubre de 1957. Emitía un simple pitido de radio, pero cambió el mundo: inició la carrera espacial y demostró que era posible transmitir señales desde el espacio.'
+  },
+  {
+    id: 'internet',
+    emoji: '🌐',
+    name: 'ARPANET: origen de Internet',
+    year: '1969',
+    yearKey: '1969',
+    fact: 'El primer mensaje enviado por ARPANET (precursor de Internet) fue "login"... ¡pero el sistema se cayó tras las dos primeras letras! Solo llegó "lo". El destinatario en UCLA llamó por teléfono para avisar del fallo.'
+  },
+  {
+    id: 'smartphone',
+    emoji: '📱',
+    name: 'Primer iPhone (smartphone)',
+    year: '2007',
+    yearKey: '2007',
+    fact: 'Steve Jobs presentó el iPhone el 9 de enero de 2007. La pantalla táctil revolucionó todo. Hoy hay más smartphones que personas en el mundo: más de 8.700 millones de líneas móviles activas en 2024.'
+  }
+];
+
+const SLOT_ORDER = [
+  'prehistory','1792','1837','1876','1895','1926','1957','1969','2007'
+];
+
+const YEAR_LABELS = {
+  'prehistory': '~3000 a.C.',
+  '1792': '1792',
+  '1837': '1837',
+  '1876': '1876',
+  '1895': '1895',
+  '1926': '1926',
+  '1957': '1957',
+  '1969': '1969',
+  '2007': '2007'
+};
+
+let correct = 0, wrong = 0;
+let draggedId = null;
+let popupTimer = null;
+
+function initGame() {
+  correct = 0; wrong = 0;
+  updateScore();
+  document.getElementById('victory').style.display = 'none';
+  renderBank();
+  renderTimeline();
+}
+
+function updateScore() {
+  document.getElementById('sCorrect').textContent = correct;
+  document.getElementById('sWrong').textContent = wrong;
+  document.getElementById('sLeft').textContent = EVENTS.length - correct;
+}
+
+function renderBank() {
+  const bank = document.getElementById('cardsBank');
+  bank.innerHTML = '';
+  // Shuffle
+  const shuffled = [...EVENTS].sort(() => Math.random() - 0.5);
+  shuffled.forEach(ev => {
+    const card = createCard(ev);
+    bank.appendChild(card);
+  });
+}
+
+function createCard(ev) {
+  const div = document.createElement('div');
+  div.className = 'event-card';
+  div.dataset.id = ev.id;
+  div.draggable = true;
+  div.innerHTML = `<span class="card-emoji">${ev.emoji}</span>${ev.name}`;
+  div.addEventListener('dragstart', onDragStart);
+  div.addEventListener('dragend', onDragEnd);
+  // Touch support
+  div.addEventListener('touchstart', onTouchStart, {passive: true});
+  div.addEventListener('touchmove', onTouchMove, {passive: false});
+  div.addEventListener('touchend', onTouchEnd);
+  return div;
+}
+
+function renderTimeline() {
+  const container = document.getElementById('timelineSlots');
+  container.innerHTML = '';
+  SLOT_ORDER.forEach(key => {
+    const slot = document.createElement('div');
+    slot.className = 'slot';
+
+    const yearLabel = document.createElement('div');
+    yearLabel.className = 'slot-year';
+    yearLabel.textContent = YEAR_LABELS[key];
+
+    const dot = document.createElement('div');
+    dot.className = 'slot-dot';
+
+    const zone = document.createElement('div');
+    zone.className = 'drop-zone';
+    zone.dataset.year = key;
+    zone.innerHTML = `<span class="placeholder-text">Suelta aquí</span>`;
+    zone.addEventListener('dragover', onDragOver);
+    zone.addEventListener('dragleave', onDragLeave);
+    zone.addEventListener('drop', onDrop);
+
+    slot.appendChild(yearLabel);
+    slot.appendChild(dot);
+    slot.appendChild(zone);
+    container.appendChild(slot);
+  });
+}
+
+// ── Drag & Drop (mouse) ──────────────────────────────────────────
+function onDragStart(e) {
+  draggedId = e.currentTarget.dataset.id;
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+function onDragEnd(e) {
+  e.currentTarget.classList.remove('dragging');
+}
+
+function onDragOver(e) {
+  e.preventDefault();
+  e.currentTarget.classList.add('over');
+}
+
+function onDragLeave(e) {
+  e.currentTarget.classList.remove('over');
+}
+
+function onDrop(e) {
+  e.preventDefault();
+  const zone = e.currentTarget;
+  zone.classList.remove('over');
+  if (!draggedId) return;
+  if (zone.classList.contains('filled')) return;
+  handleDrop(draggedId, zone);
+  draggedId = null;
+}
+
+// ── Touch support ──────────────────────────────────────────────
+let touchCard = null, touchClone = null, touchOffX = 0, touchOffY = 0;
+
+function onTouchStart(e) {
+  touchCard = e.currentTarget;
+  const touch = e.touches[0];
+  const rect = touchCard.getBoundingClientRect();
+  touchOffX = touch.clientX - rect.left;
+  touchOffY = touch.clientY - rect.top;
+
+  touchClone = touchCard.cloneNode(true);
+  touchClone.style.cssText = `
+    position:fixed; z-index:999; pointer-events:none;
+    width:${rect.width}px; opacity:0.85; transform:rotate(3deg);
+    left:${rect.left}px; top:${rect.top}px;
+  `;
+  document.body.appendChild(touchClone);
+  touchCard.style.opacity = '0.3';
+}
+
+function onTouchMove(e) {
+  e.preventDefault();
+  const touch = e.touches[0];
+  touchClone.style.left = (touch.clientX - touchOffX) + 'px';
+  touchClone.style.top  = (touch.clientY - touchOffY) + 'px';
+
+  // Highlight drop zone under finger
+  document.querySelectorAll('.drop-zone').forEach(z => z.classList.remove('over'));
+  const el = document.elementFromPoint(touch.clientX, touch.clientY);
+  const zone = el ? el.closest('.drop-zone') : null;
+  if (zone && !zone.classList.contains('filled')) zone.classList.add('over');
+}
+
+function onTouchEnd(e) {
+  const touch = e.changedTouches[0];
+  if (touchClone) { touchClone.remove(); touchClone = null; }
+  if (touchCard) touchCard.style.opacity = '';
+
+  document.querySelectorAll('.drop-zone').forEach(z => z.classList.remove('over'));
+  const el = document.elementFromPoint(touch.clientX, touch.clientY);
+  const zone = el ? el.closest('.drop-zone') : null;
+  if (zone && !zone.classList.contains('filled') && touchCard) {
+    handleDrop(touchCard.dataset.id, zone);
+  }
+  touchCard = null;
+}
+
+// ── Core logic ─────────────────────────────────────────────────
+function handleDrop(cardId, zone) {
+  const ev = EVENTS.find(e => e.id === cardId);
+  if (!ev) return;
+
+  const cardEl = document.querySelector(`.event-card[data-id="${cardId}"]`);
+  if (!cardEl) return;
+
+  if (ev.yearKey === zone.dataset.year) {
+    // CORRECT
+    correct++;
+    cardEl.classList.add('correct');
+    zone.innerHTML = '';
+    zone.appendChild(cardEl);
+    zone.classList.add('filled');
+    cardEl.draggable = false;
+    showFact(true, `✓ ¡Correcto! ${ev.name} — ${ev.year}`, ev.fact);
+    updateScore();
+  } else {
+    // WRONG
+    wrong++;
+    cardEl.classList.add('wrong');
+    const correctEv = EVENTS.find(e => e.yearKey === zone.dataset.year);
+    showFact(false, `✗ No es correcto`, `"${ev.name}" no es de ${YEAR_LABELS[zone.dataset.year]}. Inténtalo de nuevo.`);
+    setTimeout(() => cardEl.classList.remove('wrong'), 600);
+    updateScore();
+  }
+}
+
+function showFact(isCorrect, label, text) {
+  const popup = document.getElementById('factPopup');
+  const backdrop = document.getElementById('factBackdrop');
+  const lbl = document.getElementById('factLabel');
+  const txt = document.getElementById('factText');
+  popup.className = 'fact-popup ' + (isCorrect ? 'correct-pop' : 'wrong-pop');
+  lbl.textContent = label;
+  txt.textContent = text;
+  popup.classList.add('show');
+  backdrop.classList.add('show');
+}
+
+function closeFactPopup() {
+  document.getElementById('factPopup').classList.remove('show');
+  document.getElementById('factBackdrop').classList.remove('show');
+  if (correct === EVENTS.length) showVictory();
+}
+
+function showVictory() {
+  const pct = Math.round(correct / (correct + wrong) * 100);
+  let msg = '';
+  if (pct === 100) msg = '🌟 ¡Sin un solo error! Eres un historiador de las telecomunicaciones.';
+  else if (pct >= 70) msg = `✅ Muy bien. Acertaste a la primera en ${pct}% de los casos.`;
+  else msg = `💪 Completado con ${correct} aciertos. La práctica hace al maestro.`;
+  document.getElementById('victoryMsg').textContent = msg;
+  document.getElementById('victory').style.display = 'block';
+  document.getElementById('victory').scrollIntoView({behavior: 'smooth'});
+}
+
+// Start
+initGame();
+</script>
+</body>
+</html>
