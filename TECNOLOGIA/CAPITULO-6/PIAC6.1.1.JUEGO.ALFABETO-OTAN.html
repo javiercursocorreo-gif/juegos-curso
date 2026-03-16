@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alfabeto Fonético OTAN</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0a1628;
+    --navy-mid: #0d2045;
+    --navy-light: #163060;
+    --gold: #f5c842;
+    --gold-dark: #c49a1a;
+    --cyan: #00d4ff;
+    --green: #00e676;
+    --red: #ff3d57;
+    --white: #f0f4ff;
+    --gray: #8899bb;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--navy);
+    color: var(--white);
+    font-family: 'Rajdhani', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+  }
+
+  /* Animated background */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: 
+      radial-gradient(ellipse at 20% 50%, rgba(0, 80, 180, 0.15) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(0, 212, 255, 0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 80%, rgba(245, 200, 66, 0.05) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Grid overlay */
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background-image: 
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 750px;
+    padding: 24px 20px;
+  }
+
+  /* Header */
+  header {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+
+  .header-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+    color: var(--navy);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 11px;
+    letter-spacing: 3px;
+    padding: 5px 16px;
+    border-radius: 2px;
+    margin-bottom: 10px;
+  }
+
+  h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(40px, 8vw, 72px);
+    letter-spacing: 6px;
+    background: linear-gradient(135deg, var(--white) 30%, var(--cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .subtitle {
+    color: var(--gray);
+    font-size: 14px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  /* Mode selection */
+  #mode-screen {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .mode-title {
+    text-align: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 4px;
+    color: var(--gray);
+    margin-bottom: 10px;
+  }
+
+  .mode-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .mode-card {
+    background: linear-gradient(135deg, var(--navy-mid), var(--navy-light));
+    border: 1px solid rgba(0, 212, 255, 0.2);
+    border-radius: 12px;
+    padding: 28px 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .mode-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--cyan), var(--gold));
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .mode-card:hover {
+    border-color: var(--cyan);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0, 212, 255, 0.2);
+  }
+
+  .mode-card:hover::before { opacity: 1; }
+
+  .mode-letter {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 56px;
+    background: linear-gradient(135deg, var(--gold), var(--cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+    margin-bottom: 10px;
+  }
+
+  .mode-card h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 3px;
+    color: var(--white);
+    margin-bottom: 8px;
+  }
+
+  .mode-card p {
+    color: var(--gray);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .mode-example {
+    margin-top: 14px;
+    padding: 8px 14px;
+    background: rgba(0, 212, 255, 0.08);
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--cyan);
+    font-weight: 600;
+    letter-spacing: 1px;
+  }
+
+  /* Reference table */
+  .ref-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    cursor: pointer;
+    color: var(--gray);
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 14px;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 8px;
+    background: rgba(255,255,255,0.02);
+    transition: all 0.3s;
+    user-select: none;
+  }
+
+  .ref-toggle:hover { color: var(--cyan); border-color: rgba(0,212,255,0.2); }
+
+  .ref-toggle svg { transition: transform 0.3s; }
+  .ref-toggle.open svg { transform: rotate(180deg); }
+
+  .ref-table-wrap {
+    display: none;
+    overflow: hidden;
+  }
+
+  .ref-table-wrap.open { display: block; animation: slideDown 0.3s ease; }
+
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .ref-table {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 6px;
+    padding: 16px;
+    background: rgba(13, 32, 69, 0.6);
+    border: 1px solid rgba(0,212,255,0.1);
+    border-radius: 8px;
+    margin-top: 8px;
+  }
+
+  .ref-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.03);
+  }
+
+  .ref-item .ref-l {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    color: var(--gold);
+    min-width: 18px;
+  }
+
+  .ref-item .ref-w {
+    font-size: 12px;
+    color: var(--gray);
+    font-weight: 600;
+  }
+
+  /* Game screen */
+  #game-screen { display: none; flex-direction: column; gap: 20px; }
+
+  .game-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 20px;
+    background: rgba(13, 32, 69, 0.8);
+    border: 1px solid rgba(0,212,255,0.1);
+    border-radius: 10px;
+  }
+
+  .game-mode-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    letter-spacing: 3px;
+    color: var(--cyan);
+  }
+
+  .score-display {
+    display: flex;
+    gap: 20px;
+    font-size: 14px;
+    letter-spacing: 1px;
+  }
+
+  .score-item { text-align: center; }
+  .score-val {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 26px;
+    line-height: 1;
+  }
+  .score-val.correct { color: var(--green); }
+  .score-val.wrong { color: var(--red); }
+  .score-label { font-size: 10px; color: var(--gray); letter-spacing: 2px; }
+
+  .stop-btn {
+    background: transparent;
+    border: 1px solid rgba(255, 61, 87, 0.4);
+    color: var(--red);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    padding: 8px 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s;
+  }
+
+  .stop-btn:hover {
+    background: rgba(255, 61, 87, 0.1);
+    border-color: var(--red);
+  }
+
+  /* Progress bar */
+  .progress-wrap {
+    background: rgba(255,255,255,0.05);
+    border-radius: 4px;
+    height: 6px;
+    overflow: hidden;
+  }
+
+  .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--cyan), var(--gold));
+    border-radius: 4px;
+    transition: width 0.5s ease;
+  }
+
+  /* Question card */
+  .question-card {
+    background: linear-gradient(135deg, var(--navy-mid), var(--navy-light));
+    border: 1px solid rgba(0,212,255,0.15);
+    border-radius: 16px;
+    padding: 40px 30px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .question-card::before {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: conic-gradient(
+      from 0deg,
+      transparent 0deg,
+      rgba(0,212,255,0.03) 60deg,
+      transparent 120deg,
+      rgba(245,200,66,0.03) 180deg,
+      transparent 240deg
+    );
+    animation: spin 20s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .question-prompt {
+    font-size: 13px;
+    letter-spacing: 3px;
+    color: var(--gray);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .question-display {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(70px, 18vw, 130px);
+    background: linear-gradient(135deg, var(--white) 20%, var(--cyan) 80%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+    position: relative;
+    z-index: 1;
+    animation: questionPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .question-display.word-mode {
+    font-size: clamp(36px, 7vw, 60px);
+    letter-spacing: 4px;
+  }
+
+  @keyframes questionPop {
+    from { opacity: 0; transform: scale(0.7); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  /* Answer input */
+  .answer-section {
+    display: flex;
+    gap: 10px;
+    align-items: stretch;
+  }
+
+  .answer-input {
+    flex: 1;
+    background: rgba(13, 32, 69, 0.8);
+    border: 2px solid rgba(0,212,255,0.2);
+    border-radius: 10px;
+    color: var(--white);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    padding: 16px 22px;
+    text-transform: uppercase;
+    outline: none;
+    transition: all 0.2s;
+  }
+
+  .answer-input::placeholder { color: rgba(136,153,187,0.4); letter-spacing: 2px; }
+
+  .answer-input:focus {
+    border-color: var(--cyan);
+    background: rgba(0, 212, 255, 0.05);
+    box-shadow: 0 0 20px rgba(0,212,255,0.1);
+  }
+
+  .submit-btn {
+    background: linear-gradient(135deg, var(--cyan), #0099cc);
+    border: none;
+    border-radius: 10px;
+    color: var(--navy);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 2px;
+    padding: 16px 28px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .submit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,212,255,0.3);
+  }
+
+  .submit-btn:active { transform: translateY(0); }
+
+  /* Feedback */
+  .feedback-box {
+    border-radius: 12px;
+    padding: 24px 28px;
+    text-align: center;
+    display: none;
+    animation: feedbackIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  @keyframes feedbackIn {
+    from { opacity: 0; transform: scale(0.85); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .feedback-box.correct {
+    background: linear-gradient(135deg, rgba(0,230,118,0.12), rgba(0,230,118,0.05));
+    border: 2px solid rgba(0,230,118,0.4);
+  }
+
+  .feedback-box.wrong {
+    background: linear-gradient(135deg, rgba(255,61,87,0.12), rgba(255,61,87,0.05));
+    border: 2px solid rgba(255,61,87,0.4);
+  }
+
+  .feedback-icon {
+    font-size: 52px;
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+
+  .feedback-status {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 42px;
+    letter-spacing: 4px;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .feedback-box.correct .feedback-status { color: var(--green); }
+  .feedback-box.wrong .feedback-status { color: var(--red); }
+
+  .feedback-answer {
+    font-size: 18px;
+    letter-spacing: 2px;
+    color: var(--white);
+    font-weight: 600;
+  }
+
+  .feedback-answer span {
+    color: var(--gold);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+  }
+
+  .feedback-timer {
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--gray);
+    letter-spacing: 2px;
+  }
+
+  .timer-dots { display: inline-block; animation: dots 1s steps(4) infinite; }
+  @keyframes dots {
+    0% { content: ''; }
+    25% { content: '.'; }
+    50% { content: '..'; }
+    75% { content: '...'; }
+  }
+
+  /* Countdown ring */
+  .countdown-wrap {
+    display: flex;
+    justify-content: center;
+    margin-top: 4px;
+  }
+
+  .countdown-ring {
+    position: relative;
+    width: 44px;
+    height: 44px;
+  }
+
+  .countdown-ring svg {
+    transform: rotate(-90deg);
+  }
+
+  .countdown-ring circle {
+    fill: none;
+    stroke: rgba(0,212,255,0.15);
+    stroke-width: 3;
+  }
+
+  .countdown-ring circle.progress {
+    stroke: var(--cyan);
+    stroke-dasharray: 113;
+    stroke-dashoffset: 0;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 1s linear;
+  }
+
+  .countdown-num {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    color: var(--cyan);
+  }
+
+  /* Back button */
+  .back-btn {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--gray);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 13px;
+    letter-spacing: 2px;
+    padding: 10px 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .back-btn:hover { color: var(--white); border-color: rgba(255,255,255,0.3); }
+
+  /* Responsive */
+  @media (max-width: 500px) {
+    .mode-cards { grid-template-columns: 1fr; }
+    .answer-section { flex-direction: column; }
+    .submit-btn { padding: 14px; }
+  }
+
+  .hint {
+    text-align: center;
+    font-size: 12px;
+    color: rgba(136,153,187,0.5);
+    letter-spacing: 1px;
+    margin-top: -8px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="header-badge">Entrenamiento Militar</div>
+    <h1>ALFABETO OTAN</h1>
+    <p class="subtitle">Fonético · NATO Phonetic Alphabet</p>
+  </header>
+
+  <!-- MODE SELECTION -->
+  <div id="mode-screen">
+    <p class="mode-title">Selecciona el modo de juego</p>
+
+    <div class="mode-cards">
+      <div class="mode-card" onclick="startGame('A')">
+        <div class="mode-letter">A</div>
+        <h2>Modo A</h2>
+        <p>Se muestra una <strong>letra</strong>.<br>Escribe la palabra OTAN correspondiente.</p>
+        <div class="mode-example">C → Charlie</div>
+      </div>
+      <div class="mode-card" onclick="startGame('B')">
+        <div class="mode-letter" style="font-size:36px;padding:10px 0">ALFA</div>
+        <h2>Modo B</h2>
+        <p>Se muestra una <strong>palabra</strong> OTAN.<br>Escribe la letra correspondiente.</p>
+        <div class="mode-example">Charlie → C</div>
+      </div>
+    </div>
+
+    <!-- Reference toggle -->
+    <div class="ref-toggle" id="refToggle" onclick="toggleRef()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="6 9 12 15 18 9"/>
+      </svg>
+      Ver tabla de referencia completa
+    </div>
+    <div class="ref-table-wrap" id="refTableWrap">
+      <div class="ref-table" id="refTable"></div>
+    </div>
+  </div>
+
+  <!-- GAME SCREEN -->
+  <div id="game-screen">
+    <button class="back-btn" onclick="goBack()">
+      ← Cambiar modo
+    </button>
+
+    <div class="game-header">
+      <div class="game-mode-label" id="modeLabelDisplay">MODO A</div>
+      <div class="score-display">
+        <div class="score-item">
+          <div class="score-val correct" id="scoreCorrect">0</div>
+          <div class="score-label">Correctas</div>
+        </div>
+        <div class="score-item">
+          <div class="score-val wrong" id="scoreWrong">0</div>
+          <div class="score-label">Errores</div>
+        </div>
+      </div>
+      <button class="stop-btn" onclick="stopGame()">⬛ Parar</button>
+    </div>
+
+    <div class="progress-wrap">
+      <div class="progress-bar" id="progressBar" style="width:0%"></div>
+    </div>
+
+    <div class="question-card">
+      <div class="question-prompt" id="questionPrompt">¿Cuál es la palabra OTAN?</div>
+      <div class="question-display" id="questionDisplay">—</div>
+    </div>
+
+    <div class="answer-section">
+      <input
+        type="text"
+        class="answer-input"
+        id="answerInput"
+        placeholder="Tu respuesta..."
+        autocomplete="off"
+        spellcheck="false"
+        onkeydown="handleKey(event)"
+      />
+      <button class="submit-btn" onclick="submitAnswer()">Enviar →</button>
+    </div>
+    <p class="hint">Pulsa ENTER para enviar</p>
+
+    <div class="feedback-box" id="feedbackBox">
+      <div class="feedback-icon" id="feedbackIcon">✓</div>
+      <div class="feedback-status" id="feedbackStatus">CORRECTO</div>
+      <div class="feedback-answer" id="feedbackAnswer"></div>
+      <div class="countdown-wrap">
+        <div class="countdown-ring">
+          <svg viewBox="0 0 38 38" width="44" height="44">
+            <circle cx="19" cy="19" r="18"/>
+            <circle class="progress" id="cdCircle" cx="19" cy="19" r="18"/>
+          </svg>
+          <div class="countdown-num" id="cdNum">3</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const NATO = [
+  { letter: 'A', word: 'ALFA' },
+  { letter: 'B', word: 'BRAVO' },
+  { letter: 'C', word: 'CHARLIE' },
+  { letter: 'D', word: 'DELTA' },
+  { letter: 'E', word: 'ECHO' },
+  { letter: 'F', word: 'FOXTROT' },
+  { letter: 'G', word: 'GOLF' },
+  { letter: 'H', word: 'HOTEL' },
+  { letter: 'I', word: 'INDIA' },
+  { letter: 'J', word: 'JULIETT' },
+  { letter: 'K', word: 'KILO' },
+  { letter: 'L', word: 'LIMA' },
+  { letter: 'M', word: 'MIKE' },
+  { letter: 'N', word: 'NOVEMBER' },
+  { letter: 'O', word: 'OSCAR' },
+  { letter: 'P', word: 'PAPA' },
+  { letter: 'Q', word: 'QUEBEC' },
+  { letter: 'R', word: 'ROMEO' },
+  { letter: 'S', word: 'SIERRA' },
+  { letter: 'T', word: 'TANGO' },
+  { letter: 'U', word: 'UNIFORM' },
+  { letter: 'V', word: 'VICTOR' },
+  { letter: 'W', word: 'WHISKEY' },
+  { letter: 'X', word: 'X-RAY' },
+  { letter: 'Y', word: 'YANKEE' },
+  { letter: 'Z', word: 'ZULU' },
+];
+
+let currentMode = null;
+let currentIndex = 0;
+let shuffledDeck = [];
+let scoreCorrect = 0;
+let scoreWrong = 0;
+let awaitingNext = false;
+let countdownTimer = null;
+let deckCycle = 0;
+
+// Build reference table
+function buildRefTable() {
+  const t = document.getElementById('refTable');
+  NATO.forEach(n => {
+    const div = document.createElement('div');
+    div.className = 'ref-item';
+    div.innerHTML = `<span class="ref-l">${n.letter}</span><span class="ref-w">${n.word}</span>`;
+    t.appendChild(div);
+  });
+}
+
+function toggleRef() {
+  const wrap = document.getElementById('refTableWrap');
+  const toggle = document.getElementById('refToggle');
+  const isOpen = wrap.classList.toggle('open');
+  toggle.classList.toggle('open', isOpen);
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function startGame(mode) {
+  currentMode = mode;
+  scoreCorrect = 0;
+  scoreWrong = 0;
+  currentIndex = 0;
+  deckCycle = 0;
+  shuffledDeck = shuffle(NATO);
+  awaitingNext = false;
+
+  document.getElementById('mode-screen').style.display = 'none';
+  document.getElementById('game-screen').style.display = 'flex';
+  document.getElementById('modeLabelDisplay').textContent = mode === 'A' ? 'MODO A — LETRA → PALABRA' : 'MODO B — PALABRA → LETRA';
+  document.getElementById('scoreCorrect').textContent = '0';
+  document.getElementById('scoreWrong').textContent = '0';
+
+  showQuestion();
+  document.getElementById('answerInput').focus();
+}
+
+function showQuestion() {
+  if (currentIndex >= shuffledDeck.length) {
+    currentIndex = 0;
+    deckCycle++;
+    shuffledDeck = shuffle(NATO);
+  }
+
+  const item = shuffledDeck[currentIndex];
+  const progress = ((currentIndex + deckCycle * 26) % 26) / 26 * 100;
+  document.getElementById('progressBar').style.width = progress + '%';
+
+  const display = document.getElementById('questionDisplay');
+  const prompt = document.getElementById('questionPrompt');
+
+  if (currentMode === 'A') {
+    prompt.textContent = '¿Cuál es la palabra OTAN?';
+    display.textContent = item.letter;
+    display.classList.remove('word-mode');
+  } else {
+    prompt.textContent = '¿Cuál es la letra correspondiente?';
+    display.textContent = item.word;
+    display.classList.add('word-mode');
+  }
+
+  display.style.animation = 'none';
+  void display.offsetWidth;
+  display.style.animation = 'questionPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)';
+
+  document.getElementById('feedbackBox').style.display = 'none';
+  document.getElementById('answerInput').value = '';
+  document.getElementById('answerInput').disabled = false;
+  document.getElementById('answerInput').focus();
+  awaitingNext = false;
+}
+
+function submitAnswer() {
+  if (awaitingNext) return;
+
+  const raw = document.getElementById('answerInput').value.trim().toUpperCase();
+  if (!raw) return;
+
+  const item = shuffledDeck[currentIndex];
+  let correct = false;
+
+  if (currentMode === 'A') {
+    // Accept JULIET or JULIETT
+    const answer = raw.replace(/-/g, '');
+    const target = item.word.replace(/-/g, '');
+    correct = answer === target || answer === 'JULIET';
+  } else {
+    correct = raw === item.letter;
+  }
+
+  document.getElementById('answerInput').disabled = true;
+  awaitingNext = true;
+
+  if (correct) {
+    scoreCorrect++;
+    document.getElementById('scoreCorrect').textContent = scoreCorrect;
+    showFeedback(true, item);
+  } else {
+    scoreWrong++;
+    document.getElementById('scoreWrong').textContent = scoreWrong;
+    showFeedback(false, item);
+  }
+}
+
+function showFeedback(isCorrect, item) {
+  const box = document.getElementById('feedbackBox');
+  const icon = document.getElementById('feedbackIcon');
+  const status = document.getElementById('feedbackStatus');
+  const answer = document.getElementById('feedbackAnswer');
+
+  box.className = 'feedback-box ' + (isCorrect ? 'correct' : 'wrong');
+  icon.textContent = isCorrect ? '✓' : '✗';
+  status.textContent = isCorrect ? 'CORRECTO' : 'INCORRECTO';
+
+  if (currentMode === 'A') {
+    answer.innerHTML = isCorrect
+      ? `<span>${item.letter}</span> = <span>${item.word}</span>`
+      : `La respuesta correcta era: <span>${item.word}</span>`;
+  } else {
+    answer.innerHTML = isCorrect
+      ? `<span>${item.word}</span> = <span>${item.letter}</span>`
+      : `La respuesta correcta era: <span>${item.letter}</span>`;
+  }
+
+  box.style.display = 'block';
+  box.style.animation = 'none';
+  void box.offsetWidth;
+  box.style.animation = 'feedbackIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
+
+  // Countdown
+  startCountdown(3);
+}
+
+function startCountdown(seconds) {
+  if (countdownTimer) clearInterval(countdownTimer);
+  let remaining = seconds;
+  const circle = document.getElementById('cdCircle');
+  const numEl = document.getElementById('cdNum');
+  const circumference = 113;
+
+  numEl.textContent = remaining;
+  circle.style.strokeDashoffset = 0;
+
+  countdownTimer = setInterval(() => {
+    remaining--;
+    numEl.textContent = remaining;
+    const offset = circumference * (1 - remaining / seconds);
+    circle.style.strokeDashoffset = offset;
+
+    if (remaining <= 0) {
+      clearInterval(countdownTimer);
+      currentIndex++;
+      showQuestion();
+    }
+  }, 1000);
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter') submitAnswer();
+}
+
+function stopGame() {
+  if (countdownTimer) clearInterval(countdownTimer);
+  goBack();
+}
+
+function goBack() {
+  if (countdownTimer) clearInterval(countdownTimer);
+  document.getElementById('game-screen').style.display = 'none';
+  document.getElementById('mode-screen').style.display = 'flex';
+  document.getElementById('answerInput').value = '';
+  awaitingNext = false;
+}
+
+// Init
+buildRefTable();
+</script>
+</body>
+</html>
