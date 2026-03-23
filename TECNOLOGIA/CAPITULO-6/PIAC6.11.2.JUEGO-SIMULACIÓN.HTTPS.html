@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulación HTTPS — Protocolo Completo</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:     #07090f;
+  --panel:  #0d1117;
+  --panel2: #111827;
+  --border: #1e2d40;
+  --b2:     #253347;
+
+  --p1: #3b82f6;   /* Navegador — azul */
+  --p2: #a855f7;   /* Cifrador cliente — violeta */
+  --p3: #f59e0b;   /* Canal — ámbar */
+  --p4: #10b981;   /* Cifrador servidor — esmeralda */
+  --p5: #ef4444;   /* Servidor — rojo */
+
+  --txt:  #dde8f0;
+  --txt2: #5a7a90;
+  --txt3: #2a3f52;
+  --mono: 'Share Tech Mono', monospace;
+  --orb:  'Orbitron', sans-serif;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  font-family: var(--mono);
+  color: var(--txt);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body::before {
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:999;
+  background: repeating-linear-gradient(0deg,
+    transparent, transparent 2px, rgba(0,0,0,0.06) 2px, rgba(0,0,0,0.06) 3px);
+}
+
+.page { max-width:1300px; margin:0 auto; padding:14px 16px 60px; }
+
+/* ── HEADER ─────────────────────────── */
+header {
+  text-align:center; padding:16px 0 14px;
+  border-bottom:1px solid var(--b2); margin-bottom:16px; position:relative;
+}
+header::after {
+  content:''; position:absolute; bottom:-1px; left:20%; right:20%; height:2px;
+  background:linear-gradient(90deg,transparent,var(--p1),var(--p3),var(--p5),transparent);
+}
+.htag { font-size:8px; letter-spacing:6px; color:var(--txt3); margin-bottom:7px; }
+h1 {
+  font-family:var(--orb); font-weight:900;
+  font-size:clamp(15px,2.8vw,26px); letter-spacing:3px;
+  color:#fff; text-shadow:0 0 30px rgba(59,130,246,0.4);
+  margin-bottom:4px;
+}
+.hsub { font-size:10px; color:var(--txt2); letter-spacing:2px; }
+
+/* ── FASE BADGE ─────────────────────── */
+.phase-bar {
+  display:flex; gap:0; margin-bottom:14px;
+  border:1px solid var(--border); border-radius:3px; overflow:hidden;
+}
+.pbadge {
+  flex:1; text-align:center; padding:9px 6px;
+  font-family:var(--orb); font-size:8px; letter-spacing:2px;
+  color:var(--txt3); background:var(--panel);
+  border-right:1px solid var(--border);
+  transition:all 0.3s;
+}
+.pbadge:last-child { border-right:none; }
+.pbadge.active { color:#fff; }
+.pbadge.done   { opacity:0.45; }
+.pb0.active { background:rgba(168,85,247,0.12); color:#a855f7; border-bottom:2px solid #a855f7; }
+.pb1.active { background:rgba(59,130,246,0.12);  color:var(--p1); border-bottom:2px solid var(--p1); }
+.pb2.active { background:rgba(245,158,11,0.12); color:var(--p3); border-bottom:2px solid var(--p3); }
+
+/* ── CANVAS AREA ────────────────────── */
+.canvas-wrap {
+  background:var(--panel); border:1px solid var(--b2);
+  border-top:2px solid var(--b2);
+  border-radius:6px; overflow:hidden; margin-bottom:10px;
+}
+canvas { display:block; width:100%; cursor:default; }
+
+/* ── STEP DESCRIPTION ───────────────── */
+.step-desc {
+  background:var(--panel2);
+  border:1px solid var(--b2);
+  border-left:3px solid var(--p3);
+  border-radius:3px;
+  padding:12px 18px;
+  margin-bottom:10px;
+  min-height:60px;
+  transition:all 0.3s;
+}
+.step-num {
+  font-family:var(--orb); font-size:8px; letter-spacing:3px;
+  color:var(--txt3); margin-bottom:5px;
+}
+.step-title {
+  font-size:13px; font-weight:700; color:#fff; margin-bottom:4px; letter-spacing:1px;
+}
+.step-body {
+  font-size:11px; color:var(--txt2); line-height:1.7;
+}
+
+/* ── CONTROLS ───────────────────────── */
+.controls {
+  display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:14px;
+}
+.btn {
+  font-family:var(--orb); font-size:10px; letter-spacing:2px; font-weight:700;
+  padding:11px 22px; border-radius:3px; cursor:pointer; transition:all 0.18s;
+  border:2px solid; background:transparent;
+}
+.btn-next {
+  border-color:var(--p1); color:var(--p1);
+  font-size:12px; padding:12px 28px;
+}
+.btn-next:hover:not(:disabled) { background:var(--p1); color:var(--bg); box-shadow:0 0 20px rgba(59,130,246,0.4); }
+.btn-next:disabled { border-color:var(--border); color:var(--txt3); cursor:default; }
+.btn-reset { border-color:var(--b2); color:var(--txt2); }
+.btn-reset:hover { border-color:var(--txt2); color:var(--txt); }
+.spd-grp { display:flex; gap:4px; align-items:center; margin-left:auto; }
+.spd-lbl { font-size:9px; color:var(--txt3); letter-spacing:2px; }
+.spbtn {
+  background:var(--panel2); border:1px solid var(--border);
+  color:var(--txt3); font-family:var(--mono); font-size:10px;
+  padding:5px 12px; cursor:pointer; border-radius:2px; transition:all 0.15s;
+}
+.spbtn.on { border-color:var(--p3); color:var(--p3); }
+
+/* ── LOG ────────────────────────────── */
+.log-box {
+  background:var(--panel); border:1px solid var(--b2);
+  border-top:2px solid #22c55e;
+  border-radius:3px; padding:10px 14px;
+  max-height:140px; overflow-y:auto;
+  font-size:11px; line-height:1.8;
+}
+.log-box::-webkit-scrollbar { width:3px; }
+.log-box::-webkit-scrollbar-thumb { background:var(--b2); }
+.ll { animation:lf 0.25s ease; }
+@keyframes lf { from{opacity:0;transform:translateX(-4px)} to{opacity:1;transform:none} }
+.lt { color:var(--txt3); margin-right:8px; font-size:10px; }
+.lhs  { color:#a855f7; }
+.lreq { color:var(--p1); }
+.lres { color:var(--p3); }
+.lsys { color:var(--txt2); }
+.lok  { color:#22c55e; }
+.lkey { color:#f472b6; }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <div class="htag">// TELECOMUNICACIONES · SIMULACIÓN PASO A PASO</div>
+  <h1>PROTOCOLO HTTPS COMPLETO</h1>
+  <p class="hsub">Handshake TLS · Petición cifrada · Respuesta cifrada · Pulsa SIGUIENTE para avanzar (10 pasos)</p>
+</header>
+
+<div class="phase-bar">
+  <div class="pbadge pb0" id="pb0">① HANDSHAKE TLS  (5 pasos)</div>
+  <div class="pbadge pb1" id="pb1">② PETICIÓN CIFRADA  (2 pasos)</div>
+  <div class="pbadge pb2" id="pb2">③ RESPUESTA CIFRADA  (3 pasos)</div>
+</div>
+
+<div class="canvas-wrap">
+  <canvas id="cv" height="340"></canvas>
+</div>
+
+<div class="step-desc" id="stepDesc">
+  <div class="step-num">PASO 0 DE 10</div>
+  <div class="step-title">Listo para iniciar</div>
+  <div class="step-body">Pulsa SIGUIENTE para comenzar la simulación del protocolo HTTPS completo.</div>
+</div>
+
+<div class="controls">
+  <button class="btn btn-next" id="btnNext" onclick="nextStep()">SIGUIENTE →</button>
+  <button class="btn btn-reset" onclick="resetAll()">↺ REINICIAR</button>
+  <div class="spd-grp">
+    <span class="spd-lbl">ANIMACIÓN:</span>
+    <button class="spbtn on" id="sp1" onclick="setSpd(1)">LENTA</button>
+    <button class="spbtn"    id="sp2" onclick="setSpd(2)">NORMAL</button>
+    <button class="spbtn"    id="sp3" onclick="setSpd(3)">RÁPIDA</button>
+  </div>
+</div>
+
+<div class="log-box" id="logBox">
+  <div class="ll"><span class="lt">[00:00]</span><span class="lsys">Sistema listo. Pulsa SIGUIENTE para empezar.</span></div>
+</div>
+
+</div><!-- /page -->
+<script>
+// ═══════════════════════════════════════════════════
+// PANTALLAS (de derecha a izquierda como en la práctica)
+// P1=Navegador  P2=CifCli  P3=Canal  P4=CifSrv  P5=Servidor
+// ═══════════════════════════════════════════════════
+const SCREENS = [
+  { id:'P1', label:'NAVEGADOR',        color:'#3b82f6', role:'Texto en claro' },
+  { id:'P2', label:'CIFR. CLIENTE',    color:'#a855f7', role:'Claves cliente' },
+  { id:'P3', label:'CANAL CIFRADO',    color:'#f59e0b', role:'Sólo datos cifrados' },
+  { id:'P4', label:'CIFR. SERVIDOR',   color:'#10b981', role:'Claves servidor' },
+  { id:'P5', label:'SERVIDOR',         color:'#ef4444', role:'Texto en claro' },
+];
+// Índices: 0=P1(nav), 1=P2(cc), 2=P3(canal), 3=P4(cs), 4=P5(srv)
+
+// ═══════════════════════════════════════════════════
+// DEFINICIÓN DE PASOS
+// ═══════════════════════════════════════════════════
+// Cada paso:
+//   phase       : 0=handshake / 1=petición / 2=respuesta
+//   title       : título corto
+//   body        : explicación para el alumno
+//   logCls/logTxt: entrada en el log
+//   lcdText[5]  : texto que aparece en cada pantalla ('' = sin cambio, null = borrar)
+//   particle    : {from, to, label, color} — null si no hay movimiento
+//   highlight   : [indices] de pantallas a iluminar
+//   keyHighlight: id del indicador de clave a encender (o null)
+const STEPS = [
+
+  // ── HANDSHAKE ─────────────────────────────────────────────
+  {
+    phase:0, num:1,
+    title:'Paso 1 — Navegador solicita conexión segura al servidor',
+    body:'Todo empieza cuando el navegador quiere conectarse a una web con HTTPS. Envía un mensaje al servidor diciendo: "Quiero conectarme, ¿qué versión de TLS soportas?". Este mensaje se llama CLIENT HELLO. El servidor todavía no sabe quién es el cliente.',
+    logCls:'lhs', logTxt:'P1→P2→P3→P4→P5  CLIENT HELLO · Navegador solicita conexión HTTPS',
+    lcdText:['CLIENT\nHELLO\n>>> HTTPS?','CLIENT\nHELLO\n>>> enviando','CLIENT HELLO\n>>> viajando\n>>>>>>>','RECIBE\nCLIENT\nHELLO','RECIBE\nCLIENT\nHELLO ✓'],
+    particle:{ from:0, to:4, label:'CLIENT\nHELLO', color:'#3b82f6' },
+    highlight:[0,1,2,3,4],
+    keyHighlight:null,
+  },
+  {
+    phase:0, num:2,
+    title:'Paso 2 — Servidor responde con su CERTIFICADO y Clave Pública',
+    body:'El servidor responde con su certificado digital (SERVER HELLO). El certificado contiene su CLAVE PÚBLICA (0x5A). Esta clave puede verla cualquiera — es pública. El navegador la verificará contra una Autoridad de Certificación (CA) de confianza para asegurarse de que el servidor es legítimo.',
+    logCls:'lhs', logTxt:'P5→P4→P3→P2→P1  SERVER HELLO + Certificado servidor · Clave pública 0x5A',
+    lcdText:['RECIBE\nCERT.SRV\nPUB: 0x5A','VERIFICA\nCERT OK\nPUB: 0x5A','CERT SRV\n>>> 0x5A\n>>>>>>>','CLAVE PUB\n0x5A >>>\nSRVDOR','SERVER\nHELLO +\nCERT+PUB'],
+    particle:{ from:4, to:0, label:'SERVER HELLO\nPUB: 0x5A', color:'#10b981' },
+    highlight:[0,1,2,3,4],
+    keyHighlight:'kr-pubs',
+  },
+  {
+    phase:0, num:3,
+    title:'Paso 3 — Navegador genera la CLAVE AES de sesión',
+    body:'El navegador genera aleatoriamente una clave secreta de sesión (AES 0x3C). Esta clave servirá para cifrar todos los datos de la sesión. Pero primero hay que enviarla al servidor de forma segura: se cifra con la clave pública del servidor (0x3C ⊕ 0x5A = 0x66) para que SÓLO él pueda descifrarla.',
+    logCls:'lhs', logTxt:'P1/P2  Genera clave AES 0x3C · Cifra con PUB servidor → 0x3C⊕0x5A=0x66',
+    lcdText:['GENERA\nCLAVE AES\n0x3C','CIFRA AES\nCON PUB SRV\n0x3C⊕0x5A=0x66','','',''],
+    particle:null,
+    highlight:[0,1],
+    keyHighlight:'kr-aes',
+  },
+  {
+    phase:0, num:4,
+    title:'Paso 4 — Clave AES cifrada viaja al servidor',
+    body:'La clave AES cifrada (0x66) viaja por el canal. Si alguien la intercepta solo ve 0x66 — inútil sin la clave privada del servidor. Al llegar, el servidor la descifra con su CLAVE PRIVADA (0x66 ⊕ 0xA5 = 0x3C) y obtiene la clave de sesión. Ahora ambos tienen la misma clave AES.',
+    logCls:'lhs', logTxt:'P2→P3→P4  Clave AES cifrada 0x66 · Servidor descifra con PRIV 0xA5 → obtiene 0x3C',
+    lcdText:['','ENVIA AES\nCIFRADA\n0x66 >>>','AES CIFRADA\n>>> 0x66 >>>\n>>>>>>>>','DESCIFRA\nCON PRIV\n0x66⊕0xA5=0x3C','RECIBE\nCLAVE AES\n0x3C'],
+    particle:{ from:1, to:4, label:'AES CIFRADA\n0x66', color:'#a855f7' },
+    highlight:[1,2,3,4],
+    keyHighlight:'kr-privs',
+  },
+  {
+    phase:0, num:5,
+    title:'Paso 5 — Canal seguro establecido ✓',
+    body:'¡Handshake completado! Navegador y servidor tienen la misma clave AES (0x3C) sin que nadie más la haya podido ver. A partir de aquí TODOS los datos viajarán cifrados con esta clave simétrica. P2 y P4 la muestran permanentemente durante toda la sesión.',
+    logCls:'lok', logTxt:'HANDSHAKE COMPLETO ✓ · Ambos tienen clave AES 0x3C · Canal HTTPS establecido',
+    lcdText:['CANAL\nSEGURO OK\nHTTPS ✓','SESION AES\nACTIVA\nCLAVE: 0x3C','CANAL TLS\nESTABLECIDO\n✓ SEGURO','SESION AES\nACTIVA\nCLAVE: 0x3C','CANAL\nSEGURO OK\nHTTPS ✓'],
+    particle:null,
+    highlight:[0,1,2,3,4],
+    keyHighlight:'kr-aes',
+  },
+
+  // ── PETICIÓN ──────────────────────────────────────────────
+  {
+    phase:1, num:6,
+    title:'Paso 6 — Navegador cifra y envía la petición',
+    body:'El navegador quiere preguntar "dime la hora que es". P2 la cifra con la clave AES de sesión (0x3C). El resultado son bytes incomprensibles que viajan por P3. Solo quien tiene la clave 0x3C puede descifrarlos — en este caso, el servidor.',
+    logCls:'lreq', logTxt:'P1→P2→P3  "dime la hora que es" cifrada con AES 0x3C → viaja por canal',
+    lcdText:['PREGUNTA\n(CLARO):\ndime la hora','CIFRA CON\nAES 0x3C\n>>> ENVIANDO','3E 1A 7F 2C\n9B 4D 8A 11\nCIFRADO >>>','',''],
+    particle:{ from:1, to:3, label:'PETICION\nCIFRADA AES', color:'#3b82f6' },
+    highlight:[0,1,2,3],
+    keyHighlight:'kr-aes',
+  },
+  {
+    phase:1, num:7,
+    title:'Paso 7 — Servidor recibe la petición en claro',
+    body:'La petición cifrada llega a P4 que la descifra con la clave AES 0x3C. El servidor (P5) recibe la pregunta original en texto claro: "dime la hora que es". El servidor procesa la petición y prepara la respuesta.',
+    logCls:'lreq', logTxt:'P4→P5  Descifra AES 0x3C → "dime la hora que es" en claro · Procesando...',
+    lcdText:['','','','DESCIFRA\nAES 0x3C\n<<< OK','RECIBE:\ndime la hora\nque es ✓'],
+    particle:{ from:3, to:4, label:'DESCIFRADA\nen claro', color:'#10b981' },
+    highlight:[3,4],
+    keyHighlight:'kr-aes',
+  },
+
+  // ── RESPUESTA ─────────────────────────────────────────────
+  {
+    phase:2, num:8,
+    title:'Paso 8 — Servidor genera y cifra la respuesta',
+    body:'El servidor genera la respuesta: "son las 14:32:07". P4 la cifra con la misma clave AES de sesión (0x3C). El resultado viaja cifrado por el canal P3 — exactamente el mismo mecanismo que la petición, pero en sentido contrario.',
+    logCls:'lres', logTxt:'P5→P4→P3  "son las 14:32:07" cifrada con AES 0x3C → viaja por canal',
+    lcdText:['','','<<< 7C 2B 9A\n<<< F3 1E 44\n<<< CIFRADO','CIFRA CON\nAES 0x3C\n<<< ENVIANDO','RESPUESTA\n(CLARO):\nson las 14:32'],
+    particle:{ from:3, to:1, label:'RESPUESTA\nCIFRADA AES', color:'#ef4444' },
+    highlight:[1,2,3,4],
+    keyHighlight:'kr-aes',
+  },
+  {
+    phase:2, num:9,
+    title:'Paso 9 — Respuesta viaja cifrada hacia el navegador',
+    body:'Los bytes cifrados cruzan el canal P3 de derecha a izquierda. Cualquiera que escuche el tráfico solo ve bytes sin sentido. Al llegar, P2 los descifra con la clave AES 0x3C.',
+    logCls:'lres', logTxt:'P3→P2  Respuesta cifrada cruzando canal ← ← ← · P2 descifrando con AES 0x3C',
+    lcdText:['','DESCIFRA\nAES 0x3C\n<<< OK','<<< CIFRADO\n<<< VIAJANDO\n<<< <<<','',''],
+    particle:{ from:1, to:0, label:'LLEGANDO\nal nav.', color:'#f59e0b' },
+    highlight:[0,1,2],
+    keyHighlight:'kr-aes',
+  },
+  {
+    phase:2, num:10,
+    title:'Paso 10 — Navegador muestra la respuesta en claro ✓',
+    body:'¡Ciclo HTTPS completado! P1 muestra la respuesta en texto claro: "son las 14:32:07". En ningún momento viajó texto legible por el canal P3 — solo datos cifrados. Este es exactamente el mecanismo que protege cada página web que visitas a diario.',
+    logCls:'lok', logTxt:'CICLO HTTPS COMPLETADO ✓ · P1 muestra: "son las 14:32:07" en claro',
+    lcdText:['RESPUESTA:\nson las\n14:32:07 ✓','SESION AES\nACTIVA\nCLAVE: 0x3C','CANAL TLS\nSEGURO\n✓ HTTPS','SESION AES\nACTIVA\nCLAVE: 0x3C','ENVIADO ✓\nRESPUESTA\nCOMPLETA'],
+    particle:null,
+    highlight:[0,1,2,3,4],
+    keyHighlight:'kr-aes',
+  },
+];
+
+// ═══════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════
+let step       = -1;   // paso actual (-1 = estado inicial)
+let animating  = false;
+let spd        = 1;    // 1=lenta 2=normal 3=rápida
+let rafId      = null;
+
+// Estado de cada pantalla LCD: { line1, line2, line3, lit, color }
+let lcds = SCREENS.map(s => ({ lines:['','',''], lit:false, color:s.color }));
+
+// Partícula volando
+let particle   = null;  // { x, y, tx, ty, sx, sy, label, color, prog, done }
+
+// ═══════════════════════════════════════════════════
+// CANVAS SETUP
+// ═══════════════════════════════════════════════════
+const cv  = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+let W, H;
+let LCD   = [];  // posiciones y tamaños calculados de cada LCD
+
+const LCD_W = 170;
+const LCD_H = 140;
+const LCD_Y_CENTER = 0;  // se calcula al resize
+
+function resize() {
+  W = cv.parentElement.clientWidth;
+  H = 340;
+  cv.width  = W;
+  cv.height = H;
+  layoutLCDs();
+}
+
+function layoutLCDs() {
+  // 5 LCDs espaciados uniformemente en horizontal
+  // Orden: P1 (derecha) ... P5 (izquierda)  →  índice 0 a la derecha
+  const totalLCDs = SCREENS.length;
+  const usableW = W - 40;
+  const spacing  = usableW / totalLCDs;
+  const lw = Math.min(LCD_W, spacing - 20);
+  const lh = LCD_H;
+  const ly = H / 2 - lh / 2 - 20;
+
+  LCD = SCREENS.map((_, i) => {
+    // i=0 es P1 (navegador, DERECHA) → lo ponemos a la derecha
+    // Así: índice 0 → posición más a la derecha
+    const pos = totalLCDs - 1 - i; // invertir para que P1 quede a la derecha
+    const cx  = 20 + spacing * pos + spacing / 2;
+    return { cx, cy: ly + lh / 2, x: cx - lw / 2, y: ly, w: lw, h: lh };
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// DRAW
+// ═══════════════════════════════════════════════════
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+
+  // Fondo
+  ctx.fillStyle = '#0d1117';
+  ctx.fillRect(0, 0, W, H);
+
+  // Grid sutil
+  ctx.strokeStyle = 'rgba(30,45,64,0.5)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 50) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+  }
+  for (let y = 0; y < H; y += 50) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+
+  // Cables de conexión entre LCDs
+  drawWires();
+
+  // Las 5 pantallas LCD
+  LCD.forEach((lcd, i) => drawLCD(lcd, i));
+
+  // Partícula
+  if (particle && !particle.done) drawParticle();
+
+  // Etiquetas de fase debajo
+  drawPhaseZones();
+}
+
+function drawWires() {
+  for (let i = 0; i < LCD.length - 1; i++) {
+    const a = LCD[i];
+    const b = LCD[i + 1];
+    const col = SCREENS[i].color;
+    const col2 = SCREENS[i + 1].color;
+    const ax = a.cx + a.w / 2;
+    const bx = b.cx - b.w / 2 + b.w;
+    const y  = a.cy;
+
+    // Cable entre pantallas
+    const g = ctx.createLinearGradient(ax, 0, bx, 0);
+    g.addColorStop(0, col + '40');
+    g.addColorStop(1, col2 + '40');
+    ctx.strokeStyle = g;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 8]);
+    ctx.beginPath();
+    ctx.moveTo(ax + 4, y);
+    ctx.lineTo(bx - 4, y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Flechas en el cable
+    const mx = (ax + bx) / 2;
+    ctx.fillStyle = col + '50';
+    ctx.beginPath();
+    ctx.moveTo(mx, y - 4);
+    ctx.lineTo(mx + 6, y);
+    ctx.lineTo(mx, y + 4);
+    ctx.fill();
+  }
+}
+
+function drawLCD(lcd, i) {
+  const s   = SCREENS[i];
+  const d   = lcds[i];
+  const lit = d.lit;
+  const col = s.color;
+
+  // 1. Glow exterior del borde — SOLO en ctx.shadowBlur, sin texto
+  ctx.save();
+  if (lit) { ctx.shadowColor = col; ctx.shadowBlur = 18; }
+  // Cuerpo
+  ctx.fillStyle   = lit ? '#1a2035' : '#0d1117';
+  ctx.strokeStyle = lit ? col : col + '55';
+  ctx.lineWidth   = lit ? 2.5 : 1;
+  roundRect(ctx, lcd.x, lcd.y, lcd.w, lcd.h, 6);
+  ctx.fill(); ctx.stroke();
+  ctx.restore(); // limpia shadowBlur
+
+  // 2. Barra de título (color sólido, SIN shadow)
+  ctx.save();
+  ctx.fillStyle = lit ? col : col + '22';
+  roundRect(ctx, lcd.x, lcd.y, lcd.w, 28, 6, true);
+  ctx.fill();
+  ctx.restore();
+
+  // 3. Texto de la barra de título — blanco limpio, SIN shadow
+  ctx.save();
+  ctx.shadowBlur = 0;
+  ctx.font = `bold 9px 'Orbitron', sans-serif`;
+  ctx.fillStyle = lit ? '#ffffff' : col + 'aa';
+  ctx.textAlign = 'center';
+  ctx.fillText(s.id + '  ' + s.label, lcd.cx, lcd.y + 18);
+  ctx.restore();
+
+  // 4. Línea separadora
+  ctx.save();
+  ctx.strokeStyle = lit ? col + '80' : col + '25';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(lcd.x + 8, lcd.y + 30);
+  ctx.lineTo(lcd.x + lcd.w - 8, lcd.y + 30);
+  ctx.stroke();
+  ctx.restore();
+
+  // 5. Texto de contenido — fondo oscuro, texto blanco puro, SIN shadow
+  const lines  = d.lines;
+  const areaH  = lcd.h - 34;
+  const lineH  = areaH / 3;
+  ctx.save();
+  ctx.shadowBlur = 0;
+  ctx.textAlign  = 'center';
+  lines.forEach((line, li) => {
+    if (!line) return;
+    const ty = lcd.y + 34 + li * lineH + lineH * 0.6;
+    // Píldora de fondo para cada línea con texto
+    const tw = ctx.measureText(line).width + 16;
+    const th = 16;
+    const tx = lcd.cx - tw / 2;
+    const tyb = ty - 12;
+    ctx.fillStyle = lit ? col + '28' : '#ffffff08';
+    ctx.beginPath();
+    ctx.roundRect(tx, tyb, tw, th, 3);
+    ctx.fill();
+    // Texto blanco limpio
+    ctx.font = `bold 10px 'Share Tech Mono', monospace`;
+    ctx.fillStyle = lit ? '#ffffff' : col + '70';
+    ctx.fillText(line, lcd.cx, ty);
+  });
+  ctx.restore();
+
+  // 6. Cursor parpadeante si activo
+  if (lit) {
+    const blinkOn = Math.floor(Date.now() / 600) % 2 === 0;
+    if (blinkOn) {
+      ctx.fillStyle = col;
+      ctx.fillRect(lcd.x + lcd.w - 14, lcd.y + lcd.h - 10, 8, 3);
+    }
+  }
+
+  // 7. Rol debajo — sin shadow
+  ctx.save();
+  ctx.shadowBlur = 0;
+  ctx.font = `8px 'Share Tech Mono', monospace`;
+  ctx.fillStyle = lit ? col + '90' : col + '35';
+  ctx.textAlign = 'center';
+  ctx.fillText(s.role, lcd.cx, lcd.y + lcd.h + 15);
+  ctx.restore();
+}
+
+function drawParticle() {
+  const p = particle;
+  const col = p.color;
+
+  // Halo
+  const g = ctx.createRadialGradient(p.x, p.y, 2, p.x, p.y, 22);
+  g.addColorStop(0, col + 'cc');
+  g.addColorStop(1, 'transparent');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(p.x, p.y, 22, 0, Math.PI * 2); ctx.fill();
+
+  // Bola principal
+  ctx.beginPath(); ctx.arc(p.x, p.y, 9, 0, Math.PI * 2);
+  ctx.fillStyle = col;
+  ctx.shadowColor = col; ctx.shadowBlur = 20;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Punto interior blanco
+  ctx.beginPath(); ctx.arc(p.x, p.y, 3.5, 0, Math.PI * 2);
+  ctx.fillStyle = '#ffffff';
+  ctx.fill();
+
+  // Etiqueta encima
+  if (p.label) {
+    const lines   = p.label.split('\n');
+    const fw      = 110;
+    const fh      = lines.length * 14 + 10;
+    const bx      = p.x - fw / 2;
+    const by      = p.y - 28 - fh;
+
+    ctx.fillStyle   = '#0a0f1aee';
+    ctx.strokeStyle = col + 'cc';
+    ctx.lineWidth   = 1.5;
+    ctx.shadowColor = col; ctx.shadowBlur = 8;
+    roundRect(ctx, bx, by, fw, fh, 4);
+    ctx.fill(); ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    ctx.font      = `bold 10px 'Share Tech Mono', monospace`;
+    ctx.fillStyle = col;
+    ctx.textAlign = 'center';
+    lines.forEach((line, li) => {
+      ctx.fillText(line, p.x, by + 14 + li * 14);
+    });
+
+    // Flecha hacia la bola
+    ctx.fillStyle = col + 'cc';
+    ctx.beginPath();
+    ctx.moveTo(p.x - 5, by + fh);
+    ctx.lineTo(p.x + 5, by + fh);
+    ctx.lineTo(p.x, by + fh + 7);
+    ctx.fill();
+  }
+}
+
+function drawPhaseZones() {
+  // Zona de etiquetas de tecla debajo de los LCDs
+  const keyItems = [
+    { id:'kr-pubs',  label:'CLAVE PÚBLICA SERVIDOR',  val:'0x5A', color:'#10b981' },
+    { id:'kr-privs', label:'CLAVE PRIVADA SERVIDOR',   val:'0xA5', color:'#ef4444' },
+    { id:'kr-aes',   label:'CLAVE AES SESIÓN',         val:'0x3C', color:'#f59e0b' },
+  ];
+  const ky = H - 32;
+  const kw = W / keyItems.length;
+  keyItems.forEach((k, i) => {
+    const cx = kw * i + kw / 2;
+    const active = activeKey === k.id;
+    ctx.font = `${active ? 'bold' : ''} 9px 'Share Tech Mono', monospace`;
+    ctx.fillStyle = active ? k.color : k.color + '40';
+    ctx.textAlign = 'center';
+    ctx.shadowColor = active ? k.color : 'transparent';
+    ctx.shadowBlur  = active ? 8 : 0;
+    ctx.fillText(`// ${k.label}: ${k.val}`, cx, ky);
+    ctx.shadowBlur = 0;
+  });
+}
+
+let activeKey = null;
+
+// ═══════════════════════════════════════════════════
+// ANIMATION LOOP
+// ═══════════════════════════════════════════════════
+let lastTime = 0;
+function animLoop(ts) {
+  const dt = ts - lastTime;
+  lastTime = ts;
+
+  if (particle && !particle.done) {
+    const speed = spd * 0.0035 * (dt / 16);
+    particle.prog = Math.min(1, particle.prog + speed);
+
+    // Bezier suave con arco leve
+    const t2 = particle.prog;
+    const mt = 1 - t2;
+    const cpx = (particle.sx + particle.tx) / 2;
+    const cpy = (particle.sy + particle.ty) / 2 - 30;
+    particle.x = mt * mt * particle.sx + 2 * mt * t2 * cpx + t2 * t2 * particle.tx;
+    particle.y = mt * mt * particle.sy + 2 * mt * t2 * cpy + t2 * t2 * particle.ty;
+
+    if (particle.prog >= 1) {
+      particle.done = true;
+      onParticleDone();
+    }
+  }
+
+  draw();
+  if (animating) rafId = requestAnimationFrame(animLoop);
+}
+
+function onParticleDone() {
+  // Cuando la partícula llega, activar la pantalla de destino
+  const s = STEPS[step];
+  if (s.particle) {
+    lcds[s.particle.to].lit = true;
+  }
+  // Desbloquear botón siguiente
+  animating = false;
+  document.getElementById('btnNext').disabled = false;
+}
+
+// ═══════════════════════════════════════════════════
+// STEP LOGIC
+// ═══════════════════════════════════════════════════
+function nextStep() {
+  if (animating) return;
+  step++;
+  if (step >= STEPS.length) return;
+
+  const s = STEPS[step];
+  document.getElementById('btnNext').disabled = true;
+
+  // Update phase badges
+  updatePhase(s.phase);
+
+  // Update LCD texts
+  if (s.lcdText) {
+    s.lcdText.forEach((txt, i) => {
+      if (txt !== '') {
+        lcds[i].lines = txt ? txt.split('\n') : ['', '', ''];
+      }
+    });
+  }
+
+  // Highlight screens
+  lcds.forEach((lcd, i) => {
+    lcd.lit = s.highlight.includes(i);
+  });
+
+  // Active key
+  activeKey = s.keyHighlight;
+
+  // Update description panel
+  updateDesc(s);
+
+  // Log
+  addLog(s.logCls, s.logTxt);
+
+  // Spawn particle or finish immediately
+  if (s.particle) {
+    const fromLCD = LCD[s.particle.from];
+    const toLCD   = LCD[s.particle.to];
+    const startX  = s.particle.from < s.particle.to
+      ? fromLCD.cx - fromLCD.w / 2
+      : fromLCD.cx + fromLCD.w / 2;
+    const endX    = s.particle.from < s.particle.to
+      ? toLCD.cx + toLCD.w / 2
+      : toLCD.cx - toLCD.w / 2;
+
+    particle = {
+      x: startX, y: fromLCD.cy,
+      sx: startX, sy: fromLCD.cy,
+      tx: endX,   ty: toLCD.cy,
+      label: s.particle.label,
+      color: s.particle.color,
+      prog: 0, done: false,
+    };
+    animating = true;
+    lastTime  = performance.now();
+    rafId     = requestAnimationFrame(animLoop);
+  } else {
+    // Sin partícula — dibujar directo y desbloquear
+    particle  = null;
+    animating = false;
+    draw();
+    // Pequeño delay antes de desbloquear para que el alumno lea
+    setTimeout(() => {
+      document.getElementById('btnNext').disabled = false;
+    }, 200);
+  }
+
+  // Último paso
+  if (step === STEPS.length - 1) {
+    document.getElementById('btnNext').textContent = 'FIN ✓';
+    document.getElementById('btnNext').style.borderColor = '#22c55e';
+    document.getElementById('btnNext').style.color = '#22c55e';
+    setTimeout(() => document.getElementById('btnNext').disabled = true, 500);
+  }
+}
+
+function updateDesc(s) {
+  const el = document.getElementById('stepDesc');
+  el.style.borderLeftColor = s.phase === 0 ? '#a855f7' : s.phase === 1 ? '#3b82f6' : '#f59e0b';
+  el.innerHTML = `
+    <div class="step-num">PASO ${s.num} DE ${STEPS.length} — FASE: ${['HANDSHAKE TLS','PETICIÓN CIFRADA','RESPUESTA CIFRADA'][s.phase]}</div>
+    <div class="step-title">${s.title}</div>
+    <div class="step-body">${s.body}</div>
+  `;
+}
+
+function updatePhase(ph) {
+  [0, 1, 2].forEach(i => {
+    const el = document.getElementById('pb' + i);
+    el.classList.remove('active', 'done');
+    if (i < ph)      el.classList.add('done');
+    else if (i === ph) el.classList.add('active');
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// CONTROLS
+// ═══════════════════════════════════════════════════
+function resetAll() {
+  animating = false;
+  if (rafId) cancelAnimationFrame(rafId);
+  step     = -1;
+  particle = null;
+  activeKey = null;
+  lcds = SCREENS.map(s => ({ lines:['','',''], lit:false, color:s.color }));
+
+  [0,1,2].forEach(i => {
+    const el = document.getElementById('pb'+i);
+    el.classList.remove('active','done');
+  });
+
+  const nb = document.getElementById('btnNext');
+  nb.disabled    = false;
+  nb.textContent = 'SIGUIENTE →';
+  nb.style.borderColor = '';
+  nb.style.color = '';
+
+  document.getElementById('stepDesc').innerHTML = `
+    <div class="step-num">PASO 0 DE 10</div>
+    <div class="step-title">Listo para iniciar</div>
+    <div class="step-body">Pulsa SIGUIENTE para comenzar la simulación del protocolo HTTPS completo.</div>
+  `;
+
+  const log = document.getElementById('logBox');
+  log.innerHTML = '<div class="ll"><span class="lt">[00:00]</span><span class="lsys">Sistema reiniciado. Pulsa SIGUIENTE para empezar.</span></div>';
+
+  resize(); draw();
+}
+
+function setSpd(s) {
+  spd = s;
+  [1,2,3].forEach(i => document.getElementById('sp'+i).classList.toggle('on', i === s));
+}
+
+function addLog(cls, txt) {
+  const box = document.getElementById('logBox');
+  const now = new Date();
+  const ts  = `${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+  const d   = document.createElement('div');
+  d.className = 'll';
+  d.innerHTML = `<span class="lt">[${ts}]</span><span class="${cls}">${txt}</span>`;
+  box.appendChild(d);
+  box.scrollTop = box.scrollHeight;
+  while (box.children.length > 50) box.removeChild(box.children[0]);
+}
+
+// ═══════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════
+function roundRect(ctx, x, y, w, h, r, topOnly) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  if (topOnly) {
+    ctx.lineTo(x + w, y + h);
+    ctx.lineTo(x, y + h);
+  } else {
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  }
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+// ═══════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════
+window.addEventListener('resize', () => { resize(); draw(); });
+resize();
+
+// Loop de parpadeo idle (sin partícula)
+function idleLoop() {
+  if (!animating) draw();
+  requestAnimationFrame(idleLoop);
+}
+idleLoop();
+</script>
+</body>
+</html>
