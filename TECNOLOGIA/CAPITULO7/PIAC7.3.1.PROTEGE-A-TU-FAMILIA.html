@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PIAC7.3.1 · Protege a tu Familia</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#06080f; --panel:#0a1020; --panel2:#0e1830;
+  --border:#1a2840; --border2:#243858;
+  --cyan:#00c8f0; --cyan2:#00e8ff; --cyandim:rgba(0,200,240,0.15);
+  --green:#00e060; --greendim:rgba(0,224,96,0.12);
+  --yellow:#ffd700; --red:#ff3366; --reddim:rgba(255,51,102,0.12);
+  --purple:#aa44ff;
+  --text:#b0d0e8; --text2:#406880; --white:#e8f4ff;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:'Share Tech Mono',monospace;min-height:100vh;overflow-x:hidden;
+}
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:999;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.05) 2px,rgba(0,0,0,0.05) 3px);
+}
+.page{
+  position:relative;z-index:1;
+  max-width:860px;margin:0 auto;padding:22px 14px 60px;
+}
+header{text-align:center;margin-bottom:26px;}
+.htag{font-size:11px;color:var(--cyan);letter-spacing:3px;text-transform:uppercase;margin-bottom:8px;}
+h1{
+  font-family:'Nunito',sans-serif;
+  font-size:clamp(22px,5vw,38px);font-weight:900;color:var(--white);
+  margin-bottom:8px;
+}
+h1 .hi{color:var(--cyan);}
+h1 .hi2{color:var(--green);}
+.hsub{font-size:13px;color:var(--text2);line-height:1.6;}
+
+/* SCORE */
+.score-bar{
+  display:flex;justify-content:space-between;align-items:center;
+  background:var(--panel);border:1px solid var(--border2);border-radius:10px;
+  padding:12px 18px;margin-bottom:20px;flex-wrap:wrap;gap:10px;
+}
+.sc-item{text-align:center;}
+.sc-label{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:3px;}
+.sc-val{font-family:'Nunito',sans-serif;font-size:22px;font-weight:900;color:var(--yellow);}
+.sc-val.g{color:var(--green);}
+.sc-val.r{color:var(--red);}
+.sc-val.c{color:var(--cyan);}
+
+/* PROGRESS */
+.prog-wrap{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px 18px;margin-bottom:20px;}
+.prog-top{display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:7px;}
+.prog-track{height:5px;background:var(--border);border-radius:4px;overflow:hidden;}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--green));border-radius:4px;transition:width 0.5s;}
+
+/* PHASE NAV - topic indicator */
+.topic-badge{
+  display:inline-block;background:var(--cyandim);border:1px solid var(--cyan);
+  border-radius:6px;padding:5px 14px;font-size:11px;color:var(--cyan);
+  letter-spacing:2px;text-transform:uppercase;margin-bottom:20px;
+}
+
+/* QUESTION CARD */
+.q-card{
+  background:var(--panel);border:1px solid var(--border2);border-radius:14px;
+  padding:26px 22px;margin-bottom:18px;
+}
+.q-num{font-size:11px;color:var(--cyan);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;}
+.q-icon{font-size:36px;margin-bottom:10px;}
+.q-text{
+  font-family:'Nunito',sans-serif;font-size:clamp(16px,3vw,20px);font-weight:800;
+  color:var(--white);line-height:1.4;margin-bottom:8px;
+}
+.q-ctx{font-size:12px;color:var(--text2);line-height:1.6;margin-top:6px;}
+
+/* OPTIONS */
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;}
+@media(max-width:540px){.opts{grid-template-columns:1fr;}}
+.opt{
+  background:var(--panel2);border:2px solid var(--border2);border-radius:10px;
+  padding:15px 16px;color:var(--text);font-family:'Share Tech Mono',monospace;font-size:13px;
+  line-height:1.5;cursor:pointer;text-align:left;transition:all 0.2s;display:flex;gap:10px;align-items:flex-start;
+}
+.opt:hover:not(:disabled){border-color:var(--cyan);background:var(--cyandim);transform:translateY(-2px);}
+.opt .ltr{font-family:'Nunito',sans-serif;font-weight:900;font-size:16px;color:var(--cyan);min-width:20px;}
+.opt.correct{border-color:var(--green);background:var(--greendim);color:var(--white);}
+.opt.correct .ltr{color:var(--green);}
+.opt.wrong{border-color:var(--red);background:var(--reddim);}
+.opt.wrong .ltr{color:var(--red);}
+.opt:disabled{cursor:default;transform:none;}
+
+/* FEEDBACK */
+.fb{border-radius:10px;padding:14px 18px;font-size:13px;line-height:1.6;margin-bottom:16px;display:none;}
+.fb.show{display:block;}
+.fb.ok{background:var(--greendim);border:1px solid var(--green);color:var(--green);}
+.fb.fail{background:var(--reddim);border:1px solid var(--red);color:#ffaacc;}
+.fb-icon{font-size:18px;margin-bottom:5px;}
+
+/* NEXT BTN */
+.btn-next{
+  background:linear-gradient(135deg,var(--cyan),#0080a0);border:none;border-radius:10px;
+  padding:15px 28px;color:var(--bg);font-family:'Nunito',sans-serif;font-size:16px;
+  font-weight:900;cursor:pointer;width:100%;transition:all 0.2s;display:none;letter-spacing:1px;
+}
+.btn-next:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,200,240,0.3);}
+.btn-next.show{display:block;}
+
+/* RESULTS */
+.results-card{display:none;background:var(--panel);border:1px solid var(--border2);border-radius:16px;padding:36px 24px;text-align:center;}
+.results-card.show{display:block;}
+.res-emoji{font-size:52px;margin-bottom:14px;}
+.res-title{font-family:'Nunito',sans-serif;font-size:26px;font-weight:900;color:var(--white);margin-bottom:8px;}
+.res-sub{font-size:13px;color:var(--text2);margin-bottom:24px;line-height:1.6;}
+.res-stats{display:flex;justify-content:center;gap:20px;flex-wrap:wrap;margin-bottom:28px;}
+.stat{background:var(--panel2);border:1px solid var(--border2);border-radius:8px;padding:14px 20px;min-width:100px;}
+.stat-v{font-family:'Nunito',sans-serif;font-size:28px;font-weight:900;color:var(--yellow);}
+.stat-l{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;}
+.btn-restart{
+  background:var(--panel2);border:2px solid var(--cyan);border-radius:10px;
+  padding:12px 28px;color:var(--cyan);font-family:'Nunito',sans-serif;font-size:16px;
+  font-weight:900;cursor:pointer;transition:all 0.2s;
+}
+.btn-restart:hover{background:var(--cyan);color:var(--bg);}
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div class="htag">// SEGURIDAD INFORMÁTICA · TEORÍA 7.3</div>
+    <h1>🛡️ <span class="hi">Protege</span> a tu <span class="hi2">Familia</span></h1>
+    <p class="hsub">Conoce los peligros digitales para niños y adolescentes y aprende a prevenirlos</p>
+  </header>
+
+  <div class="score-bar">
+    <div class="sc-item"><div class="sc-label">Puntos</div><div class="sc-val" id="scoreDisplay">0</div></div>
+    <div class="sc-item"><div class="sc-label">Aciertos</div><div class="sc-val g" id="correctDisplay">0</div></div>
+    <div class="sc-item"><div class="sc-label">Fallos</div><div class="sc-val r" id="wrongDisplay">0</div></div>
+    <div class="sc-item"><div class="sc-label">Pregunta</div><div class="sc-val c" id="qNumDisplay">1/9</div></div>
+  </div>
+
+  <div class="prog-wrap">
+    <div class="prog-top"><span>Progreso</span><span id="pctLbl">0%</span></div>
+    <div class="prog-track"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+  </div>
+
+  <div id="gameArea">
+    <div class="topic-badge" id="topicBadge">Tema</div>
+
+    <div class="q-card" id="qCard">
+      <div class="q-num" id="qNum">PREGUNTA 1 DE 9</div>
+      <div class="q-icon" id="qIcon"></div>
+      <div class="q-text" id="qText"></div>
+      <div class="q-ctx" id="qCtx"></div>
+    </div>
+
+    <div class="opts" id="optsGrid"></div>
+    <div class="fb" id="fbBox"><div class="fb-icon" id="fbIcon"></div><div id="fbText"></div></div>
+    <button class="btn-next" id="btnNext" onclick="nextQ()">SIGUIENTE →</button>
+  </div>
+
+  <div class="results-card" id="resultsCard">
+    <div class="res-emoji" id="resEmoji"></div>
+    <div class="res-title" id="resTitle"></div>
+    <div class="res-sub" id="resSub"></div>
+    <div class="res-stats">
+      <div class="stat"><div class="stat-v" id="resScore"></div><div class="stat-l">Puntos</div></div>
+      <div class="stat"><div class="stat-v" id="resCorrect"></div><div class="stat-l">Aciertos</div></div>
+      <div class="stat"><div class="stat-v" id="resPct"></div><div class="stat-l">Del máximo</div></div>
+    </div>
+    <button class="btn-restart" onclick="restartGame()">↩ REINICIAR</button>
+  </div>
+</div>
+
+<script>
+const QS = [
+  {
+    icon:'😢',topic:'Ciberacoso',
+    text:'¿Qué es el ciberacoso (cyberbullying)?',
+    ctx:'Afecta a millones de niños y adolescentes en todo el mundo a través de las redes sociales.',
+    opts:['Jugar demasiado tiempo a videojuegos en línea','Insultos, amenazas o humillaciones a través de redes sociales, juegos o mensajes','Compartir demasiadas fotos en redes sociales','Ver vídeos inapropiados en YouTube'],
+    correct:1,
+    feedback:'✅ El ciberacoso son insultos, amenazas o humillaciones digitales. Puede ocurrir en redes sociales, juegos online o grupos de mensajería. Es igual de dañino que el acoso presencial.'
+  },
+  {
+    icon:'🎭',topic:'Grooming',
+    text:'¿Qué es el "grooming"?',
+    ctx:'Es una de las amenazas más peligrosas para los menores en Internet.',
+    opts:['Compartir memes divertidos con amigos','Un tipo de corte de pelo muy de moda','Adultos que se hacen pasar por jóvenes para ganarse su confianza y manipularlos','Un juego online popular entre adolescentes'],
+    correct:2,
+    feedback:'✅ El grooming es cuando un adulto finge ser joven en Internet para ganarse la confianza de un menor y manipularlo o abusar de él. Es un delito muy grave.'
+  },
+  {
+    icon:'📸',topic:'Sexting',
+    text:'¿Qué riesgo tiene el "sexting" (enviar imágenes íntimas)?',
+    ctx:'Muchos jóvenes no son conscientes de las consecuencias de compartir estas imágenes.',
+    opts:['Ninguno, si se envía a alguien de confianza','La imagen puede difundirse sin permiso, causando daño grave y permanente','Solo es peligroso si se envía a desconocidos','El riesgo es mínimo si se usa una app con mensajes que se autodestruyen'],
+    correct:1,
+    feedback:'✅ Una imagen íntima enviada "en confianza" puede difundirse sin control. Esto causa daño psicológico severo y puede tener consecuencias legales. Una vez enviada, pierdes el control.'
+  },
+  {
+    icon:'💭',topic:'Autoestima digital',
+    text:'¿Por qué las redes sociales pueden afectar la autoestima de los adolescentes?',
+    ctx:'El "filtro" de perfección que muestran las redes tiene un impacto real en el bienestar mental.',
+    opts:['Porque tienen demasiados anuncios','Porque compararse con "vidas perfectas" filtradas genera sentimientos negativos e inseguridad','Porque no permiten publicar fotos sin filtros','Porque los adolescentes no saben usarlas correctamente'],
+    correct:1,
+    feedback:'✅ Las redes muestran vidas perfectas y editadas. Compararse con esa imagen irreal genera baja autoestima, ansiedad y depresión. Es importante recordar que lo que vemos no es la realidad.'
+  },
+  {
+    icon:'🎮',topic:'Estafas online',
+    text:'Tu nieto recibe este mensaje en un juego online: "¡Has ganado una skin exclusiva! Haz clic aquí e introduce tu contraseña para reclamarla." ¿Qué debe hacer?',
+    ctx:'Las estafas dentro de videojuegos son muy comunes y están diseñadas para atrapar a menores.',
+    opts:['Introducir la contraseña rápidamente, antes de que caduque la oferta','Ignorar el mensaje, no hacer clic y avisar a un adulto de confianza','Compartir el enlace con sus amigos para que también ganen','Crear una cuenta nueva para reclamar el premio sin riesgo'],
+    correct:1,
+    feedback:'✅ ¡Exacto! Nunca se introduce la contraseña en un enlace recibido por mensaje, aunque parezca oficial. Lo correcto: ignorar, no hacer clic y avisar a un adulto de confianza.'
+  },
+  {
+    icon:'🔒',topic:'Control parental',
+    text:'¿Cuál de estas medidas es más efectiva para proteger a un niño de 10 años en Internet?',
+    ctx:'La protección digital de los menores combina tecnología y comunicación.',
+    opts:['Prohibirle usar Internet completamente','Instalar control parental + establecer normas claras + hablar abiertamente sobre los riesgos','Dejar que aprenda solo de sus errores','Revisar su móvil en secreto sin que lo sepa'],
+    correct:1,
+    feedback:'✅ La combinación más efectiva es: control parental técnico + normas claras (tiempo de pantalla, sitios permitidos) + comunicación abierta y de confianza. Ninguna sola es suficiente.'
+  },
+  {
+    icon:'🌐',topic:'Privacidad en redes',
+    text:'Un adolescente publica en Instagram: "¡De vacaciones en Marbella, volvemos el día 15! 🏖️" junto a su foto y su nombre completo. ¿Qué riesgo hay?',
+    ctx:'Compartir ubicación y planes en redes puede tener consecuencias inesperadas.',
+    opts:['Ninguno, es normal compartir las vacaciones','Puede alertar a ladrones de que la casa está vacía y revelar su paradero exacto','Solo es peligroso si la cuenta es pública','El riesgo es mínimo si solo lo ven sus seguidores'],
+    correct:1,
+    feedback:'✅ Publicar vacaciones + fechas + ubicación avisa a posibles ladrones de que la casa está vacía. Además expone la ubicación del menor. Los perfiles de menores deben ser privados siempre.'
+  },
+  {
+    icon:'🎬',topic:'YouTube Seguro',
+    text:'¿Qué herramienta ofrece YouTube para proteger a los niños más pequeños?',
+    ctx:'YouTube tiene opciones específicas según la edad del menor.',
+    opts:['Modo oscuro','YouTube Kids: una plataforma independiente con contenido seleccionado y adecuado para niños','YouTube Premium sin anuncios','El modo restringido del navegador'],
+    correct:1,
+    feedback:'✅ YouTube Kids es una plataforma independiente con contenido verificado y adecuado para los más pequeños. Para adolescentes, YouTube ofrece configuraciones específicas por grupo de edad.'
+  },
+  {
+    icon:'💬',topic:'Comunicación familiar',
+    text:'Tu nieto de 14 años está triste y no quiere hablar de lo que le pasa en Internet. ¿Cuál es la mejor reacción?',
+    ctx:'La comunicación abierta es la herramienta de protección más poderosa.',
+    opts:['Revisar su móvil sin pedirle permiso','Crear un ambiente de confianza, escuchar sin juzgar y recordarle que puede contarte cualquier cosa','Quitarle el móvil durante un mes como castigo preventivo','No preguntar, ya que los jóvenes necesitan su privacidad'],
+    correct:1,
+    feedback:'✅ La confianza es el mejor escudo. Un adolescente que sabe que puede hablar sin ser juzgado pedirá ayuda antes de que el problema se agrave. Escuchar sin juzgar es la clave.'
+  }
+];
+
+let score=0,correct=0,wrong=0,qIdx=0,answered=false;
+const MAX=QS.length*100;
+
+function renderQ(){
+  const q=QS[qIdx];answered=false;
+  document.getElementById('topicBadge').textContent='📌 '+q.topic;
+  document.getElementById('qNum').textContent=`PREGUNTA ${qIdx+1} DE ${QS.length}`;
+  document.getElementById('qIcon').textContent=q.icon;
+  document.getElementById('qText').textContent=q.text;
+  document.getElementById('qCtx').textContent=q.ctx;
+  document.getElementById('qNumDisplay').textContent=`${qIdx+1}/${QS.length}`;
+  const pct=Math.round((qIdx/QS.length)*100);
+  document.getElementById('progFill').style.width=pct+'%';
+  document.getElementById('pctLbl').textContent=pct+'%';
+  const grid=document.getElementById('optsGrid');
+  grid.innerHTML='';
+  const ltrs=['A','B','C','D'];
+  q.opts.forEach((o,i)=>{
+    const btn=document.createElement('button');
+    btn.className='opt';
+    btn.innerHTML=`<span class="ltr">${ltrs[i]}</span><span>${o}</span>`;
+    btn.onclick=()=>pick(i);
+    grid.appendChild(btn);
+  });
+  document.getElementById('fbBox').className='fb';
+  document.getElementById('btnNext').className='btn-next';
+}
+
+function pick(idx){
+  if(answered)return;
+  answered=true;
+  const q=QS[qIdx];
+  const btns=document.querySelectorAll('.opt');
+  btns.forEach(b=>b.disabled=true);
+  const ok=idx===q.correct;
+  btns[idx].classList.add(ok?'correct':'wrong');
+  if(!ok)btns[q.correct].classList.add('correct');
+  const fb=document.getElementById('fbBox');
+  if(ok){score+=(wrong===0?100:50);correct++;fb.className='fb ok show';document.getElementById('fbIcon').textContent='🎯';}
+  else{score=Math.max(0,score-10);wrong++;fb.className='fb fail show';document.getElementById('fbIcon').textContent='💡';}
+  document.getElementById('fbText').textContent=q.feedback;
+  document.getElementById('scoreDisplay').textContent=score;
+  document.getElementById('correctDisplay').textContent=correct;
+  document.getElementById('wrongDisplay').textContent=wrong;
+  document.getElementById('btnNext').className='btn-next show';
+}
+
+function nextQ(){
+  qIdx++;
+  if(qIdx>=QS.length)showResults();
+  else renderQ();
+}
+
+function showResults(){
+  document.getElementById('gameArea').style.display='none';
+  document.getElementById('resultsCard').className='results-card show';
+  const pct=Math.round((score/MAX)*100);
+  document.getElementById('resScore').textContent=score;
+  document.getElementById('resCorrect').textContent=`${correct}/${QS.length}`;
+  document.getElementById('resPct').textContent=pct+'%';
+  let emoji,title,sub;
+  if(pct>=85){emoji='🦸';title='¡Guardián Digital!';sub='Conoces todos los peligros que acechan a los menores en Internet. Tu familia está en buenas manos.';}
+  else if(pct>=65){emoji='🛡️';title='Buen Protector';sub='Tienes buena base para proteger a los tuyos. Repasa los temas que fallaste.';}
+  else if(pct>=45){emoji='📖';title='Sigue Aprendiendo';sub='Hay riesgos importantes que conviene conocer mejor. Vuelve a intentarlo.';}
+  else{emoji='🆘';title='¡Atención!';sub='Los peligros digitales para menores son muy reales. Te recomendamos repasar el tema y volver a intentarlo.';}
+  document.getElementById('resEmoji').textContent=emoji;
+  document.getElementById('resTitle').textContent=title;
+  document.getElementById('resSub').textContent=sub;
+}
+
+function restartGame(){
+  score=0;correct=0;wrong=0;qIdx=0;
+  document.getElementById('scoreDisplay').textContent=0;
+  document.getElementById('correctDisplay').textContent=0;
+  document.getElementById('wrongDisplay').textContent=0;
+  document.getElementById('resultsCard').className='results-card';
+  document.getElementById('gameArea').style.display='block';
+  renderQ();
+}
+renderQ();
+</script>
+</body>
+</html>

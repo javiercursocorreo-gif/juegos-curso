@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PIAC7.8.1 · Misión Backup</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Syne:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#060d14;--panel:#0a1520;--panel2:#0e1e2e;
+  --border:#1a2f40;--border2:#243a50;
+  --cyan:#00d4ff;--cyan2:#00e8ff;--cyandim:rgba(0,212,255,0.1);
+  --green:#00e060;--greendim:rgba(0,224,96,0.1);
+  --yellow:#ffdd00;--red:#ff3355;--reddim:rgba(255,51,85,0.1);
+  --purple:#aa44ff;
+  --text:#c8e8f0;--text2:#507090;--text3:#2a4060;
+  --white:#e8f8ff;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monospace;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:999;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.05) 2px,rgba(0,0,0,0.05) 3px);}
+canvas#bgc{position:fixed;inset:0;z-index:0;opacity:0.15;}
+.page{position:relative;z-index:1;max-width:900px;margin:0 auto;padding:22px 14px 60px;}
+
+header{text-align:center;margin-bottom:26px;}
+.htag{font-size:11px;color:var(--cyan);letter-spacing:3px;text-transform:uppercase;margin-bottom:8px;}
+h1{font-family:'Syne',sans-serif;font-size:clamp(22px,5vw,38px);font-weight:900;color:var(--white);margin-bottom:8px;}
+h1 .hi{color:var(--cyan);}h1 .hi2{color:var(--green);}
+.hsub{font-size:13px;color:var(--text2);line-height:1.6;}
+
+/* BACKUP METER */
+.backup-wrap{background:var(--panel);border:1px solid var(--border2);border-radius:12px;padding:18px 20px;margin-bottom:20px;}
+.backup-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+.backup-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--white);}
+.backup-pct{font-family:'Syne',sans-serif;font-size:26px;font-weight:900;color:var(--cyan);}
+.backup-track{height:10px;background:var(--border);border-radius:8px;overflow:hidden;}
+.backup-fill{height:100%;background:linear-gradient(90deg,var(--red),var(--yellow),var(--cyan));border-radius:8px;transition:width 0.8s ease;}
+.backup-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--text2);margin-top:5px;}
+
+/* SCORE */
+.score-bar{display:flex;justify-content:space-between;align-items:center;background:var(--panel);border:1px solid var(--border2);border-radius:10px;padding:10px 18px;margin-bottom:18px;flex-wrap:wrap;gap:8px;}
+.sc-i{text-align:center;}
+.sc-l{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:3px;}
+.sc-v{font-family:'Syne',sans-serif;font-size:20px;font-weight:900;color:var(--yellow);}
+
+/* STEP DOTS */
+.steps-nav{display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap;}
+.s-dot{
+  flex:1;min-width:70px;background:var(--panel);border:1px solid var(--border);border-radius:8px;
+  padding:10px 6px;text-align:center;cursor:pointer;transition:all 0.3s;
+}
+.s-dot .sd-icon{font-size:18px;margin-bottom:3px;}
+.s-dot .sd-lbl{font-size:10px;color:var(--text2);letter-spacing:1px;}
+.s-dot.active{border-color:var(--cyan);background:var(--cyandim);}
+.s-dot.active .sd-lbl{color:var(--cyan);}
+.s-dot.done{border-color:var(--green);background:var(--greendim);}
+.s-dot.done .sd-lbl{color:var(--green);}
+
+/* MAIN CARD */
+.main-card{background:var(--panel);border:1px solid var(--border2);border-radius:14px;padding:28px 22px;margin-bottom:18px;}
+.mc-phase{font-size:10px;color:var(--cyan);letter-spacing:3px;text-transform:uppercase;margin-bottom:12px;}
+.mc-icon{font-size:46px;margin-bottom:12px;}
+.mc-title{font-family:'Syne',sans-serif;font-size:clamp(17px,3vw,23px);font-weight:900;color:var(--white);margin-bottom:12px;}
+.mc-body{font-size:14px;line-height:1.85;color:var(--text);}
+.mc-body strong{color:var(--cyan);}
+.rule{
+  background:var(--panel2);border-left:3px solid var(--border2);border-radius:0 8px 8px 0;
+  padding:10px 14px;margin:10px 0;font-size:13px;line-height:1.6;
+}
+.rule.c{border-color:var(--cyan);}
+.rule.g{border-color:var(--green);}
+.rule.y{border-color:var(--yellow);}
+.rule.r{border-color:var(--red);}
+
+/* QUIZ */
+.quiz-wrap{margin-top:18px;}
+.quiz-q{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:var(--white);margin-bottom:14px;line-height:1.4;}
+.quiz-opts{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+@media(max-width:500px){.quiz-opts{grid-template-columns:1fr;}}
+.qopt{
+  background:var(--panel2);border:2px solid var(--border2);border-radius:8px;
+  padding:13px 15px;color:var(--text);font-family:'Share Tech Mono',monospace;font-size:13px;
+  line-height:1.5;cursor:pointer;text-align:left;transition:all 0.2s;
+}
+.qopt:hover:not(:disabled){border-color:var(--cyan);background:var(--cyandim);}
+.qopt.correct{border-color:var(--green);background:var(--greendim);color:var(--white);}
+.qopt.wrong{border-color:var(--red);background:var(--reddim);}
+.qopt:disabled{cursor:default;}
+
+/* FEEDBACK */
+.fb{border-radius:10px;padding:14px 18px;font-size:13px;line-height:1.7;margin:16px 0;display:none;}
+.fb.show{display:block;}
+.fb.ok{background:var(--greendim);border:1px solid var(--green);color:var(--green);}
+.fb.fail{background:var(--reddim);border:1px solid var(--red);color:#ffaacc;}
+
+/* NAV BTN */
+.btn-nav{
+  background:linear-gradient(135deg,var(--cyan),#007090);border:none;border-radius:10px;
+  padding:14px 28px;color:var(--bg);font-family:'Syne',sans-serif;font-size:16px;
+  font-weight:900;cursor:pointer;width:100%;transition:all 0.2s;letter-spacing:1px;
+}
+.btn-nav:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,212,255,0.3);}
+.btn-nav:disabled{opacity:0.35;cursor:not-allowed;transform:none;box-shadow:none;}
+
+/* RESULTS */
+.results-card{display:none;background:var(--panel);border:1px solid var(--border2);border-radius:16px;padding:36px 24px;text-align:center;}
+.results-card.show{display:block;}
+.res-emoji{font-size:52px;margin-bottom:14px;}
+.res-title{font-family:'Syne',sans-serif;font-size:26px;font-weight:900;color:var(--white);margin-bottom:8px;}
+.res-sub{font-size:13px;color:var(--text2);margin-bottom:24px;line-height:1.6;}
+.res-stats{display:flex;justify-content:center;gap:20px;flex-wrap:wrap;margin-bottom:28px;}
+.stat{background:var(--panel2);border:1px solid var(--border2);border-radius:8px;padding:14px 20px;min-width:100px;}
+.stat-v{font-family:'Syne',sans-serif;font-size:28px;font-weight:900;color:var(--yellow);}
+.stat-l{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;}
+.btn-restart{background:var(--panel2);border:2px solid var(--cyan);border-radius:10px;padding:12px 28px;color:var(--cyan);font-family:'Syne',sans-serif;font-size:16px;font-weight:900;cursor:pointer;transition:all 0.2s;}
+.btn-restart:hover{background:var(--cyan);color:var(--bg);}
+</style>
+</head>
+<body>
+<canvas id="bgc"></canvas>
+<div class="page">
+  <header>
+    <div class="htag">// SEGURIDAD INFORMÁTICA · TEORÍA 7.8</div>
+    <h1>💾 Misión <span class="hi">Backup</span></h1>
+    <p class="hsub">Aprende a proteger tus recuerdos y documentos con copias de seguridad y a mantener tu sistema siempre a salvo</p>
+  </header>
+
+  <div class="backup-wrap">
+    <div class="backup-header">
+      <div class="backup-title">🛡️ Nivel de Seguridad de tus Datos</div>
+      <div class="backup-pct" id="backupPct">0%</div>
+    </div>
+    <div class="backup-track"><div class="backup-fill" id="backupFill" style="width:0%"></div></div>
+    <div class="backup-labels"><span>Datos en riesgo</span><span>Parcialmente protegido</span><span>Datos seguros ✓</span></div>
+  </div>
+
+  <div class="score-bar">
+    <div class="sc-i"><div class="sc-l">Puntos</div><div class="sc-v" id="scoreD">0</div></div>
+    <div class="sc-i"><div class="sc-l">Aciertos</div><div class="sc-v" style="color:var(--green)" id="correctD">0</div></div>
+    <div class="sc-i"><div class="sc-l">Paso</div><div class="sc-v" style="color:var(--cyan)" id="stepD">1/6</div></div>
+  </div>
+
+  <div class="steps-nav" id="stepsNav"></div>
+
+  <div id="gameArea">
+    <div class="main-card">
+      <div class="mc-phase" id="mcPhase"></div>
+      <div class="mc-icon" id="mcIcon"></div>
+      <div class="mc-title" id="mcTitle"></div>
+      <div class="mc-body" id="mcBody"></div>
+      <div class="quiz-wrap" id="quizWrap">
+        <div class="quiz-q" id="quizQ"></div>
+        <div class="quiz-opts" id="quizOpts"></div>
+      </div>
+    </div>
+    <div class="fb" id="fbBox"><div id="fbText"></div></div>
+    <button class="btn-nav" id="btnNav" onclick="handleNav()">SIGUIENTE PASO →</button>
+  </div>
+
+  <div class="results-card" id="resultsCard">
+    <div class="res-emoji" id="resEmoji"></div>
+    <div class="res-title" id="resTitle"></div>
+    <div class="res-sub" id="resSub"></div>
+    <div class="res-stats">
+      <div class="stat"><div class="stat-v" id="resScore"></div><div class="stat-l">Puntos</div></div>
+      <div class="stat"><div class="stat-v" id="resCorrect"></div><div class="stat-l">Aciertos</div></div>
+      <div class="stat"><div class="stat-v" id="resPct"></div><div class="stat-l">Seguridad</div></div>
+    </div>
+    <button class="btn-restart" onclick="restartGame()">↩ REINICIAR</button>
+  </div>
+</div>
+
+<script>
+// BG canvas - flowing data streams
+const cv = document.getElementById('bgc');
+const cx = cv.getContext('2d');
+function rz(){cv.width=window.innerWidth;cv.height=window.innerHeight;}
+rz(); window.addEventListener('resize',rz);
+const streams = [];
+for(let i=0;i<12;i++) streams.push({x:Math.random()*window.innerWidth,y:Math.random()*window.innerHeight,len:Math.random()*80+40,speed:Math.random()*1+0.5,alpha:Math.random()*0.3+0.05});
+function drawBg(){
+  cx.clearRect(0,0,cv.width,cv.height);
+  streams.forEach(s=>{
+    s.y+=s.speed; if(s.y>cv.height+s.len) s.y=-s.len;
+    const grad=cx.createLinearGradient(s.x,s.y-s.len,s.x,s.y);
+    grad.addColorStop(0,'transparent');grad.addColorStop(1,'#00d4ff');
+    cx.beginPath();cx.moveTo(s.x,s.y-s.len);cx.lineTo(s.x,s.y);
+    cx.strokeStyle=grad;cx.globalAlpha=s.alpha;cx.lineWidth=1;cx.stroke();cx.globalAlpha=1;
+  });
+  requestAnimationFrame(drawBg);
+}
+drawBg();
+
+// STEPS
+const STEPS=[
+  {
+    icon:'💾',label:'¿Qué es?',phase:'PASO 1 DE 6',
+    title:'¿Qué es una Copia de Seguridad (Backup)?',
+    body:`Una <strong>copia de seguridad</strong> es una copia exacta de tus fotos, documentos, vídeos y archivos importantes, guardada en un lugar separado de tu ordenador o móvil.<br><br>
+    <div class="rule c">💡 Piénsalo como un duplicado de la llave de casa: si pierdes la original, tienes otra. Si pierdes tus archivos, tienes la copia.</div>
+    <div class="rule g">✅ ¿Qué debes guardar? Fotos y vídeos familiares · Documentos importantes (DNI, escrituras, contratos) · Contactos del móvil · Correos importantes.</div>
+    <div class="rule r">❌ ¿Qué pasa si no tienes backup? Un virus, una avería del disco duro o un robo puede hacerte perder TODOS tus archivos para siempre. Sin copia: pérdida total.</div>`,
+    quiz:{q:'¿Cuándo te darías cuenta realmente de que necesitabas un backup?',opts:['Cuando el ordenador va muy lento','Cuando ya has perdido todos tus archivos y es demasiado tarde para recuperarlos','Cuando el antivirus pide actualización','Cuando el disco duro tiene poco espacio'],correct:1,fb:'✅ Exactamente: el backup es como el seguro del coche, solo te das cuenta de que lo necesitabas cuando ya ha ocurrido el accidente. El momento de hacerlo es ANTES de que pase algo.'}
+  },
+  {
+    icon:'3️⃣',label:'Regla 3-2-1',phase:'PASO 2 DE 6',
+    title:'La Regla de Oro: 3-2-1',
+    body:`Los expertos en seguridad recomiendan siempre la <strong>Regla 3-2-1</strong>. Es sencilla de recordar y muy eficaz:<br><br>
+    <div class="rule c">🔢 <strong>3</strong> copias de tus datos en total (el original + 2 copias de seguridad).</div>
+    <div class="rule g">💿 En <strong>2</strong> soportes o medios diferentes (por ejemplo: nube + disco duro externo).</div>
+    <div class="rule y">🌍 <strong>1</strong> copia fuera de tu casa (en la nube: Google Fotos, OneDrive, iCloud).</div>
+    <div class="rule">¿Por qué? Si hay un robo, un incendio o una inundación, tu copia en casa también se pierde. La copia en la nube siempre estará a salvo en servidores remotos.</div>`,
+    quiz:{q:'Según la Regla 3-2-1, ¿en cuántos soportes diferentes como mínimo debes guardar tus copias?',opts:['Solo 1: con una copia en la nube es suficiente','En 2 soportes diferentes (ej: disco externo + nube)','En 3 soportes exactamente iguales','No importa el soporte, solo el número de copias'],correct:1,fb:'✅ La regla 3-2-1: 3 copias totales, en 2 soportes distintos, con 1 fuera de casa. Tener solo la nube o solo el disco duro es arriesgado. La combinación de ambos es la estrategia más sólida.'}
+  },
+  {
+    icon:'☁️',label:'La Nube',phase:'PASO 3 DE 6',
+    title:'Copias en la Nube: Automáticas y Siempre Disponibles',
+    body:`Las copias <strong>en la nube</strong> se hacen solas, sin que tengas que hacer nada. Son la forma más sencilla y recomendada para empezar.<br><br>
+    <div class="rule g">✅ <strong>Google Fotos:</strong> actívalo en tu móvil Android y guardará automáticamente TODAS tus fotos en tu cuenta de Google. Gratis hasta 15 GB.</div>
+    <div class="rule c">✅ <strong>iCloud (Apple):</strong> en iPhone/iPad, ve a Ajustes → tu nombre → iCloud → Fotos → activar. Copia automática de fotos y documentos.</div>
+    <div class="rule y">✅ <strong>OneDrive (Windows):</strong> se activa en Windows 10/11 automáticamente. Guarda tus documentos en Microsoft OneDrive. 5 GB gratis.</div>
+    <div class="rule">📱 Cómo activar Google Fotos: abre la app → toca tu foto de perfil → "Copia de seguridad" → activar. Listo, ya está protegido.</div>`,
+    quiz:{q:'¿Cuál es la principal ventaja de las copias en la nube frente al disco duro externo?',opts:['Son más baratas que un disco duro','Se hacen de forma automática sin que tengas que recordarlo y están fuera de casa','Tienen más capacidad de almacenamiento','Son más rápidas al recuperar los archivos'],correct:1,fb:'✅ La gran ventaja de la nube es que es automática y remota. No tienes que acordarte de conectar nada. Y si hay un robo, un incendio o una avería, tus datos siguen seguros en los servidores.'}
+  },
+  {
+    icon:'💿',label:'Disco Duro',phase:'PASO 4 DE 6',
+    title:'El Disco Duro Externo: Tu Copia Física',
+    body:`Un <strong>disco duro externo</strong> es un dispositivo portátil que puedes conectar al ordenador para hacer copias. Son baratos, fáciles de usar y muy fiables.<br><br>
+    <div class="rule c">💡 Cómo usarlo: conecta el disco → copia las carpetas importantes (Mis Documentos, Mis Fotos) → desconecta el disco y guárdalo en un cajón.</div>
+    <div class="rule g">📅 ¿Con qué frecuencia? Mínimo <strong>una vez por semana</strong> para fotos y documentos activos. Una vez al mes para archivos más estables.</div>
+    <div class="rule y">💰 Precio orientativo: un disco de 1 TB (1.000 GB) cuesta entre 50 y 80€. Es una inversión pequeña para proteger años de recuerdos.</div>
+    <div class="rule r">⚠️ El disco externo NO debe estar siempre conectado al ordenador: un ransomware podría cifrar también el contenido del disco externo si está conectado durante el ataque.</div>`,
+    quiz:{q:'¿Por qué NO debes tener el disco duro externo conectado permanentemente al ordenador?',opts:['Porque consume mucha batería del portátil','Porque un ransomware podría cifrar también el disco externo si está conectado durante el ataque','Porque el disco se desgasta antes si está siempre conectado','Porque el ordenador va más lento con el disco conectado'],correct:1,fb:'✅ Exacto. Si un virus ransomware ataca tu ordenador, cifrará todo lo que encuentre conectado, incluido el disco externo. La práctica correcta: conectar → copiar → desconectar → guardar en un cajón.'}
+  },
+  {
+    icon:'🔄',label:'Actualizaciones',phase:'PASO 5 DE 6',
+    title:'Actualizaciones: La Vacuna de tu Ordenador',
+    body:`Las <strong>actualizaciones del sistema operativo y de las aplicaciones</strong> corrigen vulnerabilidades de seguridad que los hackers aprovechan para atacar.<br><br>
+    <div class="rule g">✅ Activa las actualizaciones automáticas: Inicio → Configuración → Windows Update → Activar "Recibir actualizaciones automáticamente".</div>
+    <div class="rule c">📱 En el móvil: Ajustes → Actualización de software → Activar actualizaciones automáticas. Aplica también a las apps (App Store / Play Store).</div>
+    <div class="rule r">❌ WannaCry (2017) infectó 200.000 ordenadores. Todos tenían una cosa en común: el sistema operativo sin actualizar. Microsoft había publicado el parche de seguridad 2 meses antes.</div>
+    <div class="rule y">⏱️ Cuándo actualizar: actívalas automáticas y deja que el ordenador se reinicie cuando lo pida. Los reinicios pendientes son señal de que hay actualizaciones esperando.</div>`,
+    quiz:{q:'¿Qué lección dejó el ransomware WannaCry (2017) sobre las actualizaciones?',opts:['Que los antivirus no sirven de nada contra los ransomware','Que mantener el sistema sin actualizar te hace vulnerable a ataques conocidos que ya tienen solución','Que solo afecta a empresas, no a usuarios particulares','Que las actualizaciones automáticas son peligrosas'],correct:1,fb:'✅ WannaCry aprovechó una vulnerabilidad de Windows que ya tenía parche publicado hacía 2 meses. Las víctimas no habían actualizado. Moraleja: las actualizaciones protegen de ataques conocidos.'}
+  },
+  {
+    icon:'🦠',label:'Antivirus',phase:'PASO 6 DE 6',
+    title:'Antivirus: La Última Línea de Defensa',
+    body:`El <strong>antivirus</strong> analiza en tiempo real todos los archivos que abres, descargas o recibes por email, bloqueando los que son maliciosos.<br><br>
+    <div class="rule g">✅ <strong>Windows Defender</strong> (gratis, incluido en Windows 10/11) es muy eficaz. Para verificar que está activo: Inicio → Seguridad de Windows → Protección antivirus.</div>
+    <div class="rule c">🔄 El antivirus actualiza su "diccionario" de virus (llamado base de datos de firmas) automáticamente cada día. Por eso necesita conexión a Internet.</div>
+    <div class="rule y">💡 Señales de infección: el ordenador va muy lento de repente · aparecen ventanas extrañas que no has abierto · el antivirus está desactivado · aparecen archivos con extensiones raras.</div>
+    <div class="rule r">❌ Nunca desactives el antivirus aunque una web o programa te lo pida. Es una señal inequívoca de que ese programa ES el malware.</div>`,
+    quiz:{q:'Una web de descargas te pide que desactives el antivirus antes de instalar su programa "especial". ¿Qué haces?',opts:['Desactivar el antivirus temporalmente, solo será un momento','Cerrar esa web inmediatamente: pedirte desactivar el antivirus es la señal más clara de que el programa es malware','Instalar el programa y luego reactivar el antivirus','Preguntar en foros de Internet si es seguro antes de hacerlo'],correct:1,fb:'✅ Pedirte desactivar el antivirus es la señal de alarma definitiva. Ningún programa legítimo lo necesita. Solo el malware necesita que el antivirus esté apagado para instalarse sin que te avisen. Cierra esa web y no vuelvas.'}
+  }
+];
+
+let score=0, correct=0, stepIdx=0, quizAnswered=false;
+
+function buildNav(){
+  const nav=document.getElementById('stepsNav');
+  nav.innerHTML='';
+  STEPS.forEach((s,i)=>{
+    const d=document.createElement('div');
+    d.className='s-dot'+(i===stepIdx?' active':i<stepIdx?' done':'');
+    d.innerHTML=`<div class="sd-icon">${s.icon}</div><div class="sd-lbl">${s.label}</div>`;
+    d.onclick=()=>{stepIdx=i;quizAnswered=false;renderStep();};
+    nav.appendChild(d);
+  });
+}
+
+function renderStep(){
+  const s=STEPS[stepIdx];
+  quizAnswered=false;
+  document.getElementById('mcPhase').textContent=s.phase;
+  document.getElementById('mcIcon').textContent=s.icon;
+  document.getElementById('mcTitle').textContent=s.title;
+  document.getElementById('mcBody').innerHTML=s.body;
+  document.getElementById('stepD').textContent=`${stepIdx+1}/6`;
+
+  // Quiz
+  document.getElementById('quizQ').textContent=s.quiz.q;
+  const optsEl=document.getElementById('quizOpts');
+  optsEl.innerHTML='';
+  const ltrs=['A','B','C','D'];
+  s.quiz.opts.forEach((o,i)=>{
+    const btn=document.createElement('button');
+    btn.className='qopt';
+    btn.textContent=ltrs[i]+') '+o;
+    btn.onclick=()=>pickQuiz(i);
+    optsEl.appendChild(btn);
+  });
+
+  document.getElementById('fbBox').className='fb';
+  const btnNav=document.getElementById('btnNav');
+  btnNav.textContent=stepIdx<STEPS.length-1?'SIGUIENTE PASO →':'🏁 VER RESULTADOS';
+  btnNav.disabled=true;
+
+  // Update backup meter
+  const pct=Math.round((stepIdx/STEPS.length)*100);
+  document.getElementById('backupFill').style.width=pct+'%';
+  document.getElementById('backupPct').textContent=pct+'%';
+
+  buildNav();
+}
+
+function pickQuiz(idx){
+  if(quizAnswered)return;
+  quizAnswered=true;
+  const s=STEPS[stepIdx];
+  const btns=document.querySelectorAll('.qopt');
+  btns.forEach(b=>b.disabled=true);
+  const ok=idx===s.quiz.correct;
+  btns[idx].classList.add(ok?'correct':'wrong');
+  if(!ok)btns[s.quiz.correct].classList.add('correct');
+  const fb=document.getElementById('fbBox');
+  if(ok){score+=100;correct++;fb.className='fb ok show';}
+  else{score=Math.max(0,score-10);fb.className='fb fail show';}
+  document.getElementById('fbText').textContent=s.quiz.fb;
+  document.getElementById('scoreD').textContent=score;
+  document.getElementById('correctD').textContent=correct;
+  document.getElementById('btnNav').disabled=false;
+}
+
+function handleNav(){
+  if(!quizAnswered)return;
+  stepIdx++;
+  if(stepIdx>=STEPS.length){showResults();return;}
+  renderStep();
+}
+
+function showResults(){
+  document.getElementById('gameArea').style.display='none';
+  document.getElementById('resultsCard').className='results-card show';
+  document.getElementById('backupFill').style.width='100%';
+  document.getElementById('backupPct').textContent='100%';
+  const pct=Math.round((score/(STEPS.length*100))*100);
+  document.getElementById('resScore').textContent=score;
+  document.getElementById('resCorrect').textContent=`${correct}/${STEPS.length}`;
+  document.getElementById('resPct').textContent=pct+'%';
+  let emoji,title,sub;
+  if(pct>=85){emoji='💎';title='¡Datos 100% Seguros!';sub='Dominas la Regla 3-2-1, la nube, el disco externo, las actualizaciones y el antivirus. Tus datos están blindados.';}
+  else if(pct>=65){emoji='☁️';title='Bien Protegido';sub='Tienes buenas prácticas de backup. Refuerza los puntos que fallaste para completar tu protección.';}
+  else if(pct>=45){emoji='⚠️';title='Protección Parcial';sub='Hay riesgos en tu estrategia de backup. Repasa cada paso con calma y vuelve a intentarlo.';}
+  else{emoji='🆘';title='¡Tus Datos en Riesgo!';sub='Sin backup, una sola avería puede costarte años de recuerdos. Vuelve a empezar y sigue cada paso.';}
+  document.getElementById('resEmoji').textContent=emoji;
+  document.getElementById('resTitle').textContent=title;
+  document.getElementById('resSub').textContent=sub;
+}
+
+function restartGame(){
+  score=0;correct=0;stepIdx=0;quizAnswered=false;
+  document.getElementById('scoreD').textContent=0;
+  document.getElementById('correctD').textContent=0;
+  document.getElementById('resultsCard').className='results-card';
+  document.getElementById('gameArea').style.display='block';
+  renderStep();
+}
+
+renderStep();
+</script>
+</body>
+</html>

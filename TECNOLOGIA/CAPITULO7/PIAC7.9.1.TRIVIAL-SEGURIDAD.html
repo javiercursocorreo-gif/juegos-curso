@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PIAC7 · Trivial Ciberseguridad</title>
+<link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Share+Tech+Mono&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#07080f;--panel:#0d1117;--panel2:#111827;
+  --border:#1e2d40;--b2:#2a3a50;
+  --c0:#3b82f6;--c1:#10b981;--c2:#f59e0b;--c3:#ef4444;
+  --c4:#8b5cf6;--c5:#06b6d4;--c6:#f97316;--c7:#ec4899;
+  --text:#e2e8f0;--text2:#607090;--white:#ffffff;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monospace;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:999;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.06) 2px,rgba(0,0,0,0.06) 3px);}
+.page{max-width:1000px;margin:0 auto;padding:20px 14px 60px;position:relative;z-index:1;}
+
+header{text-align:center;margin-bottom:22px;}
+.htag{font-size:11px;color:var(--c0);letter-spacing:3px;text-transform:uppercase;margin-bottom:8px;}
+h1{font-family:'Special Elite',cursive;font-size:clamp(22px,5vw,40px);color:var(--white);margin-bottom:6px;}
+h1 span{color:var(--c2);}
+.hsub{font-size:13px;color:var(--text2);line-height:1.6;}
+
+/* SCORE + PIEZAS */
+.top-panel{display:flex;gap:14px;margin-bottom:20px;flex-wrap:wrap;}
+.score-box{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px 18px;flex:1;min-width:200px;}
+.sb-title{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;}
+.sb-row{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;}
+.sb-item{text-align:center;}
+.sb-val{font-family:'Orbitron',monospace;font-size:20px;font-weight:700;color:var(--c2);}
+.sb-lbl{font-size:10px;color:var(--text2);}
+
+/* WEDGES display */
+.wedges-box{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px 18px;flex:1;min-width:220px;}
+.wb-title{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;}
+.wedges-row{display:flex;gap:6px;flex-wrap:wrap;}
+.wedge-chip{width:28px;height:28px;border-radius:50%;border:2px solid;display:flex;align-items:center;justify-content:center;font-size:12px;transition:all 0.3s;}
+.wedge-chip.earned{box-shadow:0 0 10px;}
+
+/* CATEGORIES GRID */
+.cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:22px;}
+.cat-card{
+  background:var(--panel);border:2px solid var(--border);border-radius:12px;
+  padding:14px 16px;cursor:pointer;transition:all 0.2s;text-align:center;
+}
+.cat-card:hover{transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,0.4);}
+.cat-card.done{opacity:0.55;cursor:default;transform:none;}
+.cat-card.active{transform:translateY(-3px);}
+.cat-icon{font-size:28px;margin-bottom:8px;}
+.cat-name{font-family:'Orbitron',monospace;font-size:12px;font-weight:700;margin-bottom:4px;}
+.cat-prog{font-size:10px;color:var(--text2);}
+.cat-wedge{width:12px;height:12px;border-radius:50%;border:1px solid;display:inline-block;margin:1px;}
+
+/* QUESTION MODAL */
+.modal-bg{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:100;
+  align-items:center;justify-content:center;padding:16px;
+}
+.modal-bg.show{display:flex;}
+.modal{
+  background:var(--panel);border:2px solid var(--border);border-radius:16px;
+  max-width:640px;width:100%;padding:28px 24px;position:relative;
+}
+.modal-close{
+  position:absolute;top:14px;right:16px;background:none;border:none;
+  color:var(--text2);font-size:20px;cursor:pointer;font-family:'Share Tech Mono',monospace;
+}
+.modal-close:hover{color:var(--white);}
+.modal-cat{font-size:10px;letter-spacing:3px;text-transform:uppercase;margin-bottom:12px;}
+.modal-icon{font-size:38px;margin-bottom:10px;}
+.modal-qnum{font-size:11px;color:var(--text2);margin-bottom:8px;}
+.modal-q{font-family:'Special Elite',cursive;font-size:clamp(16px,3vw,20px);color:var(--white);line-height:1.4;margin-bottom:18px;}
+.modal-opts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+@media(max-width:480px){.modal-opts{grid-template-columns:1fr;}}
+.mopt{
+  background:var(--panel2);border:2px solid var(--border);border-radius:8px;
+  padding:13px 14px;color:var(--text);font-family:'Share Tech Mono',monospace;font-size:13px;
+  line-height:1.5;cursor:pointer;text-align:left;transition:all 0.2s;
+}
+.mopt:hover:not(:disabled){transform:translateY(-1px);}
+.mopt.correct{border-color:var(--c1);background:rgba(16,185,129,0.1);color:var(--white);}
+.mopt.wrong{border-color:var(--c3);background:rgba(239,68,68,0.08);}
+.mopt:disabled{cursor:default;transform:none;}
+.modal-fb{border-radius:8px;padding:12px 16px;font-size:13px;line-height:1.6;margin-bottom:14px;display:none;}
+.modal-fb.show{display:block;}
+.modal-fb.ok{background:rgba(16,185,129,0.1);border:1px solid var(--c1);color:var(--c1);}
+.modal-fb.fail{background:rgba(239,68,68,0.08);border:1px solid var(--c3);color:#fca5a5;}
+.modal-next{background:none;border:2px solid var(--border);border-radius:8px;padding:12px 22px;color:var(--text2);font-family:'Orbitron',monospace;font-size:13px;font-weight:700;cursor:pointer;width:100%;transition:all 0.2s;display:none;letter-spacing:1px;}
+.modal-next:hover{border-color:var(--white);color:var(--white);}
+.modal-next.show{display:block;}
+
+/* VICTORY */
+.victory-card{display:none;background:var(--panel);border:2px solid var(--border);border-radius:16px;padding:40px 28px;text-align:center;}
+.victory-card.show{display:block;}
+.vc-emoji{font-size:60px;margin-bottom:16px;}
+.vc-title{font-family:'Special Elite',cursive;font-size:clamp(22px,5vw,36px);color:var(--white);margin-bottom:10px;}
+.vc-sub{font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:28px;}
+.vc-stats{display:flex;justify-content:center;gap:20px;flex-wrap:wrap;margin-bottom:28px;}
+.vc-stat{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:14px 20px;min-width:110px;}
+.vc-val{font-family:'Orbitron',monospace;font-size:26px;font-weight:700;color:var(--c2);}
+.vc-lbl{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;}
+.btn-restart{background:var(--panel2);border:2px solid var(--c2);border-radius:10px;padding:12px 28px;color:var(--c2);font-family:'Orbitron',monospace;font-size:14px;font-weight:700;cursor:pointer;transition:all 0.2s;letter-spacing:1px;}
+.btn-restart:hover{background:var(--c2);color:var(--bg);}
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div class="htag">// SEGURIDAD INFORMÁTICA · TRIVIAL CAPÍTULO 7</div>
+    <h1>🎯 Trivial <span>Ciberseguridad</span></h1>
+    <p class="hsub">8 categorías · 3 preguntas cada una · ¡Consigue todos los quesitos!</p>
+  </header>
+
+  <div class="top-panel">
+    <div class="score-box">
+      <div class="sb-title">📊 Marcador</div>
+      <div class="sb-row">
+        <div class="sb-item"><div class="sb-val" id="scoreD">0</div><div class="sb-lbl">Puntos</div></div>
+        <div class="sb-item"><div class="sb-val" style="color:var(--c1)" id="correctD">0</div><div class="sb-lbl">Aciertos</div></div>
+        <div class="sb-item"><div class="sb-val" style="color:var(--c3)" id="wrongD">0</div><div class="sb-lbl">Fallos</div></div>
+        <div class="sb-item"><div class="sb-val" style="color:var(--c5)" id="wedgesD">0/8</div><div class="sb-lbl">Quesitos</div></div>
+      </div>
+    </div>
+    <div class="wedges-box">
+      <div class="wb-title">🍕 Quesitos conseguidos</div>
+      <div class="wedges-row" id="wedgesRow"></div>
+    </div>
+  </div>
+
+  <div class="cat-grid" id="catGrid"></div>
+  <div class="victory-card" id="victoryCard">
+    <div class="vc-emoji">🏆</div>
+    <div class="vc-title" id="vcTitle"></div>
+    <div class="vc-sub" id="vcSub"></div>
+    <div class="vc-stats">
+      <div class="vc-stat"><div class="vc-val" id="vcScore"></div><div class="vc-lbl">Puntos</div></div>
+      <div class="vc-stat"><div class="vc-val" id="vcCorrect"></div><div class="vc-lbl">Aciertos</div></div>
+      <div class="vc-stat"><div class="vc-val" id="vcWedges"></div><div class="vc-lbl">Quesitos</div></div>
+    </div>
+    <button class="btn-restart" onclick="restartGame()">↩ JUGAR DE NUEVO</button>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-cat" id="mCat"></div>
+    <div class="modal-icon" id="mIcon"></div>
+    <div class="modal-qnum" id="mQnum"></div>
+    <div class="modal-q" id="mQ"></div>
+    <div class="modal-opts" id="mOpts"></div>
+    <div class="modal-fb" id="mFb"><div id="mFbText"></div></div>
+    <button class="modal-next" id="mNext" onclick="nextQuestion()">SIGUIENTE PREGUNTA →</button>
+  </div>
+</div>
+
+<script>
+const CATS=[
+  {
+    id:0,icon:'🦠',name:'Origen',color:'var(--c0)',
+    qs:[
+      {q:'¿En qué año apareció el virus Creeper, el primero de la historia?',opts:['1965','1971','1982','1990'],correct:1,fb:'✅ Creeper apareció en 1971 en la red ARPANET. Mostraba el mensaje "I\'m the creeper, catch me if you can!" y saltaba entre ordenadores.'},
+      {q:'¿Qué porcentaje de Internet representa la Surface Web (lo que indexan Google o Bing)?',opts:['50%','25%','10%','75%'],correct:2,fb:'✅ La Surface Web es solo el 10% de Internet. El 90% restante es la Deep Web (privada pero legal) y una pequeña fracción es la Dark Web.'},
+      {q:'¿Con qué navegador especial se accede a la Dark Web?',opts:['Chrome o Firefox de forma normal','Con el navegador Tor o I2P','Con Internet Explorer','Con cualquier navegador usando modo incógnito'],correct:1,fb:'✅ La Dark Web solo es accesible con navegadores anónimos como Tor o I2P. Con un navegador normal es imposible acceder a ella.'}
+    ]
+  },
+  {
+    id:1,icon:'🕵️',name:'Estafas',color:'var(--c1)',
+    qs:[
+      {q:'¿Qué es el "smishing"?',opts:['Un virus que ataca el correo electrónico','Estafas que llegan a través de SMS falsos','Un tipo de malware para móviles','Un ataque a redes Wi-Fi'],correct:1,fb:'✅ El smishing son estafas por SMS: mensajes falsos que simulan ser de bancos, Correos o empresas para robar tus datos. Nunca hagas clic en enlaces de SMS bancarios.'},
+      {q:'Recibes un SMS: "Su cuenta bancaria ha sido bloqueada. Haga clic en: banco-seguro.xyz" ¿Qué es?',opts:['Un aviso legítimo de tu banco','Una estafa de smishing: los bancos nunca envían SMS con enlaces','Una notificación de actualización de seguridad','Un error del sistema bancario'],correct:1,fb:'✅ Es smishing (estafa por SMS). Los bancos NUNCA envían SMS con enlaces. Si hay un enlace en un SMS de "tu banco", es siempre una estafa.'},
+      {q:'¿Cuál es la señal MÁS CLARA de que un email es phishing?',opts:['El email tiene muchas imágenes','El dominio del remitente es falso (ej: @bbva-urgente.net en vez de @bbva.es)','El email llega tarde por la noche','El email está en español'],correct:1,fb:'✅ El dominio del remitente es la pista definitiva. Los emails de tu banco solo vienen de su dominio oficial (ej: @bbva.es). Siempre comprueba la dirección completa del remitente.'}
+    ]
+  },
+  {
+    id:2,icon:'👨‍👩‍👧',name:'Familia',color:'var(--c2)',
+    qs:[
+      {q:'¿Qué es el "grooming"?',opts:['Una red social para adolescentes','Un adulto que se hace pasar por joven en Internet para manipular a menores','Un tipo de ciberacoso entre iguales','Un videojuego online peligroso'],correct:1,fb:'✅ El grooming es cuando un adulto finge ser joven en Internet para ganarse la confianza de un menor y manipularlo. Es un delito grave. Enseña a tus nietos que nunca deben quedar con alguien que solo conocen por Internet.'},
+      {q:'¿Qué es la mejor protección para un niño en Internet?',opts:['Prohibirle usar Internet completamente','Control parental + normas claras + comunicación abierta de confianza','Revisar su móvil en secreto todos los días','Solo dejarle usar aplicaciones de pago'],correct:1,fb:'✅ La combinación más efectiva: control parental técnico + normas claras (horarios, sitios permitidos) + comunicación abierta sin juzgar. Un niño que sabe que puede hablar contigo pedirá ayuda antes de que el problema se agrave.'},
+      {q:'Un adolescente está triste tras recibir comentarios hirientes en Instagram de compañeros de clase. ¿Cómo se llama esto?',opts:['Sexting','Grooming','Ciberacoso (cyberbullying)','Phishing'],correct:2,fb:'✅ Es ciberacoso o cyberbullying: insultos o humillaciones a través de redes sociales. Es igual de dañino que el acoso presencial y tiene consecuencias legales para quien lo practica.'}
+    ]
+  },
+  {
+    id:3,icon:'🛡️',name:'Defensa',color:'var(--c3)',
+    qs:[
+      {q:'¿Qué es la verificación en dos pasos (2FA)?',opts:['Una contraseña muy larga','Un segundo código (SMS o app) que debes introducir además de la contraseña','Dos contraseñas distintas para la misma cuenta','Una pregunta de seguridad'],correct:1,fb:'✅ El 2FA añade una segunda capa: aunque alguien robe tu contraseña, no puede entrar sin el código temporal que recibes por SMS o app. Actívalo en tu email, redes sociales y banca.'},
+      {q:'Según la Regla 3-2-1 de backups, ¿cuántas copias de tus datos debes tener en total?',opts:['1 copia es suficiente','2 copias en el mismo disco','3 copias en total, en 2 soportes, 1 fuera de casa','Solo la que está en la nube'],correct:2,fb:'✅ La Regla 3-2-1: 3 copias totales · en 2 soportes distintos (nube + disco externo) · con 1 copia fuera de casa (la nube). Esta combinación protege contra robos, averías e incendios.'},
+      {q:'¿Qué es la Lista Robinson?',opts:['Una lista de páginas peligrosas bloqueadas','Un servicio gratuito para evitar publicidad no solicitada por teléfono, SMS o email','Un registro de contraseñas del Gobierno','Una app de seguridad para el móvil'],correct:1,fb:'✅ La Lista Robinson (www.listarobinson.es) es gratuita y evita que empresas desconocidas te llamen o envíen publicidad no solicitada. Tarda 2 meses en activarse.'}
+    ]
+  },
+  {
+    id:4,icon:'🪪',name:'Identidad',color:'var(--c4)',
+    qs:[
+      {q:'¿Cuál es la diferencia entre la Cl@ve PIN y la Cl@ve Permanente?',opts:['No hay diferencia, son lo mismo','Cl@ve PIN es un código temporal por SMS; Cl@ve Permanente es usuario + contraseña fijos','Cl@ve Permanente solo la usan los funcionarios','Cl@ve PIN es más segura porque cambia cada vez'],correct:1,fb:'✅ Cl@ve PIN genera un código temporal válido pocos minutos, perfecto para accesos puntuales. Cl@ve Permanente usa tu DNI/NIE + contraseña que tú eliges, para accesos frecuentes a la administración.'},
+      {q:'¿Qué documento necesitas para realizar el trámite de la declaración de la Renta online de forma completa?',opts:['Solo el número de DNI','El Certificado Digital (FNMT) o el DNI Electrónico','La Cl@ve PIN es suficiente para todo','No se puede hacer online'],correct:1,fb:'✅ Para la declaración de la Renta completa se recomienda el Certificado Digital (FNMT) o el DNI Electrónico: permiten acceder a todos los datos y firmar el documento con plena validez legal.'},
+      {q:'¿Qué es la Firma Digital?',opts:['Una imagen de tu firma escaneada','Tu nombre escrito en cursiva en un documento Word','Un mecanismo criptográfico que acredita tu identidad y que no has modificado el documento','Una contraseña muy larga'],correct:2,fb:'✅ La Firma Digital usa criptografía para garantizar dos cosas: que eres tú quien firma (autenticidad) y que el documento no ha sido modificado desde que lo firmaste (integridad). Tiene plena validez legal.'}
+    ]
+  },
+  {
+    id:5,icon:'🎩',name:'Hackers',color:'var(--c5)',
+    qs:[
+      {q:'¿Cuál fue el primer ciberataque considerado "ciberarma" diseñado para dañar infraestructura física real?',opts:['WannaCry (2017)','ILOVEYOU (2000)','Stuxnet (2010)','Mirai (2016)'],correct:2,fb:'✅ Stuxnet (2010) fue la primera ciberarma de la historia: dañó físicamente las centrifugadoras del programa nuclear iraní. Se atribuye a Estados Unidos e Israel.'},
+      {q:'Un hacker accede sin permiso a un sistema, encuentra una vulnerabilidad grave y la reporta anónimamente a la empresa sin robar nada. ¿Qué tipo de hacker es?',opts:['Black Hat (malicioso)','White Hat (ético)','Gray Hat (intermedio)','Red Hat (activista)'],correct:2,fb:'✅ Es un Gray Hat: actúa sin permiso (lo que es ilegal) pero reporta el fallo en lugar de explotarlo. Está en una zona gris legal: buenas intenciones, método ilegal.'},
+      {q:'¿Qué botnet creó el malware Mirai en 2016 para atacar servicios como Twitter y Netflix?',opts:['Una red de PCs infectados en empresas','Una red de dispositivos IoT mal protegidos (cámaras, routers, televisores)','Una red de servidores gubernamentales','Una red de teléfonos móviles Android'],correct:1,fb:'✅ Mirai infectó miles de dispositivos IoT (cámaras IP, routers, smart TVs) con contraseñas por defecto sin cambiar. Los usó como zombis para derribar con sus peticiones servidores de Twitter, Netflix y CNN.'}
+    ]
+  },
+  {
+    id:6,icon:'💶',name:'Dinero',color:'var(--c6)',
+    qs:[
+      {q:'¿Quién emite y garantiza el Euro Digital?',opts:['Los bancos privados españoles','PayPal y otras empresas de pagos','El Banco Central Europeo (BCE)','Una red descentralizada como el Bitcoin'],correct:2,fb:'✅ El Euro Digital es emitido y garantizado directamente por el Banco Central Europeo (BCE). Esta es su principal diferencia con las criptomonedas: tiene el mismo respaldo institucional que los billetes físicos.'},
+      {q:'¿Qué tecnología usa el monedero digital (Google Pay, Apple Pay) para proteger los datos de tu tarjeta al pagar?',opts:['Envía el número real de tu tarjeta cifrado','Tokenización: genera un número virtual único para cada transacción','Usa una conexión VPN para cifrar el pago','Guarda tu tarjeta en la nube del banco'],correct:1,fb:'✅ La tokenización genera un número virtual diferente para cada pago. Tu número de tarjeta real nunca viaja por la red ni llega al comercio, haciendo imposible robarlo durante la transacción.'},
+      {q:'¿Cuál es la señal de alerta más clara de que una tienda online es segura para pagar?',opts:['Que tenga muchos productos y precios bajos','Que la URL empiece por "https://" y aparezca un candado cerrado en el navegador','Que sea una web muy conocida en televisión','Que solo acepte transferencia bancaria directa'],correct:1,fb:'✅ HTTPS (la S es de Seguro) + candado cerrado = conexión cifrada. Sin estas señales, nunca introduzcas datos de tarjeta. Un precio irreal + solo transferencia bancaria es la señal contraria: estafa.'}
+    ]
+  },
+  {
+    id:7,icon:'💾',name:'Backup',color:'var(--c7)',
+    qs:[
+      {q:'¿Por qué NO debes dejar el disco duro externo siempre conectado al ordenador?',opts:['Porque consume demasiada batería','Porque un ransomware podría cifrar también el disco externo si está conectado durante el ataque','Porque el disco se desgasta más rápido','Porque el ordenador va más lento'],correct:1,fb:'✅ Si un ransomware ataca tu ordenador, cifrará todo lo que esté conectado, incluido el disco externo. La práctica segura: conectar → copiar → desconectar → guardar en un cajón.'},
+      {q:'¿Qué servicio gratuito de Google hace copias automáticas de las fotos de tu móvil?',opts:['Google Drive para fotos','Google Fotos (backup automático activable desde la app)','Gmail adjuntos','Google Lens'],correct:1,fb:'✅ Google Fotos tiene una función de "copia de seguridad" que sube automáticamente todas tus fotos a la nube. Gratis hasta 15 GB. Actívala en la app: toca tu foto de perfil → Copia de seguridad → Activar.'},
+      {q:'Una web de descargas te pide que desactives el antivirus antes de instalar su programa. ¿Qué haces?',opts:['Desactivarlo, solo un momento no pasa nada','Cerrar esa web de inmediato: pedir desactivar el antivirus es la señal definitiva de que el programa ES el malware','Instalar primero y luego reactivar el antivirus','Preguntar en foros si es seguro'],correct:1,fb:'✅ Ningún programa legítimo necesita que desactives el antivirus. Solo el malware necesita que estés desprotegido para instalarse sin que te avisen. Cierra esa web y bloquea el dominio.'}
+    ]
+  }
+];
+
+// STATE
+let score=0, correct=0, wrong=0;
+let catState={}; // {catId: {answered:0, wedge:false, wrongInCat:false}}
+let currentCat=null, currentQIdx=0, qAnswered=false;
+
+function initState(){
+  score=0;correct=0;wrong=0;currentCat=null;currentQIdx=0;qAnswered=false;
+  catState={};
+  CATS.forEach(c=>catState[c.id]={answered:0,wedge:false,wrongInCat:false});
+}
+
+function totalWedges(){return Object.values(catState).filter(s=>s.wedge).length;}
+
+function buildWedgesRow(){
+  const row=document.getElementById('wedgesRow');
+  row.innerHTML='';
+  CATS.forEach(c=>{
+    const chip=document.createElement('div');
+    const earned=catState[c.id].wedge;
+    chip.className='wedge-chip'+(earned?' earned':'');
+    chip.style.borderColor=c.color;
+    chip.style.background=earned?c.color:'transparent';
+    chip.title=c.name;
+    chip.textContent=c.icon;
+    if(earned)chip.style.boxShadow=`0 0 10px ${c.color}`;
+    row.appendChild(chip);
+  });
+}
+
+function buildCatGrid(){
+  const grid=document.getElementById('catGrid');
+  grid.innerHTML='';
+  CATS.forEach(c=>{
+    const st=catState[c.id];
+    const done=st.answered>=3;
+    const card=document.createElement('div');
+    card.className='cat-card'+(done?' done':'');
+    card.style.borderColor=c.color;
+    if(!done)card.style.cursor='pointer';
+    // wedge chips inside
+    let wips='';
+    for(let i=0;i<3;i++){
+      const filled=i<st.answered;
+      wips+=`<span class="cat-wedge" style="background:${filled?c.color:'transparent'};border-color:${c.color}"></span>`;
+    }
+    card.innerHTML=`<div class="cat-icon">${c.icon}</div><div class="cat-name" style="color:${c.color}">${c.name}</div><div class="cat-prog">${wips} ${done?(st.wedge?'🏆 Quesito':'✓ Completa'):`${st.answered}/3`}</div>`;
+    if(!done)card.onclick=()=>openCat(c.id);
+    grid.appendChild(card);
+  });
+}
+
+function updateScoreboard(){
+  document.getElementById('scoreD').textContent=score;
+  document.getElementById('correctD').textContent=correct;
+  document.getElementById('wrongD').textContent=wrong;
+  document.getElementById('wedgesD').textContent=totalWedges()+'/8';
+}
+
+function openCat(catId){
+  currentCat=catId;
+  currentQIdx=catState[catId].answered;
+  qAnswered=false;
+  showQuestion();
+}
+
+function showQuestion(){
+  const cat=CATS[currentCat];
+  const q=cat.qs[currentQIdx];
+  const modal=document.getElementById('modalBg');
+  document.getElementById('mCat').textContent=cat.icon+' '+cat.name.toUpperCase();
+  document.getElementById('mCat').style.color=cat.color;
+  document.getElementById('mIcon').textContent=cat.icon;
+  document.getElementById('mQnum').textContent=`Pregunta ${currentQIdx+1} de 3`;
+  document.getElementById('mQ').textContent=q.q;
+  const optsEl=document.getElementById('mOpts');
+  optsEl.innerHTML='';
+  const ltrs=['A','B','C','D'];
+  q.opts.forEach((o,i)=>{
+    const btn=document.createElement('button');
+    btn.className='mopt';
+    btn.style.setProperty('--hover-color',cat.color);
+    btn.textContent=ltrs[i]+') '+o;
+    btn.onclick=()=>pickOpt(i);
+    optsEl.appendChild(btn);
+  });
+  document.getElementById('mFb').className='modal-fb';
+  document.getElementById('mNext').className='modal-next';
+  qAnswered=false;
+  modal.className='modal-bg show';
+}
+
+function pickOpt(idx){
+  if(qAnswered)return;
+  qAnswered=true;
+  const cat=CATS[currentCat];
+  const q=cat.qs[currentQIdx];
+  const btns=document.querySelectorAll('.mopt');
+  btns.forEach(b=>b.disabled=true);
+  const ok=idx===q.correct;
+  btns[idx].classList.add(ok?'correct':'wrong');
+  if(!ok)btns[q.correct].classList.add('correct');
+  const fb=document.getElementById('mFb');
+  if(ok){
+    score+=100;correct++;
+    fb.className='modal-fb ok show';
+  } else {
+    score=Math.max(0,score-10);wrong++;
+    catState[currentCat].wrongInCat=true;
+    fb.className='modal-fb fail show';
+  }
+  document.getElementById('mFbText').textContent=q.fb;
+  catState[currentCat].answered++;
+  // Wedge if 3/3 answered with no failures in this cat
+  if(catState[currentCat].answered===3&&!catState[currentCat].wrongInCat){
+    catState[currentCat].wedge=true;
+    score+=200; // bonus
+  } else if(catState[currentCat].answered===3){
+    catState[currentCat].wedge=false;
+  }
+  updateScoreboard();
+  buildWedgesRow();
+  buildCatGrid();
+  const nextBtn=document.getElementById('mNext');
+  if(currentQIdx<2){nextBtn.textContent='SIGUIENTE PREGUNTA →';nextBtn.className='modal-next show';}
+  else{nextBtn.textContent='CERRAR CATEGORÍA ✓';nextBtn.className='modal-next show';}
+}
+
+function nextQuestion(){
+  currentQIdx++;
+  if(currentQIdx>=3){
+    closeModal();
+    checkVictory();
+    return;
+  }
+  showQuestion();
+}
+
+function closeModal(){
+  document.getElementById('modalBg').className='modal-bg';
+  checkVictory();
+}
+
+function checkVictory(){
+  const allDone=Object.values(catState).every(s=>s.answered>=3);
+  if(!allDone)return;
+  const wedges=totalWedges();
+  document.getElementById('catGrid').style.display='none';
+  document.getElementById('victoryCard').className='victory-card show';
+  document.getElementById('vcScore').textContent=score;
+  document.getElementById('vcCorrect').textContent=`${correct}/24`;
+  document.getElementById('vcWedges').textContent=`${wedges}/8`;
+  let title,sub;
+  if(wedges>=7){title='🏆 ¡Maestro de la Ciberseguridad!';sub='Has demostrado un conocimiento sobresaliente en TODAS las áreas de seguridad informática. ¡Comparte este logro con tu familia!';}
+  else if(wedges>=5){title='🛡️ ¡Experto Consolidado!';sub='Dominas la mayoría de las áreas. Repasa las categorías donde fallaste para conseguir todos los quesitos.';}
+  else if(wedges>=3){title='📚 Buen Nivel General';sub='Tienes una base sólida en seguridad digital. Sigue practicando las áreas más flojas.';}
+  else{title='🌱 En Formación';sub='La ciberseguridad es amplia y hay mucho por aprender. Vuelve a jugar y mejorarás en cada intento.';}
+  document.getElementById('vcTitle').textContent=title;
+  document.getElementById('vcSub').textContent=sub;
+}
+
+function restartGame(){
+  initState();
+  updateScoreboard();
+  buildWedgesRow();
+  document.getElementById('catGrid').style.display='grid';
+  document.getElementById('victoryCard').className='victory-card';
+  buildCatGrid();
+}
+
+// INIT
+initState();
+updateScoreboard();
+buildWedgesRow();
+buildCatGrid();
+</script>
+</body>
+</html>

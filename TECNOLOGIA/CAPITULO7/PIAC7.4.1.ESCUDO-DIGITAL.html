@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PIAC7.4.1 · Escudo Digital</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#07080f;--panel:#0d1117;--panel2:#111827;
+  --border:#1e2d40;--b2:#253347;
+  --p1:#3b82f6;--p2:#f59e0b;--p3:#10b981;--p4:#ef4444;--p5:#8b5cf6;
+  --text:#e2e8f0;--text2:#607090;--white:#ffffff;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospace;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:999;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.06) 2px,rgba(0,0,0,0.06) 3px);}
+canvas#bg{position:fixed;inset:0;z-index:0;opacity:0.25;}
+
+.page{position:relative;z-index:1;max-width:920px;margin:0 auto;padding:22px 14px 60px;}
+header{text-align:center;margin-bottom:24px;}
+.htag{font-size:11px;color:var(--p1);letter-spacing:3px;text-transform:uppercase;margin-bottom:8px;}
+h1{font-family:'Syne',sans-serif;font-size:clamp(22px,5vw,36px);font-weight:900;color:var(--white);margin-bottom:8px;}
+h1 .hi{color:var(--p2);}
+.hsub{font-size:13px;color:var(--text2);line-height:1.6;}
+
+/* SHIELD METER */
+.shield-wrap{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:22px;}
+.shield-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+.shield-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--white);}
+.shield-pct{font-family:'Syne',sans-serif;font-size:24px;font-weight:900;color:var(--p3);}
+.shield-track{height:12px;background:var(--border);border-radius:8px;overflow:hidden;}
+.shield-fill{height:100%;background:linear-gradient(90deg,var(--p4),var(--p2),var(--p3));border-radius:8px;transition:width 0.7s ease;}
+.shield-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--text2);margin-top:5px;}
+
+/* SCORE */
+.score-bar{display:flex;justify-content:space-between;align-items:center;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:10px 18px;margin-bottom:20px;flex-wrap:wrap;gap:8px;}
+.sc-i{text-align:center;}
+.sc-l{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:3px;}
+.sc-v{font-family:'Syne',sans-serif;font-size:20px;font-weight:900;color:var(--p2);}
+
+/* STEPS PANEL */
+.steps-panel{display:grid;grid-template-columns:repeat(auto-fit,minmax(80px,1fr));gap:8px;margin-bottom:22px;}
+.step-dot{
+  background:var(--panel);border:1px solid var(--border);border-radius:8px;
+  padding:10px 8px;text-align:center;font-size:11px;color:var(--text2);
+  transition:all 0.3s;cursor:pointer;
+}
+.step-dot.active{border-color:var(--p1);color:var(--p1);background:rgba(59,130,246,0.1);}
+.step-dot.done{border-color:var(--p3);color:var(--p3);background:rgba(16,185,129,0.08);}
+.step-dot .s-icon{font-size:18px;margin-bottom:4px;}
+.step-dot .s-num{font-size:9px;letter-spacing:1px;}
+
+/* MAIN CARD */
+.main-card{background:var(--panel);border:1px solid var(--b2);border-radius:14px;padding:28px 24px;margin-bottom:18px;}
+.mc-phase{font-size:10px;color:var(--p1);letter-spacing:3px;text-transform:uppercase;margin-bottom:12px;}
+.mc-icon{font-size:44px;margin-bottom:12px;}
+.mc-title{font-family:'Syne',sans-serif;font-size:clamp(18px,3vw,24px);font-weight:900;color:var(--white);margin-bottom:10px;}
+.mc-body{font-size:14px;line-height:1.8;color:var(--text);margin-bottom:20px;}
+.mc-body strong{color:var(--p2);}
+.mc-body .rule{
+  background:var(--panel2);border-left:3px solid var(--p1);border-radius:0 8px 8px 0;
+  padding:10px 14px;margin:10px 0;font-size:13px;line-height:1.6;
+}
+.mc-body .rule.green{border-color:var(--p3);}
+.mc-body .rule.amber{border-color:var(--p2);}
+.mc-body .rule.red{border-color:var(--p4);}
+
+/* QUIZ within simulation */
+.sim-quiz{margin-top:16px;}
+.sim-quiz-q{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:var(--white);margin-bottom:12px;}
+.sim-opts{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+@media(max-width:500px){.sim-opts{grid-template-columns:1fr;}}
+.sim-opt{
+  background:var(--panel2);border:2px solid var(--border);border-radius:8px;
+  padding:13px 15px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:13px;
+  line-height:1.5;cursor:pointer;text-align:left;transition:all 0.2s;
+}
+.sim-opt:hover:not(:disabled){border-color:var(--p1);background:rgba(59,130,246,0.08);}
+.sim-opt.correct{border-color:var(--p3);background:rgba(16,185,129,0.1);color:var(--white);}
+.sim-opt.wrong{border-color:var(--p4);background:rgba(239,68,68,0.1);}
+.sim-opt:disabled{cursor:default;}
+
+/* FEEDBACK */
+.fb-box{border-radius:10px;padding:14px 18px;font-size:13px;line-height:1.6;margin:16px 0;display:none;}
+.fb-box.show{display:block;}
+.fb-box.ok{background:rgba(16,185,129,0.1);border:1px solid var(--p3);color:var(--p3);}
+.fb-box.fail{background:rgba(239,68,68,0.1);border:1px solid var(--p4);color:#fca5a5;}
+
+/* NAV BUTTON */
+.btn-nav{
+  background:linear-gradient(135deg,var(--p1),#1d4ed8);border:none;border-radius:10px;
+  padding:15px 28px;color:var(--white);font-family:'Syne',sans-serif;font-size:16px;
+  font-weight:900;cursor:pointer;width:100%;transition:all 0.2s;letter-spacing:1px;
+}
+.btn-nav:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(59,130,246,0.3);}
+.btn-nav:disabled{opacity:0.4;cursor:not-allowed;transform:none;box-shadow:none;}
+
+/* RESULTS */
+.results-card{display:none;background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:36px 24px;text-align:center;}
+.results-card.show{display:block;}
+.res-emoji{font-size:52px;margin-bottom:14px;}
+.res-title{font-family:'Syne',sans-serif;font-size:26px;font-weight:900;color:var(--white);margin-bottom:8px;}
+.res-sub{font-size:13px;color:var(--text2);margin-bottom:24px;line-height:1.6;}
+.res-stats{display:flex;justify-content:center;gap:20px;flex-wrap:wrap;margin-bottom:28px;}
+.stat{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:14px 20px;min-width:100px;}
+.stat-v{font-family:'Syne',sans-serif;font-size:28px;font-weight:900;color:var(--p2);}
+.stat-l{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;}
+.btn-restart{background:var(--panel2);border:2px solid var(--p2);border-radius:10px;padding:12px 28px;color:var(--p2);font-family:'Syne',sans-serif;font-size:16px;font-weight:900;cursor:pointer;transition:all 0.2s;}
+.btn-restart:hover{background:var(--p2);color:var(--bg);}
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<div class="page">
+  <header>
+    <div class="htag">// SEGURIDAD INFORMÁTICA · TEORÍA 7.4</div>
+    <h1>🛡️ Tu <span class="hi">Escudo</span> Digital</h1>
+    <p class="hsub">Aprende a activar tus defensas digitales paso a paso y protégete de las amenazas</p>
+  </header>
+
+  <div class="shield-wrap">
+    <div class="shield-header">
+      <div class="shield-title">⚡ Nivel de Protección</div>
+      <div class="shield-pct" id="shieldPct">0%</div>
+    </div>
+    <div class="shield-track"><div class="shield-fill" id="shieldFill" style="width:0%"></div></div>
+    <div class="shield-labels"><span>Sin protección</span><span>Protección básica</span><span>Blindado ✓</span></div>
+  </div>
+
+  <div class="score-bar">
+    <div class="sc-i"><div class="sc-l">Puntos</div><div class="sc-v" id="scoreD">0</div></div>
+    <div class="sc-i"><div class="sc-l">Aciertos</div><div class="sc-v" style="color:var(--p3)" id="correctD">0</div></div>
+    <div class="sc-i"><div class="sc-l">Paso</div><div class="sc-v" style="color:var(--p1)" id="stepD">1/7</div></div>
+  </div>
+
+  <div class="steps-panel" id="stepsPanel"></div>
+
+  <div id="gameArea">
+    <div class="main-card" id="mainCard">
+      <div class="mc-phase" id="mcPhase"></div>
+      <div class="mc-icon" id="mcIcon"></div>
+      <div class="mc-title" id="mcTitle"></div>
+      <div class="mc-body" id="mcBody"></div>
+      <div class="sim-quiz" id="simQuiz" style="display:none">
+        <div class="sim-quiz-q" id="simQ"></div>
+        <div class="sim-opts" id="simOpts"></div>
+      </div>
+    </div>
+    <div class="fb-box" id="fbBox"><div id="fbText"></div></div>
+    <button class="btn-nav" id="btnNav" onclick="handleNav()">SIGUIENTE →</button>
+  </div>
+
+  <div class="results-card" id="resultsCard">
+    <div class="res-emoji" id="resEmoji"></div>
+    <div class="res-title" id="resTitle"></div>
+    <div class="res-sub" id="resSub"></div>
+    <div class="res-stats">
+      <div class="stat"><div class="stat-v" id="resScore"></div><div class="stat-l">Puntos</div></div>
+      <div class="stat"><div class="stat-v" id="resCorrect"></div><div class="stat-l">Aciertos</div></div>
+      <div class="stat"><div class="stat-v" id="resPct"></div><div class="stat-l">Escudo</div></div>
+    </div>
+    <button class="btn-restart" onclick="restartGame()">↩ REINICIAR</button>
+  </div>
+</div>
+
+<script>
+// BG canvas
+const cv=document.getElementById('bg');
+const cx=cv.getContext('2d');
+function rz(){cv.width=window.innerWidth;cv.height=window.innerHeight;}
+rz();window.addEventListener('resize',rz);
+const hexes=[];
+for(let i=0;i<20;i++)hexes.push({x:Math.random()*window.innerWidth,y:Math.random()*window.innerHeight,r:Math.random()*30+10,speed:Math.random()*0.3+0.1,alpha:Math.random()*0.3+0.05});
+function drawBg(){
+  cx.clearRect(0,0,cv.width,cv.height);
+  hexes.forEach(h=>{
+    h.y-=h.speed;
+    if(h.y<-60)h.y=cv.height+60;
+    cx.save();cx.translate(h.x,h.y);
+    cx.beginPath();
+    for(let i=0;i<6;i++){cx.lineTo(h.r*Math.cos(i*Math.PI/3),h.r*Math.sin(i*Math.PI/3));}
+    cx.closePath();
+    cx.strokeStyle='#3b82f6';cx.globalAlpha=h.alpha;cx.lineWidth=1;cx.stroke();cx.restore();
+  });
+  requestAnimationFrame(drawBg);
+}
+drawBg();
+
+// STEPS DATA
+const STEPS=[
+  {
+    icon:'🦠',label:'Antivirus',phase:'PASO 1 DE 7',
+    title:'Instala y mantén actualizado un Antivirus',
+    body:`Un <strong>antivirus</strong> es tu primera línea de defensa. Detecta y bloquea virus, troyanos, ransomware y spyware antes de que dañen tu ordenador.<br><br>
+    <div class="rule green">✅ Windows incluye <strong>Windows Defender</strong> (gratuito y muy eficaz). No necesitas instalarlo: ya viene activo.</div>
+    <div class="rule">🔄 Mantenerlo actualizado es fundamental: los virus nuevos aparecen cada día y el antivirus necesita conocerlos.</div>
+    <div class="rule amber">⚡ Señales de que algo va mal: el ordenador va muy lento, aparecen ventanas extrañas o el antivirus está desactivado.</div>`,
+    quiz:{q:'¿Qué antivirus viene incluido y activo en Windows de forma gratuita?',opts:['Norton Antivirus','McAfee Total Protection','Windows Defender','Avast Free'],correct:2,fb:'✅ Windows Defender está incluido en Windows 10 y 11 de forma gratuita y es muy eficaz. No necesitas comprar nada si lo mantienes actualizado.'}
+  },
+  {
+    icon:'🔄',label:'Actualizaciones',phase:'PASO 2 DE 7',
+    title:'Activa las Actualizaciones Automáticas',
+    body:`Las <strong>actualizaciones del sistema</strong> corrigen los "agujeros de seguridad" que los hackers aprovechan para entrar en tu ordenador.<br><br>
+    <div class="rule green">✅ Activa las actualizaciones automáticas: Inicio → Configuración → Windows Update → "Activar actualizaciones automáticas".</div>
+    <div class="rule red">❌ Ignorar las actualizaciones es como dejar la puerta de casa abierta: los ciberdelincuentes conocen esos agujeros.</div>
+    <div class="rule">📱 Esto aplica también al móvil: ve a Ajustes → Actualización de software → Activar actualizaciones automáticas.</div>`,
+    quiz:{q:'¿Por qué es tan importante instalar las actualizaciones del sistema operativo?',opts:['Para que el ordenador vaya más rápido','Para corregir agujeros de seguridad que los hackers pueden aprovechar','Para tener nuevas funciones y diseños','Para liberar espacio en el disco duro'],correct:1,fb:'✅ Las actualizaciones corrigen vulnerabilidades de seguridad. Sin ellas, tu sistema es vulnerable a ataques conocidos que los hackers aprovechan activamente.'}
+  },
+  {
+    icon:'🔑',label:'Contraseñas',phase:'PASO 3 DE 7',
+    title:'Contraseñas Fuertes y Gestores',
+    body:`Una contraseña segura es tu cerradura digital. <strong>El estándar actual es 20+ caracteres</strong>.<br><br>
+    <div class="rule green">✅ Buena contraseña: mezcla mayúsculas, minúsculas, números y símbolos. Ejemplo: "MiPerro!LLama_Fido2024#"</div>
+    <div class="rule red">❌ Mala contraseña: tu nombre, fecha de nacimiento, "123456", "contraseña", el nombre de tu mascota.</div>
+    <div class="rule amber">🔐 Usa un <strong>gestor de contraseñas</strong> (Google Password Manager, iCloud Keychain): genera y recuerda contraseñas seguras por ti.</div>
+    <div class="rule">📵 NUNCA compartas tus contraseñas, ni las apuntes en un papel visible, ni las envíes por WhatsApp.</div>`,
+    quiz:{q:'¿Cuál de estas contraseñas es la más segura?',opts:['pepe1955','MiCasa123','C0ntr@señ@-Seg#2024!','contraseña'],correct:2,fb:'✅ "C0ntr@señ@-Seg#2024!" combina mayúsculas, minúsculas, números y símbolos especiales con más de 20 caracteres. Eso la hace muy difícil de adivinar.'}
+  },
+  {
+    icon:'📱',label:'Doble factor',phase:'PASO 4 DE 7',
+    title:'Activa la Verificación en Dos Pasos (2FA)',
+    body:`La <strong>verificación en dos pasos</strong> es como tener cerradura Y pestillo. Aunque alguien robe tu contraseña, no puede entrar sin el segundo código.<br><br>
+    <div class="rule green">✅ Cómo funciona: introduces tu contraseña → recibes un código por SMS o app → introduces ese código → entras.</div>
+    <div class="rule">📲 Actívalo en: Gmail (Configuración → Seguridad → Verificación en 2 pasos), Facebook, Instagram, tu banco...</div>
+    <div class="rule amber">⚠️ El código de verificación solo es válido durante unos minutos. Si no lo has pedido tú, es que alguien intenta entrar.</div>
+    <div class="rule red">❌ Nunca compartas el código de verificación, ni con quien diga ser de tu banco o de Google.</div>`,
+    quiz:{q:'Recibes este SMS: "Tu código de verificación de Google es 847261. Nunca lo compartas." Un minuto después te llama alguien que dice ser de Google y te pide ese código. ¿Qué haces?',opts:['Darlo, si la persona parece de confianza','Colgarlo inmediatamente: nadie legítimo pide ese código por teléfono','Dictarlo despacio para que lo anoten bien','Enviarlo también por WhatsApp para mayor seguridad'],correct:1,fb:'✅ ¡Exacto! Nadie legítimo (ni Google, ni tu banco, ni nadie) te pedirá jamás el código de verificación por teléfono. Si te lo piden, es un intento de robo de cuenta. Cuelga y bloquea.'}
+  },
+  {
+    icon:'📶',label:'Wi-Fi',phase:'PASO 5 DE 7',
+    title:'Cuidado con las Redes Wi-Fi Públicas',
+    body:`Las redes Wi-Fi de cafeterías, aeropuertos o centros comerciales son <strong>redes públicas</strong> que cualquiera puede interceptar.<br><br>
+    <div class="rule red">❌ Nunca hagas: banca online, compras, o acceder a cuentas con datos importantes desde Wi-Fi pública.</div>
+    <div class="rule green">✅ Usa siempre los <strong>datos móviles</strong> de tu compañía para operaciones sensibles: son una conexión privada y segura.</div>
+    <div class="rule">🔒 Si usas Wi-Fi pública, activa una <strong>VPN</strong> (PrivadoVPN o ProtonVPN son gratuitas): cifra todos tus datos.</div>
+    <div class="rule amber">📡 Aunque la red tenga nombre conocido (ej: "CaféBar_WiFi"), podría ser falsa y creada por un delincuente.</div>`,
+    quiz:{q:'Estás en el aeropuerto esperando tu vuelo y quieres consultar el saldo de tu cuenta bancaria. ¿Qué es lo más seguro?',opts:['Conectarme al Wi-Fi del aeropuerto, que es oficial','Usar los datos móviles de mi tarifa para entrar al banco','Da igual, el banco ya tiene su propio cifrado','Pedir a alguien que me deje su móvil para no gastar mis datos'],correct:1,fb:'✅ Los datos móviles de tu tarifa son una conexión privada entre tu móvil y la torre de tu operadora. Es mucho más seguro que cualquier Wi-Fi pública, aunque sea "oficial".'}
+  },
+  {
+    icon:'📵',label:'Lista Robinson',phase:'PASO 6 DE 7',
+    title:'Lista Robinson: Di Adiós a la Publicidad No Deseada',
+    body:`La <strong>Lista Robinson</strong> es un servicio gratuito oficial que impide que empresas desconocidas te llamen, envíen SMS o correos con publicidad.<br><br>
+    <div class="rule green">✅ Cómo apuntarte: entra en <strong>www.listarobinson.es</strong> → haz clic en "Apuntarse" → rellena tus datos → selecciona los medios que quieres proteger (teléfono, email, SMS) → confirma.</div>
+    <div class="rule amber">⏱️ Tarda unos 2 meses en ser efectiva. Ten paciencia.</div>
+    <div class="rule red">⚠️ No te protege de empresas con las que ya tienes contrato (tu banco, tu compañía de teléfono). Ellas siguen pudiendo llamarte.</div>
+    <div class="rule">📵 Para llamadas insistentes: puedes bloquear el número directamente desde la app del teléfono.</div>`,
+    quiz:{q:'¿Qué es la Lista Robinson y para qué sirve?',opts:['Un servicio de seguridad policial para denunciar estafas','Un servicio gratuito para evitar que empresas desconocidas te envíen publicidad no deseada','Una app de bloqueo de virus en el móvil','Un registro de contraseñas seguras del Gobierno'],correct:1,fb:'✅ La Lista Robinson (www.listarobinson.es) es gratuita y te protege de publicidad no solicitada. Tarda 2 meses en activarse y no te protege de empresas con las que ya tienes contrato.'}
+  },
+  {
+    icon:'💾',label:'Backup',phase:'PASO 7 DE 7',
+    title:'Haz Copias de Seguridad de tus Datos',
+    body:`Una <strong>copia de seguridad (backup)</strong> es una copia de tus fotos, documentos y archivos guardada en un lugar seguro aparte.<br><br>
+    <div class="rule green">✅ Regla 3-2-1: <strong>3</strong> copias de tus datos · en <strong>2</strong> soportes distintos · <strong>1</strong> fuera de casa (nube).</div>
+    <div class="rule">☁️ <strong>En la nube:</strong> Google Fotos, OneDrive o iCloud hacen copias automáticas de tus fotos. Son gratuitos y fáciles.</div>
+    <div class="rule amber">💿 <strong>Disco duro externo:</strong> conecta el disco una vez por semana, copia tus carpetas importantes y guárdalo en un cajón.</div>
+    <div class="rule red">🔒 Si tienes un ransomware (virus que cifra tus archivos), solo recuperarás todo si tienes backup. Sin copia, los datos se pierden.</div>`,
+    quiz:{q:'¿Cuándo te das cuenta de que necesitabas un backup? Una mañana enciendes el ordenador y todos tus archivos han desaparecido por un virus. ¿Cuál es la mejor estrategia para que esto no te pase?',opts:['Instalar el antivirus después de que ocurra','Tener copias automáticas en la nube + copia en disco externo actualizada semanalmente','Guardar todo en una memoria USB que siempre llevas encima','Imprimir todos los documentos importantes en papel'],correct:1,fb:'✅ La estrategia más robusta combina copia en la nube (automática, siempre al día) + disco duro externo guardado en casa (copia semanal). Así estás protegido ante virus, robo o avería.'}
+  }
+];
+
+let score=0,correct=0,stepIdx=0,quizAnswered=false,quizPassed=false;
+
+function buildSteps(){
+  const panel=document.getElementById('stepsPanel');
+  panel.innerHTML='';
+  STEPS.forEach((s,i)=>{
+    const d=document.createElement('div');
+    d.className='step-dot'+(i===stepIdx?' active':i<stepIdx?' done':'');
+    d.id='sdot'+i;
+    d.innerHTML=`<div class="s-icon">${s.icon}</div><div class="s-num">${s.label}</div>`;
+    d.onclick=()=>{stepIdx=i;quizAnswered=false;quizPassed=false;renderStep();};
+    panel.appendChild(d);
+  });
+}
+
+function renderStep(){
+  const s=STEPS[stepIdx];
+  quizAnswered=false;quizPassed=false;
+  document.getElementById('mcPhase').textContent=s.phase;
+  document.getElementById('mcIcon').textContent=s.icon;
+  document.getElementById('mcTitle').textContent=s.title;
+  document.getElementById('mcBody').innerHTML=s.body;
+  document.getElementById('stepD').textContent=`${stepIdx+1}/7`;
+  // Quiz
+  const sq=document.getElementById('simQuiz');
+  sq.style.display='block';
+  document.getElementById('simQ').textContent=s.quiz.q;
+  const so=document.getElementById('simOpts');
+  so.innerHTML='';
+  const ltrs=['A','B','C','D'];
+  s.quiz.opts.forEach((o,i)=>{
+    const btn=document.createElement('button');
+    btn.className='sim-opt';
+    btn.textContent=ltrs[i]+') '+o;
+    btn.onclick=()=>pickQuiz(i);
+    so.appendChild(btn);
+  });
+  document.getElementById('fbBox').className='fb-box';
+  const btnNav=document.getElementById('btnNav');
+  btnNav.textContent=stepIdx<STEPS.length-1?'SIGUIENTE PASO →':'🏁 VER RESULTADOS';
+  btnNav.disabled=true;
+  // Update shield
+  const pct=Math.round((stepIdx/STEPS.length)*100);
+  document.getElementById('shieldFill').style.width=pct+'%';
+  document.getElementById('shieldPct').textContent=pct+'%';
+  buildSteps();
+}
+
+function pickQuiz(idx){
+  if(quizAnswered)return;
+  quizAnswered=true;
+  const s=STEPS[stepIdx];
+  const btns=document.querySelectorAll('.sim-opt');
+  btns.forEach(b=>b.disabled=true);
+  const ok=idx===s.quiz.correct;
+  btns[idx].classList.add(ok?'correct':'wrong');
+  if(!ok)btns[s.quiz.correct].classList.add('correct');
+  const fb=document.getElementById('fbBox');
+  if(ok){score+=100;correct++;quizPassed=true;fb.className='fb-box ok show';}
+  else{score=Math.max(0,score-10);fb.className='fb-box fail show';}
+  document.getElementById('fbText').textContent=s.quiz.fb;
+  document.getElementById('scoreD').textContent=score;
+  document.getElementById('correctD').textContent=correct;
+  document.getElementById('btnNav').disabled=false;
+}
+
+function handleNav(){
+  if(!quizAnswered)return;
+  stepIdx++;
+  if(stepIdx>=STEPS.length){showResults();return;}
+  renderStep();
+}
+
+function showResults(){
+  document.getElementById('gameArea').style.display='none';
+  document.getElementById('resultsCard').className='results-card show';
+  const shieldPct=Math.round((score/(STEPS.length*100))*100);
+  const pct=Math.round((score/(STEPS.length*100))*100);
+  document.getElementById('shieldFill').style.width='100%';
+  document.getElementById('shieldPct').textContent='100%';
+  document.getElementById('resScore').textContent=score;
+  document.getElementById('resCorrect').textContent=`${correct}/${STEPS.length}`;
+  document.getElementById('resPct').textContent=pct+'%';
+  let emoji,title,sub;
+  if(pct>=85){emoji='🛡️';title='¡Blindado al 100%!';sub='Tu escudo digital está completo. Antivirus, actualizaciones, contraseñas fuertes, 2FA, Wi-Fi seguro, Lista Robinson y backup. ¡Perfecto!';}
+  else if(pct>=65){emoji='⚔️';title='Bien Protegido';sub='Tienes las defensas principales activas. Repasa los pasos que fallaste para completar tu protección.';}
+  else if(pct>=45){emoji='🔓';title='Protección Parcial';sub='Hay puntos débiles en tu escudo. Vuelve a revisar los pasos con cuidado.';}
+  else{emoji='⚠️';title='Sin Protección';sub='Tu seguridad digital necesita atención urgente. Vuelve a empezar y sigue cada paso con calma.';}
+  document.getElementById('resEmoji').textContent=emoji;
+  document.getElementById('resTitle').textContent=title;
+  document.getElementById('resSub').textContent=sub;
+}
+
+function restartGame(){
+  score=0;correct=0;stepIdx=0;quizAnswered=false;quizPassed=false;
+  document.getElementById('scoreD').textContent=0;
+  document.getElementById('correctD').textContent=0;
+  document.getElementById('resultsCard').className='results-card';
+  document.getElementById('gameArea').style.display='block';
+  renderStep();
+}
+
+renderStep();
+</script>
+</body>
+</html>
