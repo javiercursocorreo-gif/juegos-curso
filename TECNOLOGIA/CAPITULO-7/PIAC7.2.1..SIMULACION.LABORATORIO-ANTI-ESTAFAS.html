@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PIAC7.2.1 · Simulación · Laboratorio Anti-Estafas</title>
+<link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Share+Tech+Mono&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#09100d;--bg2:#0d160f;--panel:#101810;--border:#1c2e1e;--border2:#2a4030;--amber:#d4920e;--amber2:#f0b830;--green:#1aaa3a;--gbright:#44ff77;--red:#cc2222;--rbright:#ff4444;--cream:#c8ba88;--white:#dde8dd;--blue:#2a7fff;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--cream);font-family:'Share Tech Mono',monospace;min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:999;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.07) 2px,rgba(0,0,0,0.07) 3px);}
+.page{max-width:860px;margin:0 auto;padding:22px 14px 60px;position:relative;z-index:1;}
+header{text-align:center;margin-bottom:22px;}
+.htag{font-size:11px;color:var(--green);letter-spacing:3px;text-transform:uppercase;margin-bottom:8px;}
+h1{font-family:'Special Elite',cursive;font-size:clamp(22px,5vw,36px);color:var(--amber2);margin-bottom:8px;}
+h1 span{color:var(--gbright);}
+.hsub{font-size:13px;color:#7a9a7a;line-height:1.6;}
+.instr{background:var(--panel);border:1px solid var(--amber);border-radius:8px;padding:12px 16px;margin-bottom:18px;font-size:13px;line-height:1.7;color:var(--cream);}
+.instr strong{color:var(--amber2);}
+/* SCORE */
+.score-bar{display:flex;justify-content:space-between;background:var(--panel);border:1px solid var(--border2);border-radius:8px;padding:10px 18px;margin-bottom:18px;flex-wrap:wrap;gap:8px;}
+.sc-i{text-align:center;}.sc-l{font-size:10px;color:#7a9a7a;text-transform:uppercase;letter-spacing:2px;margin-bottom:3px;}
+.sc-v{font-family:'Orbitron',monospace;font-size:18px;font-weight:700;color:var(--amber2);}
+/* PROGRESS */
+.prog{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:9px 16px;margin-bottom:18px;}
+.prog-label{font-size:11px;color:#7a9a7a;white-space:nowrap;}
+.prog-track{flex:1;height:5px;background:var(--border);border-radius:4px;overflow:hidden;}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--green),var(--amber2));border-radius:4px;transition:width 0.5s;}
+.prog-val{font-family:'Orbitron',monospace;font-size:13px;font-weight:700;color:var(--amber2);}
+/* MESSAGE DISPLAY */
+.msg-display{background:var(--bg2);border:2px solid var(--border2);border-radius:10px;padding:18px 20px;margin-bottom:18px;font-size:13px;line-height:1.8;}
+.msg-type{font-size:10px;color:var(--amber);letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;}
+.msg-from{margin-bottom:4px;} .msg-subj{font-size:14px;font-weight:700;color:var(--white);margin-bottom:10px;}
+.msg-body{line-height:1.9;}
+/* CLUE BUTTONS — elements to tap */
+.clues-section{margin-bottom:18px;}
+.clues-title{font-size:11px;color:var(--amber);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;}
+.clues-grid{display:flex;flex-wrap:wrap;gap:8px;}
+.clue-btn{padding:8px 14px;border-radius:6px;border:2px solid var(--border2);background:var(--panel);color:var(--cream);font-family:'Share Tech Mono',monospace;font-size:13px;cursor:pointer;transition:all 0.2s;}
+.clue-btn:hover:not(:disabled){transform:translateY(-2px);}
+.clue-btn:disabled{cursor:default;transform:none;}
+.clue-btn.danger{border-color:var(--rbright);background:rgba(204,34,34,0.15);color:var(--rbright);}
+.clue-btn.safe{border-color:var(--gbright);background:rgba(26,170,58,0.1);color:var(--gbright);}
+.clue-btn.missed{border-color:var(--amber);background:rgba(212,146,14,0.1);color:var(--amber2);}
+.clue-result{border-radius:8px;padding:10px 14px;font-size:12px;line-height:1.6;margin-top:8px;display:none;}
+.clue-result.show{display:block;}
+.clue-result.ok{background:rgba(26,170,58,0.1);border:1px solid var(--green);color:var(--gbright);}
+.clue-result.info{background:rgba(212,146,14,0.08);border:1px solid var(--amber);color:var(--amber2);}
+/* VERDICT */
+.verdict-section{background:var(--panel);border:1px solid var(--border2);border-radius:10px;padding:16px 18px;margin-bottom:16px;}
+.verdict-title{font-size:11px;color:var(--amber);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;}
+.verdict-q{font-family:'Special Elite',cursive;font-size:16px;color:var(--white);margin-bottom:12px;}
+.verdict-btns{display:flex;gap:10px;}
+.vbtn{flex:1;padding:13px;border-radius:8px;border:2px solid;font-family:'Orbitron',monospace;font-size:12px;font-weight:700;cursor:pointer;transition:all 0.2s;text-align:center;letter-spacing:1px;}
+.vbtn:hover:not(:disabled){transform:translateY(-2px);}
+.vbtn.estafa{border-color:var(--rbright);background:rgba(204,34,34,0.1);color:var(--rbright);}
+.vbtn.seguro{border-color:var(--gbright);background:rgba(26,170,58,0.08);color:var(--gbright);}
+.vbtn:disabled{cursor:default;transform:none;opacity:0.6;}
+.verdict-result{border-radius:8px;padding:14px 18px;font-size:13px;line-height:1.7;margin-top:12px;display:none;}
+.verdict-result.show{display:block;}
+.verdict-result.ok{background:rgba(26,170,58,0.1);border:1px solid var(--green);color:var(--gbright);}
+.verdict-result.fail{background:rgba(204,34,34,0.1);border:1px solid var(--red);color:#ffaaaa;}
+.next-btn{background:linear-gradient(135deg,var(--green),#0d6627);border:none;border-radius:8px;padding:13px;color:var(--white);font-family:'Orbitron',monospace;font-size:13px;font-weight:700;cursor:pointer;width:100%;margin-top:12px;transition:all 0.2s;display:none;letter-spacing:1px;}
+.next-btn.show{display:block;}
+.next-btn:hover{transform:translateY(-2px);}
+/* RESULTS */
+.results-card{display:none;background:var(--panel);border:2px solid var(--border2);border-radius:14px;padding:36px 24px;text-align:center;}
+.results-card.show{display:block;}
+.rc-emoji{font-size:52px;margin-bottom:14px;}.rc-title{font-family:'Special Elite',cursive;font-size:26px;color:var(--amber2);margin-bottom:8px;}
+.rc-sub{font-size:13px;color:#7a9a7a;margin-bottom:24px;line-height:1.6;}
+.rc-stats{display:flex;justify-content:center;gap:20px;flex-wrap:wrap;margin-bottom:24px;}
+.rc-stat{background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:12px 18px;min-width:90px;}
+.rc-val{font-family:'Orbitron',monospace;font-size:24px;font-weight:700;color:var(--amber2);}
+.rc-lbl{font-size:10px;color:#7a9a7a;text-transform:uppercase;}
+.btn-restart{background:var(--bg2);border:2px solid var(--amber);border-radius:8px;padding:11px 24px;color:var(--amber2);font-family:'Orbitron',monospace;font-size:13px;font-weight:700;cursor:pointer;transition:all 0.2s;}
+.btn-restart:hover{background:var(--amber);color:var(--bg);}
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div class="htag">// SEGURIDAD INFORMÁTICA · SIMULACIÓN 7.2</div>
+    <h1>🔬 Laboratorio <span>Anti-Estafas</span></h1>
+    <p class="hsub">Analiza cada mensaje, identifica las señales de peligro y da tu veredicto</p>
+  </header>
+  <div class="instr"><strong>📋 Cómo funciona:</strong> Leerás un mensaje (email, SMS o aviso). Debajo verás una lista de elementos del mensaje. <strong>Pulsa los que te parezcan sospechosos o seguros</strong> para analizarlos. Luego da tu veredicto: ¿es una estafa o es seguro? Acierto: +100 pts · Fallo: −10 pts</div>
+  <div class="score-bar">
+    <div class="sc-i"><div class="sc-l">Puntos</div><div class="sc-v" id="scPts">0</div></div>
+    <div class="sc-i"><div class="sc-l">Aciertos</div><div class="sc-v" style="color:var(--gbright)" id="scOk">0</div></div>
+    <div class="sc-i"><div class="sc-l">Fallos</div><div class="sc-v" style="color:var(--rbright)" id="scFail">0</div></div>
+    <div class="sc-i"><div class="sc-l">Caso</div><div class="sc-v" style="color:var(--blue)" id="scCase">1/7</div></div>
+  </div>
+  <div class="prog"><div class="prog-label">Progreso</div><div class="prog-track"><div class="prog-fill" id="progFill" style="width:0%"></div></div><div class="prog-val" id="progVal">1/7</div></div>
+  <div id="gameArea">
+    <div class="msg-display" id="msgDisplay"></div>
+    <div class="clues-section">
+      <div class="clues-title">🔎 Pulsa cada elemento para analizarlo</div>
+      <div class="clues-grid" id="cluesGrid"></div>
+      <div class="clue-result" id="clueResult"></div>
+    </div>
+    <div class="verdict-section">
+      <div class="verdict-title">⚖️ Tu veredicto</div>
+      <div class="verdict-q">¿Este mensaje es una estafa o es seguro?</div>
+      <div class="verdict-btns">
+        <button class="vbtn estafa" id="btnEstafa" onclick="giveVerdict('estafa')">⚠ ES UNA ESTAFA</button>
+        <button class="vbtn seguro" id="btnSeguro" onclick="giveVerdict('seguro')">✅ ES SEGURO</button>
+      </div>
+      <div class="verdict-result" id="verdictResult"></div>
+    </div>
+    <button class="next-btn" id="nextBtn" onclick="nextCase()">SIGUIENTE CASO →</button>
+  </div>
+  <div class="results-card" id="resultsCard">
+    <div class="rc-emoji" id="rcEmoji"></div><div class="rc-title" id="rcTitle"></div><div class="rc-sub" id="rcSub"></div>
+    <div class="rc-stats">
+      <div class="rc-stat"><div class="rc-val" id="rcPts"></div><div class="rc-lbl">Puntos</div></div>
+      <div class="rc-stat"><div class="rc-val" id="rcOk"></div><div class="rc-lbl">Aciertos</div></div>
+      <div class="rc-stat"><div class="rc-val" id="rcPct"></div><div class="rc-lbl">Del máximo</div></div>
+    </div>
+    <button class="btn-restart" onclick="restartGame()">↩ NUEVOS CASOS</button>
+  </div>
+</div>
+<script>
+var CASES = [
+  {type:'📧 Email',
+   display:'<div class="msg-from"><span style="color:#7a9a7a">De:</span> <strong style="color:var(--rbright)">soporte@bbva-clientes-urgente.net</strong></div><div class="msg-from"><span style="color:#7a9a7a">Para:</span> usted@gmail.com</div><div class="msg-subj">⚠️ URGENTE: Su cuenta ha sido bloqueada</div><div class="msg-body">Estimado cliente,<br><br>Le informamos que su cuenta bancaria ha sido <strong>temporalmente bloqueada</strong> por actividad sospechosa. Para restablecer el acceso debe verificar su identidad en las próximas <strong style="color:var(--rbright)">2 horas</strong>:<br><br>➡️ <span style="color:var(--rbright)">banco-verificar-urgente.xyz/acceso?id=482</span><br><br>Departamento de Seguridad BBVA</div>',
+   clues:[
+     {label:'Dominio del remitente: bbva-clientes-urgente.net',type:'danger',explanation:'🚨 SEÑAL DE ALERTA: El BBVA solo envía emails desde @bbva.es. Un dominio como "bbva-clientes-urgente.net" es siempre falso. Esta es la pista más importante.'},
+     {label:'Urgencia: "2 horas o pierde el acceso"',type:'danger',explanation:'🚨 SEÑAL DE ALERTA: La urgencia artificial es una táctica clásica de estafa. Buscan que actúes sin pensar. Los bancos no bloquean cuentas con plazos de 2 horas por email.'},
+     {label:'Enlace externo: banco-verificar-urgente.xyz',type:'danger',explanation:'🚨 SEÑAL DE ALERTA: Los bancos NUNCA incluyen enlaces externos en sus emails de seguridad. Si hay un enlace sospechoso en un email bancario, es siempre phishing.'},
+     {label:'Saludo genérico: "Estimado cliente"',type:'danger',explanation:'⚠️ SEÑAL SOSPECHOSA: Tu banco sabe tu nombre. Los emails legítimos te dirigen por tu nombre completo. "Estimado cliente" es señal de un email masivo fraudulento.'}
+   ],
+   answer:'estafa',
+   verdict:'🚨 Es una estafa de phishing. Señales claras: dominio falso, urgencia artificial, enlace externo sospechoso y saludo genérico. NUNCA hagas clic en estos enlaces. Llama al 900 102 801 (BBVA) si tienes dudas sobre tu cuenta.'},
+  {type:'📱 SMS',
+   display:'<div class="msg-type">SMS recibido de: 34600123456</div><div class="msg-subj">Correos España</div><div class="msg-body">Su paquete con referencia <strong>ES4821763</strong> no ha podido entregarse.<br><br>Para reprogramar la entrega debe abonar una tasa de gestión de <strong style="color:var(--rbright)">1,49€</strong>:<br><br><span style="color:var(--rbright)">correos-gestion-envio.info/reprogramar</span><br><br>El plazo expira hoy.</div>',
+   clues:[
+     {label:'Dominio del enlace: correos-gestion-envio.info',type:'danger',explanation:'🚨 SEÑAL DE ALERTA: Correos solo usa el dominio correos.es. Un dominio como "correos-gestion-envio.info" es siempre fraudulento. El .info ya es sospechoso.'},
+     {label:'Cobro de 1,49€ para gestionar el paquete',type:'danger',explanation:'🚨 SEÑAL DE ALERTA: Este cobro pequeño es el anzuelo. Al introducir tu tarjeta para pagar 1,49€, los estafadores obtienen todos tus datos bancarios y pueden cobrar mucho más.'},
+     {label:'Número de referencia del paquete incluido',type:'safe',explanation:'✅ Un número de referencia no es garantía de legitimidad. Los estafadores copian el formato de Correos para parecer reales. Siempre verifica en correos.es de forma directa.'},
+     {label:'Urgencia: "El plazo expira hoy"',type:'danger',explanation:'🚨 SEÑAL DE ALERTA: La urgencia artificial busca que actúes sin pensar. Correos no impone plazos de "hoy" para recoger paquetes mediante SMS con enlace externo.'}
+   ],
+   answer:'estafa',
+   verdict:'🚨 Es smishing (estafa por SMS). Señales: dominio falso, cobro pequeño para obtener datos de tarjeta, urgencia artificial. Si esperas un paquete de Correos, busca tu paquete directamente en correos.es introduciendo el número de referencia.'},
+  {type:'📧 Email',
+   display:'<div class="msg-from"><span style="color:#7a9a7a">De:</span> <strong style="color:var(--gbright)">noreply@sede.agenciatributaria.gob.es</strong></div><div class="msg-from"><span style="color:#7a9a7a">Para:</span> contribuyente@gmail.com</div><div class="msg-subj">Notificación electrónica — Expediente 2024/38471</div><div class="msg-body">Estimado/a contribuyente,<br><br>Le comunicamos que tiene una <strong>notificación electrónica</strong> pendiente de lectura en su área personal de la Agencia Tributaria.<br><br>Para acceder a su notificación, entre en <span style="color:var(--gbright)">sede.agenciatributaria.gob.es</span> con su certificado digital, DNI electrónico o Cl@ve.<br><br>Por razones de seguridad, este mensaje no incluye ningún enlace directo.<br><br>Agencia Tributaria</div>',
+   clues:[
+     {label:'Dominio del remitente: sede.agenciatributaria.gob.es',type:'safe',explanation:'✅ SEÑAL SEGURA: El dominio .gob.es es el dominio oficial del Gobierno de España. La Agencia Tributaria siempre usa este dominio en sus comunicaciones oficiales.'},
+     {label:'"No incluye ningún enlace directo por seguridad"',type:'safe',explanation:'✅ SEÑAL SEGURA: Esta es una muy buena práctica de seguridad. Los organismos oficiales evitan incluir enlaces directos precisamente para que los ciudadanos no se acostumbren a hacer clic en emails.'},
+     {label:'Indica acceder con certificado, DNI o Cl@ve',type:'safe',explanation:'✅ SEÑAL SEGURA: El email describe correctamente los métodos de acceso oficiales a la sede electrónica. No pide datos personales ni contraseñas.'},
+     {label:'No menciona tu nombre completo',type:'safe',explanation:'⚠️ Aunque los emails de Hacienda suelen incluir el nombre, la ausencia no implica fraude si los demás indicadores son correctos. El dominio .gob.es es la señal más fiable.'}
+   ],
+   answer:'seguro',
+   verdict:'✅ Es un email legítimo de la Agencia Tributaria. Señales de legitimidad: dominio oficial .gob.es, no incluye enlaces directos por seguridad, indica los métodos correctos de acceso y no pide datos personales.'},
+  {type:'📞 Llamada simulada',
+   display:'<div class="msg-subj">Transcripción de llamada recibida</div><div class="msg-body"><span style="color:var(--amber2)">[Voz robotizada]:</span> Buenos días. Le llama el servicio técnico de <strong>Microsoft</strong>. Nuestros sistemas han detectado que su ordenador tiene <strong style="color:var(--rbright)">3 virus activos</strong> que están robando sus datos bancarios en este momento.<br><br>Para solucionarlo necesitamos que instale un programa de acceso remoto que le facilitaremos. Es <strong style="color:var(--rbright)">totalmente gratuito</strong> y le llevará 5 minutos.<br><br>¿Puede encender su ordenador ahora mismo?</div>',
+   clues:[
+     {label:'Microsoft llama proactivamente para avisar de virus',type:'danger',explanation:'🚨 SEÑAL DE ALERTA: Microsoft NUNCA llama a particulares para avisar de virus en sus ordenadores. Esta práctica simplemente no existe en ninguna empresa tecnológica legítima.'},
+     {label:'"Virus activos robando datos bancarios ahora mismo"',type:'danger',explanation:'🚨 SEÑAL DE ALERTA: El miedo inmediato busca que actúes sin pensar. Ningún sistema puede detectar remotamente que tienes virus sin que hayas instalado nada.'},
+     {label:'Piden instalar programa de acceso remoto',type:'danger',explanation:'🚨 SEÑAL CRÍTICA: El objetivo real es instalar software que da control total de tu ordenador a los estafadores. Con ese acceso pueden robar contraseñas, datos bancarios y bloquear el equipo.'},
+     {label:'"Totalmente gratuito"',type:'danger',explanation:'🚨 SEÑAL DE ALERTA: "Gratuito" busca reducir la guardia. El coste real no es dinero inmediato: es el acceso a tu ordenador y todos tus datos personales y bancarios.'}
+   ],
+   answer:'estafa',
+   verdict:'🚨 Es una estafa de vishing (fraude por teléfono). Microsoft, Apple, Google y cualquier empresa tecnológica NUNCA llaman a particulares para avisar de virus. Cuelga inmediatamente. Si tienes dudas sobre tu ordenador, lleva a un técnico de confianza.'},
+  {type:'📧 Email',
+   display:'<div class="msg-from"><span style="color:#7a9a7a">De:</span> <strong style="color:var(--gbright)">no-reply@amazon.es</strong></div><div class="msg-subj">Tu pedido #405-8923471-2847623 ha sido enviado</div><div class="msg-body">Hola,<br><br>Tu pedido <strong>#405-8923471-2847623</strong> ha salido de nuestro almacén y está en camino.<br><br><strong>Fecha estimada de entrega:</strong> Mañana antes de las 22:00h<br><strong>Transportista:</strong> Amazon Logistics<br><strong>Seguimiento:</strong> TBA123456789000<br><br>Para ver el estado de tu pedido, entra en tu cuenta de <span style="color:var(--gbright)">amazon.es</span> → Mis pedidos.<br><br>Amazon.es</div>',
+   clues:[
+     {label:'Dominio del remitente: amazon.es',type:'safe',explanation:'✅ SEÑAL SEGURA: Amazon usa el dominio @amazon.es para sus comunicaciones. Si hubiera "amazon-entrega.net" o similar, sería fraude. Aquí el dominio es correcto.'},
+     {label:'Número de pedido largo y específico',type:'safe',explanation:'✅ SEÑAL SEGURA: El número de pedido largo y específico indica que el email está vinculado a una compra real que tú realizaste. Los estafadores usan números genéricos o falsos.'},
+     {label:'No incluye ningún enlace sospechoso',type:'safe',explanation:'✅ SEÑAL SEGURA: El email solo indica que vayas a amazon.es (dominio oficial) a ver el estado. No hay enlaces externos, no pide datos y no hay urgencia artificial.'},
+     {label:'No pide contraseña ni datos de pago',type:'safe',explanation:'✅ SEÑAL SEGURA: Los avisos de envío legítimos nunca piden datos personales. Solo informan. Si un email de "Amazon" te pide tu contraseña o tarjeta, es siempre fraude.'}
+   ],
+   answer:'seguro',
+   verdict:'✅ Es un email legítimo de Amazon. Señales de legitimidad: dominio @amazon.es oficial, número de pedido real y específico, no incluye enlaces externos sospechosos y no solicita ningún dato personal o de pago.'},
+  {type:'💬 WhatsApp',
+   display:'<div class="msg-type">Mensaje de WhatsApp de número desconocido</div><div class="msg-subj">+244 812 345 678 (Angola)</div><div class="msg-body">Hola, le escribo de parte de la empresa <strong>Amazon España Jobs</strong>.<br><br>Ofrecemos trabajo desde casa revisando productos de Amazon. Sueldo: <strong style="color:var(--rbright)">300-500€ al día</strong>, solo 2-3 horas de trabajo.<br><br>Sin experiencia necesaria. Solo necesitamos su número de cuenta bancaria para hacer los pagos directamente.<br><br>¿Le interesa? Responda SÍ para más información.</div>',
+   clues:[
+     {label:'Número internacional desconocido (+244 = Angola)',type:'danger',explanation:'🚨 SEÑAL DE ALERTA: Amazon España no usaría un número de Angola para contactar empleados. Los prefijos +244, +234 (Nigeria), +255 (Tanzania) son frecuentes en fraudes laborales desde WhatsApp.'},
+     {label:'Sueldo irreal: 300-500€ al día',type:'danger',explanation:'🚨 SEÑAL CRÍTICA: Un sueldo de 300-500€ diarios por 2-3 horas de trabajo sin experiencia es imposible en ninguna empresa legítima. Los sueldos irreales son la señal de alerta número 1 de los fraudes laborales.'},
+     {label:'Piden el número de cuenta bancaria de entrada',type:'danger',explanation:'🚨 SEÑAL CRÍTICA: Ninguna empresa legítima pide datos bancarios antes de una entrevista, un contrato o cualquier proceso de selección. Este dato se usará para realizar cargos o cometer fraude.'},
+     {label:'"Sin experiencia necesaria"',type:'danger',explanation:'⚠️ SEÑAL SOSPECHOSA: Combinado con el sueldo irreal y la petición de cuenta bancaria, confirma el fraude. En trabajos legítimos sin experiencia el sueldo es el mínimo legal, no 300€ al día.'}
+   ],
+   answer:'estafa',
+   verdict:'🚨 Es una estafa de fraude laboral. Amazon España no contrata por WhatsApp desde números internacionales. Nunca des tu cuenta bancaria a un desconocido que te contacta por WhatsApp. Bloquea y reporta el número.'},
+  {type:'📧 Email',
+   display:'<div class="msg-from"><span style="color:#7a9a7a">De:</span> <strong style="color:var(--gbright)">seguridad@bbva.es</strong></div><div class="msg-subj">Tu código de verificación de BBVA</div><div class="msg-body">Hola,<br><br>Has solicitado un código de verificación para <strong>confirmar una transferencia de 450€</strong> a Miguel García.<br><br>Tu código es: <strong style="font-size:22px;color:var(--amber2);letter-spacing:4px;">847261</strong><br><br>Este código es válido durante <strong>5 minutos</strong>.<br><br><strong>Si no has realizado esta operación</strong>, llama inmediatamente al 900 102 801.<br><br>No compartas este código con nadie. BBVA nunca te lo pedirá por teléfono.<br><br>BBVA</div>',
+   clues:[
+     {label:'Dominio del remitente: bbva.es',type:'safe',explanation:'✅ SEÑAL SEGURA: El dominio @bbva.es es el dominio oficial de BBVA. Es el correcto para este tipo de comunicaciones de verificación.'},
+     {label:'Código de verificación para operación que YO he iniciado',type:'safe',explanation:'✅ SEÑAL SEGURA: Si tú has iniciado una transferencia, recibir este código es completamente normal y legítimo. El código de verificación (2FA) es una medida de seguridad.'},
+     {label:'"BBVA nunca te lo pedirá por teléfono"',type:'safe',explanation:'✅ SEÑAL SEGURA: Esta advertencia es una práctica de seguridad de los bancos reales. Te recuerdan que si alguien te llama pidiendo el código, es un fraude.'},
+     {label:'Número de teléfono real para dudas: 900 102 801',type:'safe',explanation:'✅ SEÑAL SEGURA: El 900 102 801 es el número oficial de BBVA. Incluir el número real del banco (verificable en su web) es una señal de legitimidad.'}
+   ],
+   answer:'seguro',
+   verdict:'✅ Es un SMS legítimo de verificación de BBVA. Si TÚ has iniciado la operación, este código es completamente normal. ATENCIÓN: si recibes este código sin haber iniciado ninguna operación, llama inmediatamente al 900 102 801, porque alguien intenta realizar una transferencia en tu nombre.'}
+];
+
+var score=0, okCount=0, failCount=0, caseIdx=0, verdictGiven=false;
+var MAX = CASES.length * 100;
+
+function renderCase() {
+  verdictGiven = false;
+  var c = CASES[caseIdx];
+  document.getElementById('scCase').textContent = (caseIdx+1)+'/'+CASES.length;
+  document.getElementById('progVal').textContent = (caseIdx+1)+'/'+CASES.length;
+  document.getElementById('progFill').style.width = Math.round((caseIdx/CASES.length)*100)+'%';
+  var md = document.getElementById('msgDisplay');
+  md.innerHTML = '<div class="msg-type">'+c.type+'</div>'+c.display;
+  var grid = document.getElementById('cluesGrid');
+  grid.innerHTML = '';
+  c.clues.forEach(function(cl, i) {
+    var btn = document.createElement('button');
+    btn.className = 'clue-btn';
+    btn.textContent = cl.label;
+    btn.onclick = function() { showClue(i); };
+    grid.appendChild(btn);
+  });
+  document.getElementById('clueResult').className = 'clue-result';
+  document.getElementById('verdictResult').className = 'verdict-result';
+  document.getElementById('btnEstafa').disabled = false;
+  document.getElementById('btnSeguro').disabled = false;
+  document.getElementById('nextBtn').className = 'next-btn';
+}
+
+function showClue(idx) {
+  var c = CASES[caseIdx];
+  var cl = c.clues[idx];
+  var btns = document.querySelectorAll('.clue-btn');
+  btns[idx].className = 'clue-btn ' + cl.type;
+  var res = document.getElementById('clueResult');
+  res.className = 'clue-result show ' + (cl.type === 'danger' ? 'ok' : 'ok');
+  res.textContent = cl.explanation;
+}
+
+function giveVerdict(choice) {
+  if (verdictGiven) return;
+  verdictGiven = true;
+  var c = CASES[caseIdx];
+  var ok = choice === c.answer;
+  if (ok) { score += 100; okCount++; } else { score = Math.max(0, score-10); failCount++; }
+  document.getElementById('scPts').textContent = score;
+  document.getElementById('scOk').textContent = okCount;
+  document.getElementById('scFail').textContent = failCount;
+  document.getElementById('btnEstafa').disabled = true;
+  document.getElementById('btnSeguro').disabled = true;
+  // Mark all clues
+  var btns = document.querySelectorAll('.clue-btn');
+  c.clues.forEach(function(cl, i) { btns[i].className = 'clue-btn ' + (cl.type === 'danger' ? 'danger' : 'safe'); btns[i].disabled = true; });
+  var vr = document.getElementById('verdictResult');
+  vr.className = 'verdict-result show ' + (ok ? 'ok' : 'fail');
+  vr.textContent = (ok ? '' : '❌ No es correcto. ') + c.verdict;
+  var nb = document.getElementById('nextBtn');
+  nb.className = 'next-btn show';
+  nb.textContent = caseIdx < CASES.length-1 ? 'SIGUIENTE CASO →' : '🏁 VER RESULTADOS';
+}
+
+function nextCase() {
+  caseIdx++;
+  if (caseIdx >= CASES.length) { showResults(); return; }
+  renderCase();
+}
+
+function showResults() {
+  document.getElementById('gameArea').style.display = 'none';
+  document.getElementById('resultsCard').className = 'results-card show';
+  var pct = Math.round((score/MAX)*100);
+  document.getElementById('rcPts').textContent = score;
+  document.getElementById('rcOk').textContent = okCount+'/'+CASES.length;
+  document.getElementById('rcPct').textContent = pct+'%';
+  var e,t,s;
+  if(pct>=85){e='🔬';t='¡Analista Experto!';s='Detectas todas las señales de fraude. Comparte estas técnicas con tu familia.';}
+  else if(pct>=65){e='🕵️';t='Buen Detective';s='Identificas la mayoría de los fraudes. Repasa los casos que fallaste.';}
+  else if(pct>=45){e='🔍';t='En Prácticas';s='Las estafas son complicadas. Vuelve a intentarlo fijándote en los dominios.';}
+  else{e='⚠️';t='¡Cuidado!';s='Los estafadores son muy convincentes. Vuelve a analizar cada caso con calma.';}
+  document.getElementById('rcEmoji').textContent=e;
+  document.getElementById('rcTitle').textContent=t;
+  document.getElementById('rcSub').textContent=s;
+}
+
+function restartGame() {
+  score=0;okCount=0;failCount=0;caseIdx=0;verdictGiven=false;
+  document.getElementById('scPts').textContent=0;document.getElementById('scOk').textContent=0;document.getElementById('scFail').textContent=0;
+  document.getElementById('resultsCard').className='results-card';
+  document.getElementById('gameArea').style.display='block';
+  renderCase();
+}
+
+renderCase();
+</script>
+</body>
+</html>

@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PIAC7.1.1 Simulacion Linea del Tiempo Ciberseguridad</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#07080f;--panel:#0d1117;--panel2:#111827;--border:#1e2d40;--p1:#3b82f6;--p2:#f59e0b;--p3:#10b981;--text:#e2e8f0;--text2:#607090;--white:#fff;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospace;min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:999;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.06) 2px,rgba(0,0,0,0.06) 3px);}
+.page{max-width:860px;margin:0 auto;padding:22px 14px 60px;position:relative;z-index:1;}
+header{text-align:center;margin-bottom:24px;}
+.htag{font-size:11px;color:var(--p1);letter-spacing:3px;text-transform:uppercase;margin-bottom:8px;}
+h1{font-family:'Syne',sans-serif;font-size:clamp(22px,5vw,34px);font-weight:800;color:var(--white);margin-bottom:8px;}
+h1 span{color:var(--p2);}
+.hsub{font-size:13px;color:var(--text2);line-height:1.6;}
+.instr{background:var(--panel);border:1px solid var(--p2);border-radius:10px;padding:12px 16px;margin-bottom:20px;font-size:13px;line-height:1.6;color:var(--text);}
+.instr strong{color:var(--p2);}
+.prog-wrap{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:10px 16px;margin-bottom:20px;display:flex;align-items:center;gap:12px;}
+.prog-label{font-size:11px;color:var(--text2);white-space:nowrap;}
+.prog-track{flex:1;height:6px;background:var(--border);border-radius:4px;overflow:hidden;}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--p1),var(--p2));border-radius:4px;transition:width 0.5s;}
+.prog-val{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--p2);white-space:nowrap;}
+.detail-panel{background:var(--panel);border:2px solid var(--p2);border-radius:14px;padding:24px 22px;margin-bottom:22px;display:none;}
+.detail-panel.show{display:block;}
+.dp-icon{font-size:40px;margin-bottom:8px;}
+.dp-year{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--p2);margin-bottom:4px;}
+.dp-title{font-family:'Syne',sans-serif;font-size:19px;font-weight:800;color:var(--white);margin-bottom:14px;}
+.dp-body{font-size:14px;line-height:1.9;color:var(--text);}
+.dp-body strong{color:var(--p2);}
+.dp-fact{background:var(--panel2);border-left:3px solid var(--p1);border-radius:0 8px 8px 0;padding:10px 14px;margin:12px 0;font-size:13px;line-height:1.6;}
+.dp-nav{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;}
+.dp-btn{flex:1;min-width:120px;padding:12px;border-radius:8px;border:1px solid var(--border);background:var(--panel2);color:var(--text2);font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all 0.2s;}
+.dp-btn:hover{border-color:var(--p1);color:var(--white);}
+.dp-btn.pri{background:linear-gradient(135deg,var(--p1),#1d4ed8);border-color:transparent;color:var(--white);}
+.tl-wrap{position:relative;padding-bottom:10px;}
+.tl-spine{position:absolute;left:28px;top:0;bottom:0;width:3px;background:linear-gradient(180deg,var(--p1),var(--p2));border-radius:2px;}
+@media(min-width:600px){.tl-spine{left:50%;transform:translateX(-50%);}}
+.tl-row{position:relative;margin-bottom:18px;padding-left:60px;}
+@media(min-width:600px){.tl-row{padding-left:0;display:flex;align-items:flex-start;gap:18px;}
+.tl-row.even{flex-direction:row-reverse;}}
+.tl-dot{position:absolute;left:18px;top:16px;width:22px;height:22px;border-radius:50%;border:3px solid var(--p2);background:var(--bg);z-index:2;}
+@media(min-width:600px){.tl-dot{position:relative;left:auto;top:auto;margin-top:14px;flex-shrink:0;}}
+.tl-card{background:var(--panel);border:2px solid var(--border);border-radius:12px;padding:14px 16px;cursor:pointer;transition:border-color 0.3s,transform 0.2s;flex:1;max-width:360px;}
+.tl-card:hover{border-color:var(--p2);transform:translateY(-2px);}
+.tl-card.vis{border-color:var(--p3);}
+.tl-card.act{border-color:var(--p2);box-shadow:0 0 18px rgba(245,158,11,0.2);}
+.tl-year{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--p2);margin-bottom:4px;}
+.tl-title{font-size:13px;font-weight:700;color:var(--white);margin-bottom:4px;}
+.tl-short{font-size:11px;color:var(--text2);line-height:1.4;}
+.tl-spc{flex:1;max-width:360px;}
+@media(max-width:599px){.tl-spc{display:none;}}
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div class="htag">// SEGURIDAD INFORMATICA SIMULACION 7.1</div>
+    <h1>Linea del Tiempo: <span>Historia de los Virus</span></h1>
+    <p class="hsub">Pulsa cada evento para descubrir la historia completa de la ciberseguridad</p>
+  </header>
+  <div class="instr"><strong>Como funciona:</strong> Pulsa cualquier tarjeta de la linea del tiempo para abrir el detalle completo de ese momento historico. Explora los 7 eventos para completar la simulacion.</div>
+  <div class="prog-wrap">
+    <span class="prog-label">Eventos explorados</span>
+    <div class="prog-track"><div class="prog-fill" id="pf" style="width:0%"></div></div>
+    <span class="prog-val" id="pv">0 / 7</span>
+  </div>
+  <div class="detail-panel" id="dp">
+    <div class="dp-icon" id="dIcon"></div>
+    <div class="dp-year" id="dYear"></div>
+    <div class="dp-title" id="dTitle"></div>
+    <div class="dp-body" id="dBody"></div>
+    <div class="dp-nav">
+      <button class="dp-btn" id="dClose">Cerrar</button>
+      <button class="dp-btn pri" id="dNext">Siguiente evento</button>
+    </div>
+  </div>
+  <div class="tl-wrap">
+    <div class="tl-spine"></div>
+    <div id="tl"></div>
+  </div>
+</div>
+<script>
+var EVTS = [
+  {ic:'seedling',yr:'1969',ti:'Nace ARPANET',sh:'La primera red de ordenadores conectados: el origen de Internet.',
+   bo:'<strong>ARPANET</strong> fue la primera red de ordenadores interconectados, financiada por el Departamento de Defensa de EE.UU. Conectaba inicialmente 4 universidades: UCLA, Stanford, UC Santa Barbara y la Universidad de Utah.<div class="dp-fact">El primer mensaje enviado por ARPANET fue "LO". Intentaban escribir "LOGIN" pero el sistema se bloqueo despues de las dos primeras letras.</div>Sin ARPANET no habria habido Creeper, ni Reaper, ni ninguno de los virus que vendrian despues. Esta red fue el germen de lo que hoy conocemos como Internet.'},
+  {ic:'bug',yr:'1971',ti:'Creeper: el primer virus',sh:'El primer programa que salto entre ordenadores de forma autonoma.',
+   bo:'<strong>Creeper</strong> fue creado por Bob Thomas en los laboratorios BBN Technologies. No era malicioso: saltaba de ordenador en ordenador en ARPANET mostrando un mensaje.<div class="dp-fact">El mensaje que mostraba en pantalla: "I am the creeper, catch me if you can!" (Soy el trepador, atrapame si puedes!)</div>Creeper demostro que un programa podia moverse autonomamente entre ordenadores en red. Eso cambio la informatica para siempre y marco el inicio de la ciberseguridad.'},
+  {ic:'shield',yr:'1971',ti:'Reaper: el primer antivirus',sh:'El primer programa creado para buscar y eliminar a otro programa.',
+   bo:'<strong>Reaper</strong> fue creado por Ray Tomlinson, el mismo inventor del email, como respuesta directa a Creeper.<div class="dp-fact">Funcionamiento: Reaper tambien viajaba por ARPANET, pero con un objetivo concreto: encontrar copias de Creeper y eliminarlas.</div>Reaper es considerado el primer antivirus de la historia. La dinamica virus-antivirus que comenzo aqui en 1971 sigue siendo la base de la ciberseguridad moderna.'},
+  {ic:'mail',yr:'2000',ti:'ILOVEYOU: 50 millones de victimas',sh:'El virus mas devastador hasta entonces, propagado con el asunto "Te amo".',
+   bo:'<strong>ILOVEYOU</strong> fue creado por Onel de Guzman, un estudiante filipino de 24 anos. Llegaba por email con el asunto "ILOVEYOU" y el fichero adjunto "LOVE-LETTER-FOR-YOU.txt.vbs".<div class="dp-fact">En cifras: infecto mas de 50 millones de ordenadores en solo 10 dias. Causo perdidas estimadas de 10.000-15.000 millones de dolares.</div>Aprovechaba la curiosidad humana: quien no quiere abrir una carta de amor? Esta tecnica se llama <strong>ingenieria social</strong> y sigue siendo el metodo de ataque mas efectivo hoy.'},
+  {ic:'bomb',yr:'2010',ti:'Stuxnet: la primera ciberarma',sh:'El primer malware disenado para danar infraestructura fisica real.',
+   bo:'<strong>Stuxnet</strong> fue descubierto en 2010 pero llevaba anos activo. Estaba disenado para un objetivo muy concreto: las centrifugas de enriquecimiento de uranio de Iran.<div class="dp-fact">Lo que hacia: aceleraba y frenaba las centrifugas de forma irregular hasta danarlas fisicamente, mientras mostraba lecturas normales a los operadores.</div>Se atribuye a EE.UU. e Israel. Stuxnet demostro que un ciberataque puede causar dano fisico real, abriendo la era de las <strong>ciberarmas estatales</strong>.'},
+  {ic:'robot',yr:'2016',ti:'Mirai: el ejercito de electrodomesticos',sh:'Camaras, routers y televisores infectados derribaron Twitter y Netflix.',
+   bo:'<strong>Mirai</strong> exploto una realidad preocupante: millones de dispositivos del Internet de las Cosas (camaras IP, routers, smart TVs) usaban contrasenas por defecto que nadie habia cambiado.<div class="dp-fact">El ataque del 21 de octubre de 2016 derribo los servidores DNS de Dyn, dejando inaccesibles Twitter, Netflix, CNN y docenas de servicios mas durante horas.</div><strong>Tu router y tu camara IP tambien pueden ser una ciberarma</strong> si no cambias las contrasenas por defecto.'},
+  {ic:'lock',yr:'2017',ti:'WannaCry: ransomware global',sh:'200.000 sistemas en 150 paises paralizados. Hospitales sin poder atender pacientes.',
+   bo:'<strong>WannaCry</strong> se propago el 12 de mayo de 2017. Explotaba una vulnerabilidad de Windows llamada EternalBlue, para la que Microsoft ya habia publicado un parche 2 meses antes.<div class="dp-fact">El NHS (Sistema Nacional de Salud del Reino Unido) tuvo que cancelar miles de citas medicas porque sus sistemas estaban cifrados.</div>La leccion mas importante: todos los sistemas afectados tenian en comun que <strong>no habian instalado las actualizaciones de seguridad</strong>. Actualizar el sistema es la defensa mas eficaz.'}
+];
+
+var icons = {seedling:'🌱',bug:'🦠',shield:'🛡️',mail:'💌',bomb:'💣',robot:'🤖',lock:'🔒'};
+var visited = [];
+var cur = 0;
+
+function isVisited(idx) {
+  for (var i = 0; i < visited.length; i++) {
+    if (visited[i] === idx) return true;
+  }
+  return false;
+}
+
+function markVisited(idx) {
+  if (!isVisited(idx)) visited.push(idx);
+}
+
+function buildTL() {
+  var tl = document.getElementById('tl');
+  tl.innerHTML = '';
+  for (var i = 0; i < EVTS.length; i++) {
+    buildRow(i);
+  }
+}
+
+function buildRow(i) {
+  var e = EVTS[i];
+  var tl = document.getElementById('tl');
+  var row = document.createElement('div');
+  row.className = 'tl-row' + (i % 2 === 1 ? ' even' : '');
+
+  var dot = document.createElement('div');
+  dot.className = 'tl-dot';
+  dot.style.borderColor = isVisited(i) ? 'var(--p3)' : 'var(--p2)';
+  dot.style.background = isVisited(i) ? 'var(--p3)' : 'var(--bg)';
+
+  var card = document.createElement('div');
+  var cardCls = 'tl-card';
+  if (cur === i) cardCls += ' act';
+  else if (isVisited(i)) cardCls += ' vis';
+  card.className = cardCls;
+  card.innerHTML = '<div class="tl-year">' + e.yr + '</div><div class="tl-title">' + icons[e.ic] + ' ' + e.ti + '</div><div class="tl-short">' + e.sh + '</div>';
+  card.setAttribute('data-idx', i);
+  card.onclick = function() {
+    openEvt(parseInt(this.getAttribute('data-idx')));
+  };
+
+  var spc = document.createElement('div');
+  spc.className = 'tl-spc';
+
+  if (i % 2 === 0) {
+    row.appendChild(card);
+    row.appendChild(dot);
+    row.appendChild(spc);
+  } else {
+    row.appendChild(spc);
+    row.appendChild(dot);
+    row.appendChild(card);
+  }
+  tl.appendChild(row);
+}
+
+function openEvt(idx) {
+  cur = idx;
+  markVisited(idx);
+  var e = EVTS[idx];
+  document.getElementById('dIcon').textContent = icons[e.ic];
+  document.getElementById('dYear').textContent = e.yr;
+  document.getElementById('dTitle').textContent = e.ti;
+  document.getElementById('dBody').innerHTML = e.bo;
+  document.getElementById('dp').className = 'detail-panel show';
+  var nxt = document.getElementById('dNext');
+  if (idx < EVTS.length - 1) {
+    nxt.textContent = 'Siguiente evento';
+  } else {
+    nxt.textContent = 'Todos explorados';
+  }
+  var pct = Math.round((visited.length / EVTS.length) * 100);
+  document.getElementById('pf').style.width = pct + '%';
+  document.getElementById('pv').textContent = visited.length + ' / ' + EVTS.length;
+  buildTL();
+  document.getElementById('dp').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function closeDetail() {
+  document.getElementById('dp').className = 'detail-panel';
+  buildTL();
+}
+
+function nextEvt() {
+  if (cur < EVTS.length - 1) {
+    openEvt(cur + 1);
+  } else {
+    closeDetail();
+  }
+}
+
+document.getElementById('dClose').onclick = function() { closeDetail(); };
+document.getElementById('dNext').onclick = function() { nextEvt(); };
+
+buildTL();
+</script>
+</body>
+</html>

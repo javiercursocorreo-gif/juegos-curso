@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PIAC7.3.1 · Simulación · Chat con un Desconocido</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#06080f;--panel:#0a1020;--panel2:#0e1830;--border:#1a2840;--border2:#243858;--cyan:#00c8f0;--green:#00e060;--yellow:#ffd700;--red:#ff3366;--text:#b0d0e8;--text2:#406880;--white:#e8f4ff;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monospace;min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:999;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.05) 2px,rgba(0,0,0,0.05) 3px);}
+.page{max-width:780px;margin:0 auto;padding:20px 14px 60px;position:relative;z-index:1;}
+header{text-align:center;margin-bottom:22px;}
+.htag{font-size:11px;color:var(--cyan);letter-spacing:3px;text-transform:uppercase;margin-bottom:8px;}
+h1{font-family:'Nunito',sans-serif;font-size:clamp(20px,4vw,32px);font-weight:900;color:var(--white);margin-bottom:6px;}
+.hsub{font-size:13px;color:var(--text2);line-height:1.6;}
+.context-box{background:var(--panel);border:1px solid var(--border2);border-radius:10px;padding:14px 18px;margin-bottom:18px;font-size:13px;line-height:1.7;color:var(--text);}
+.context-box strong{color:var(--yellow);}
+.chat-window{background:var(--panel);border:1px solid var(--border2);border-radius:12px;height:380px;overflow-y:auto;padding:16px;margin-bottom:16px;display:flex;flex-direction:column;gap:10px;}
+.bubble{max-width:72%;padding:12px 16px;border-radius:14px;font-size:13px;line-height:1.6;}
+.bubble.them{align-self:flex-start;background:var(--panel2);border:1px solid var(--border2);color:var(--white);border-radius:4px 14px 14px 14px;}
+.bubble.them .name{font-size:10px;color:var(--cyan);margin-bottom:4px;letter-spacing:1px;}
+.bubble.me{align-self:flex-end;background:rgba(0,200,240,0.15);border:1px solid var(--cyan);color:var(--white);border-radius:14px 4px 14px 14px;}
+.bubble.me .name{font-size:10px;color:var(--green);margin-bottom:4px;letter-spacing:1px;text-align:right;}
+.bubble.warning{background:rgba(255,51,102,0.1);border:1px solid var(--red);}
+.typing{align-self:flex-start;background:var(--panel2);border:1px solid var(--border2);border-radius:14px;padding:10px 16px;font-size:12px;color:var(--text2);display:none;}
+.choices{background:var(--panel);border:1px solid var(--border2);border-radius:10px;padding:14px;}
+.choices-title{font-size:11px;color:var(--cyan);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;}
+.choice-btn{display:block;width:100%;background:var(--panel2);border:2px solid var(--border2);border-radius:8px;padding:12px 16px;color:var(--text);font-family:'Share Tech Mono',monospace;font-size:13px;line-height:1.5;cursor:pointer;text-align:left;transition:all 0.2s;margin-bottom:8px;}
+.choice-btn:hover:not(:disabled){border-color:var(--cyan);background:rgba(0,200,240,0.08);}
+.choice-btn:disabled{cursor:default;}
+.choice-btn.safe{border-color:var(--green);background:rgba(0,224,96,0.1);}
+.choice-btn.unsafe{border-color:var(--red);background:rgba(255,51,102,0.1);}
+.feedback-bar{border-radius:8px;padding:12px 16px;font-size:13px;line-height:1.6;margin-top:12px;display:none;}
+.feedback-bar.show{display:block;}
+.feedback-bar.ok{background:rgba(0,224,96,0.1);border:1px solid var(--green);color:var(--green);}
+.feedback-bar.warn{background:rgba(255,51,102,0.1);border:1px solid var(--red);color:#ffaacc;}
+.prog{display:flex;gap:12px;align-items:center;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:10px 16px;margin-bottom:16px;}
+.prog-label{font-size:11px;color:var(--text2);}
+.prog-track{flex:1;height:5px;background:var(--border);border-radius:4px;overflow:hidden;}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--green));border-radius:4px;transition:width 0.5s;}
+.prog-val{font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:var(--cyan);}
+.score-row{display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap;}
+.score-chip{background:var(--panel);border:1px solid var(--border2);border-radius:8px;padding:8px 14px;text-align:center;flex:1;}
+.sc-l{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;}
+.sc-v{font-family:'Nunito',sans-serif;font-size:18px;font-weight:900;color:var(--yellow);}
+.next-btn{background:linear-gradient(135deg,var(--cyan),#007090);border:none;border-radius:8px;padding:13px 22px;color:var(--bg);font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer;width:100%;margin-top:12px;transition:all 0.2s;display:none;}
+.next-btn.show{display:block;}
+.next-btn:hover{transform:translateY(-2px);}
+.results-card{display:none;background:var(--panel);border:1px solid var(--border2);border-radius:14px;padding:36px 24px;text-align:center;}
+.results-card.show{display:block;}
+.rc-emoji{font-size:52px;margin-bottom:12px;}
+.rc-title{font-family:'Nunito',sans-serif;font-size:24px;font-weight:900;color:var(--white);margin-bottom:8px;}
+.rc-sub{font-size:13px;color:var(--text2);margin-bottom:22px;line-height:1.6;}
+.rc-stats{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-bottom:22px;}
+.rc-stat{background:var(--panel2);border:1px solid var(--border2);border-radius:8px;padding:12px 18px;min-width:90px;}
+.rc-val{font-family:'Nunito',sans-serif;font-size:26px;font-weight:900;color:var(--yellow);}
+.rc-lbl{font-size:10px;color:var(--text2);text-transform:uppercase;}
+.btn-restart{background:var(--panel2);border:2px solid var(--cyan);border-radius:8px;padding:11px 24px;color:var(--cyan);font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer;transition:all 0.2s;}
+.btn-restart:hover{background:var(--cyan);color:var(--bg);}
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div class="htag">// SEGURIDAD INFORMÁTICA · SIMULACIÓN 7.3</div>
+    <h1>💬 Chat con un Desconocido</h1>
+    <p class="hsub">Simula conversaciones reales y aprende a detectar situaciones de peligro</p>
+  </header>
+  <div class="context-box" id="contextBox"></div>
+  <div class="score-row">
+    <div class="score-chip"><div class="sc-l">Decisiones</div><div class="sc-v" id="scD">0/6</div></div>
+    <div class="score-chip"><div class="sc-l">Seguras</div><div class="sc-v" style="color:var(--green)" id="scOk">0</div></div>
+    <div class="score-chip"><div class="sc-l">Arriesgadas</div><div class="sc-v" style="color:var(--red)" id="scBad">0</div></div>
+  </div>
+  <div class="prog"><div class="prog-label">Escenario</div><div class="prog-track"><div class="prog-fill" id="progFill" style="width:0%"></div></div><div class="prog-val" id="progVal">1/6</div></div>
+  <div class="chat-window" id="chatWindow">
+    <div class="typing" id="typingIndicator">Carlos está escribiendo...</div>
+  </div>
+  <div class="choices" id="choicesPanel">
+    <div class="choices-title">🤔 ¿Cómo respondes?</div>
+    <div id="choicesList"></div>
+    <div class="feedback-bar" id="feedbackBar"></div>
+    <button class="next-btn" id="nextBtn" onclick="nextScenario()">SIGUIENTE ESCENARIO →</button>
+  </div>
+  <div class="results-card" id="resultsCard">
+    <div class="rc-emoji" id="rcEmoji"></div>
+    <div class="rc-title" id="rcTitle"></div>
+    <div class="rc-sub" id="rcSub"></div>
+    <div class="rc-stats">
+      <div class="rc-stat"><div class="rc-val" id="rcOk"></div><div class="rc-lbl">Decisiones seguras</div></div>
+      <div class="rc-stat"><div class="rc-val" id="rcBad"></div><div class="rc-lbl">Decisiones arriesgadas</div></div>
+    </div>
+    <button class="btn-restart" onclick="restartGame()">↩ REINICIAR</button>
+  </div>
+</div>
+<script>
+const SCENARIOS=[{"context":"<strong>Escenario 1 — Instagram:</strong> Tu nieto/a de 13 años recibe una solicitud de amistad de \"Carlos García\", 17 años. Le empieza a escribir.","msgs":["Hola! Vi tu foto en el grupo del cole. Tienes un perfil muy chulo 😊","¿Puedes hablar? Me gustaría conocerte mejor"],"choices":[{"text":"Aceptar la solicitud y responder \"Hola, gracias!\"","safe":false},{"text":"Ignorar la solicitud y bloquear a Carlos: es un desconocido","safe":true},{"text":"Aceptar pero solo ver sus fotos sin responder","safe":false}],"safeIdx":1,"feedback":{"ok":"✅ Decisión correcta. No se deben aceptar solicitudes de desconocidos aunque parezcan simpáticos. Un groomer siempre empieza con cumplidos. La regla: si no lo conoces en la vida real, no lo aceptes.","bad":"⚠️ Decisión arriesgada. Aceptar contacto con desconocidos es peligroso. Los groomers crean perfiles falsos atractivos para ganarse la confianza de menores."}},{"context":"<strong>Escenario 2 — WhatsApp:</strong> Tu nieta de 14 años recibe este mensaje de alguien que conoció en un juego online hace 2 semanas.","msgs":["Oye, somos ya muy buenos amigos online, ¿verdad? 😊","Me gustaría conocerte en persona, sin decirle nada a tus padres. Será nuestra aventura secreta 🤫"],"choices":[{"text":"Contar inmediatamente a sus padres o a un adulto de confianza lo que ha pasado","safe":true},{"text":"Responder que no puede quedar pero seguir hablando con él","safe":false},{"text":"Quedar pero en un sitio público y contárselo a una amiga","safe":false}],"safeIdx":0,"feedback":{"ok":"✅ Decisión correcta. \"Sin decirle nada a tus padres\" y \"aventura secreta\" son señales de alarma gravísimas de grooming. Un adulto que pide secretismo a un menor tiene malas intenciones. Lo correcto: contarlo a un adulto de confianza de inmediato.","bad":"⚠️ Decisión muy arriesgada. \"Sin decirle nada a tus padres\" es la señal definitiva del grooming. Nunca se debe quedar con alguien conocido solo por Internet."}},{"context":"<strong>Escenario 3 — Videojuego online:</strong> Tu nieto de 12 años está jugando online. Otro jugador adulto le escribe.","msgs":["Eres muy bueno en el juego! Oye, ¿cuántos años tienes?","¿Y en qué cole estás? Yo conozco a gente de por ahí"],"choices":[{"text":"Dar la edad pero no el colegio","safe":false},{"text":"Dar todos los datos, no pasa nada si solo juegan juntos","safe":false},{"text":"No dar ningún dato personal y contárselo a sus padres","safe":true}],"safeIdx":2,"feedback":{"ok":"✅ Decisión correcta. En los videojuegos online nunca se deben dar datos personales: ni edad, ni colegio, ni nombre, ni localización. Son preguntas que usa un groomer para ubicar a la víctima.","bad":"⚠️ Decisión arriesgada. Aunque parezca inofensivo, preguntar la edad y el colegio son los primeros pasos para ubicar a un menor en la vida real."}},{"context":"<strong>Escenario 4 — TikTok:</strong> Una adolescente de 15 años recibe este mensaje de un chico de 18 años.","msgs":["Oye, eres muy guapa en tus vídeos. ¿Tienes Instagram privado?","Si me mandas una foto tuya más personal te hago una propuesta de colaboración para crecer en TikTok 🤑"],"choices":[{"text":"Bloquear al usuario y contárselo a un adulto de confianza o a los padres","safe":true},{"text":"Preguntar de qué trata la colaboración antes de enviar nada","safe":false},{"text":"Enviar una foto normal, no íntima, para ver de qué se trata","safe":false}],"safeIdx":0,"feedback":{"ok":"✅ Decisión correcta. Pedir fotos \"personales\" a cambio de algo es una táctica clásica de grooming y sextorsión. Una vez enviada una imagen, se pierde el control para siempre. Bloquear y contárselo a un adulto es siempre la respuesta correcta.","bad":"⚠️ Decisión arriesgada. Pedir fotos a cambio de beneficios es una trampa. Una vez enviada cualquier imagen, puede usarse para chantajear."}},{"context":"<strong>Escenario 5 — Grupo de clase:</strong> Un adolescente ve que sus compañeros comparten capturas burlándose de otro alumno.","msgs":["[Grupo de clase] \"Mirad qué foto tan ridícula de Juan jajaja\"","[Grupo] \"Compartid en todos los grupos, que se entere todo el insti\""],"choices":[{"text":"Compartir la foto para no quedar mal con el grupo","safe":false},{"text":"No compartir y contárselo a un profesor o a los padres de Juan","safe":true},{"text":"No compartir pero tampoco decir nada para no meterse en problemas","safe":false}],"safeIdx":1,"feedback":{"ok":"✅ Decisión correcta. Compartir la foto convierte a quien la difunde en cómplice del ciberacoso. No actuar tampoco es suficiente: el ciberacoso necesita espectadores para funcionar. La respuesta correcta es no compartir Y avisar a un adulto.","bad":"⚠️ Decisión arriesgada. El ciberacoso causa daño psicológico grave. Quien comparte es cómplice, y quien no hace nada permite que continúe."}},{"context":"<strong>Escenario 6 — Situación real:</strong> Tu nieto/a de 13 años te confiesa que alguien le está enviando mensajes amenazantes por Instagram.","msgs":["[Tu nieto/a te dice:] \"Abuela/abuelo, hay alguien que me manda mensajes muy malos en Instagram. Me da miedo pero no quiero contarlo porque igual se enfadan más...\""],"choices":[{"text":"Decirle que simplemente bloquee al acosador y no le haga caso","safe":false},{"text":"Quitarle el móvil para que no reciba más mensajes","safe":false},{"text":"Escucharle sin juzgar, hacer capturas de los mensajes y contactar con el centro educativo y si es necesario con la policía","safe":true}],"safeIdx":2,"feedback":{"ok":"✅ Respuesta correcta. Lo primero es hacer que el menor se sienta seguro y no culpable. Guardar evidencias es fundamental. El ciberacoso es un delito y se puede denunciar en la Policía Nacional.","bad":"⚠️ Respuesta incompleta. Bloquear o quitar el móvil no resuelve el problema. Lo correcto es escuchar, guardar evidencias y denunciar ante el centro educativo y/o la policía."}}];
+
+let scenIdx=0,safeCount=0,unsafeCount=0,decided=false;
+
+function renderScenario(){
+  decided=false;
+  const s=SCENARIOS[scenIdx];
+  document.getElementById('contextBox').innerHTML=s.context;
+  document.getElementById('progVal').textContent=(scenIdx+1)+'/'+SCENARIOS.length;
+  document.getElementById('progFill').style.width=(((scenIdx)/SCENARIOS.length)*100)+'%';
+  const chat=document.getElementById('chatWindow');
+  chat.innerHTML='<div class="typing" id="typingIndicator">Escribiendo...</div>';
+  let delay=0;
+  s.msgs.forEach((msg,i)=>{
+    delay+=800;
+    setTimeout(()=>{
+      const typing=document.getElementById('typingIndicator');
+      if(typing)typing.style.display='block';
+      setTimeout(()=>{
+        if(typing)typing.style.display='none';
+        const b=document.createElement('div');b.className='bubble them';
+        b.innerHTML='<div class="name">DESCONOCIDO</div>'+msg;
+        chat.insertBefore(b,chat.querySelector('.typing'));
+        chat.scrollTop=chat.scrollHeight;
+      },600);
+    },delay);
+    delay+=800;
+  });
+  const cl=document.getElementById('choicesList');
+  cl.innerHTML='';
+  s.choices.forEach((c,i)=>{
+    const btn=document.createElement('button');btn.className='choice-btn';btn.textContent=c.text;
+    btn.onclick=()=>choose(i);cl.appendChild(btn);
+  });
+  document.getElementById('feedbackBar').className='feedback-bar';
+  document.getElementById('nextBtn').className='next-btn';
+}
+
+function choose(idx){
+  if(decided)return;decided=true;
+  const s=SCENARIOS[scenIdx];
+  const isSafe=s.choices[idx].safe;
+  const btns=document.querySelectorAll('.choice-btn');
+  btns.forEach(b=>b.disabled=true);
+  btns[idx].classList.add(isSafe?'safe':'unsafe');
+  if(isSafe)safeCount++;else unsafeCount++;
+  document.getElementById('scD').textContent=(scenIdx+1)+'/'+SCENARIOS.length;
+  document.getElementById('scOk').textContent=safeCount;
+  document.getElementById('scBad').textContent=unsafeCount;
+  const fb=document.getElementById('feedbackBar');
+  fb.className='feedback-bar show '+(isSafe?'ok':'warn');
+  fb.textContent=isSafe?s.feedback.ok:s.feedback.bad;
+  // Add chosen reply to chat
+  const chat=document.getElementById('chatWindow');
+  const b=document.createElement('div');b.className='bubble me';
+  b.innerHTML='<div class="name">TÚ</div>'+s.choices[idx].text;
+  chat.insertBefore(b,chat.querySelector('.typing'));
+  chat.scrollTop=chat.scrollHeight;
+  const nextBtn=document.getElementById('nextBtn');
+  nextBtn.textContent=scenIdx<SCENARIOS.length-1?'SIGUIENTE ESCENARIO →':'🏁 VER RESULTADOS';
+  nextBtn.className='next-btn show';
+}
+
+function nextScenario(){
+  scenIdx++;
+  if(scenIdx>=SCENARIOS.length){showResults();return;}
+  renderScenario();
+}
+
+function showResults(){
+  document.getElementById('resultsCard').className='results-card show';
+  document.getElementById('choicesPanel').style.display='none';
+  document.getElementById('chatWindow').style.display='none';
+  document.getElementById('contextBox').style.display='none';
+  document.getElementById('progFill').style.width='100%';
+  document.getElementById('rcOk').textContent=safeCount;
+  document.getElementById('rcBad').textContent=unsafeCount;
+  let emoji,title,sub;
+  if(safeCount>=5){emoji='🦸';title='¡Guardián Digital!';sub='Tomas decisiones muy seguras en todas las situaciones. Tu familia está en buenas manos.';}
+  else if(safeCount>=4){emoji='🛡️';title='Buen Protector';sub='La mayoría de tus decisiones son correctas. Repasa los escenarios donde fallaste.';}
+  else if(safeCount>=2){emoji='📖';title='Sigue Aprendiendo';sub='Hay situaciones de riesgo que conviene reconocer mejor. Vuelve a intentarlo.';}
+  else{emoji='⚠️';title='¡Atención!';sub='Los peligros digitales para menores son muy reales. Repasa los escenarios y los consejos.';}
+  document.getElementById('rcEmoji').textContent=emoji;document.getElementById('rcTitle').textContent=title;document.getElementById('rcSub').textContent=sub;
+}
+
+function restartGame(){
+  scenIdx=0;safeCount=0;unsafeCount=0;decided=false;
+  document.getElementById('resultsCard').className='results-card';
+  document.getElementById('choicesPanel').style.display='block';
+  document.getElementById('chatWindow').style.display='flex';
+  document.getElementById('contextBox').style.display='block';
+  document.getElementById('scD').textContent='0/'+SCENARIOS.length;
+  document.getElementById('scOk').textContent=0;document.getElementById('scBad').textContent=0;
+  renderScenario();
+}
+renderScenario();
+</script>
+</body>
+</html>

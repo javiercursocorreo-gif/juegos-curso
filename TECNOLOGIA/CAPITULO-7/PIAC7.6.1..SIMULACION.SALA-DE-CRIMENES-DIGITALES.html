@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PIAC7.6.1 · Simulación · Sala de Crímenes Digitales</title>
+<link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Share+Tech+Mono&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#09100d;--bg2:#0d160f;--panel:#101810;--border:#1c2e1e;--border2:#2a4030;--amber:#d4920e;--amber2:#f0b830;--green:#1aaa3a;--gbright:#44ff77;--red:#cc2222;--rbright:#ff4444;--gray:#888888;--cream:#c8ba88;--white:#dde8dd;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--cream);font-family:'Share Tech Mono',monospace;min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:999;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.07) 2px,rgba(0,0,0,0.07) 3px);}
+.page{max-width:860px;margin:0 auto;padding:22px 14px 60px;position:relative;z-index:1;}
+header{text-align:center;margin-bottom:24px;}
+.htag{font-size:11px;color:var(--green);letter-spacing:3px;text-transform:uppercase;margin-bottom:8px;}
+h1{font-family:'Special Elite',cursive;font-size:clamp(22px,5vw,38px);color:var(--amber2);margin-bottom:8px;}
+h1 span{color:var(--gbright);}
+.hsub{font-size:13px;color:#7a9a7a;line-height:1.6;}
+.instr{background:var(--panel);border:1px solid var(--amber);border-radius:8px;padding:12px 16px;margin-bottom:18px;font-size:13px;line-height:1.6;}
+.instr strong{color:var(--amber2);}
+.hat-legend{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;}
+.hat-pill{flex:1;min-width:150px;padding:10px 14px;border-radius:8px;border:2px solid;text-align:center;}
+.hat-pill .hp-icon{font-size:22px;margin-bottom:3px;}
+.hat-pill .hp-name{font-family:'Orbitron',monospace;font-size:11px;font-weight:700;}
+.hat-pill .hp-desc{font-size:10px;margin-top:2px;opacity:0.8;}
+.hp-black{border-color:var(--rbright);color:var(--rbright);background:rgba(204,34,34,0.08);}
+.hp-gray{border-color:var(--gray);color:var(--gray);background:rgba(136,136,136,0.08);}
+.hp-white{border-color:var(--gbright);color:var(--gbright);background:rgba(68,255,119,0.08);}
+.score-bar{display:flex;justify-content:space-between;background:var(--panel);border:1px solid var(--border2);border-radius:8px;padding:10px 18px;margin-bottom:16px;flex-wrap:wrap;gap:8px;}
+.sc-i{text-align:center;}.sc-l{font-size:10px;color:#7a9a7a;text-transform:uppercase;letter-spacing:2px;margin-bottom:3px;}
+.sc-v{font-family:'Orbitron',monospace;font-size:18px;font-weight:700;color:var(--amber2);}
+.prog-bar{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:10px 16px;margin-bottom:18px;}
+.pb-label{font-size:11px;color:#7a9a7a;white-space:nowrap;}
+.pb-track{flex:1;height:5px;background:var(--border);border-radius:4px;overflow:hidden;}
+.pb-fill{height:100%;background:linear-gradient(90deg,var(--green),var(--amber2));border-radius:4px;transition:width 0.5s;}
+.pb-val{font-family:'Orbitron',monospace;font-size:13px;font-weight:700;color:var(--amber2);}
+.case-card{background:var(--panel);border:2px solid var(--border2);border-radius:12px;padding:22px 20px;margin-bottom:16px;}
+.case-num{font-size:10px;color:var(--amber);letter-spacing:3px;text-transform:uppercase;margin-bottom:8px;}
+.case-title{font-family:'Special Elite',cursive;font-size:20px;color:var(--white);margin-bottom:14px;}
+.evidence-box{background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:14px;margin-bottom:16px;}
+.ev-title{font-size:10px;color:var(--amber);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;}
+.ev-item{display:flex;gap:8px;font-size:13px;line-height:1.6;margin-bottom:6px;}
+.ev-icon{flex-shrink:0;color:var(--amber2);}
+.verdict-q{font-family:'Special Elite',cursive;font-size:16px;color:var(--white);margin-bottom:12px;}
+.hat-choices{display:flex;gap:10px;flex-wrap:wrap;}
+.hc-btn{flex:1;min-width:130px;padding:13px 10px;border-radius:8px;border:2px solid;font-family:'Orbitron',monospace;font-size:12px;font-weight:700;cursor:pointer;transition:all 0.2s;text-align:center;letter-spacing:1px;}
+.hc-btn:hover:not(:disabled){transform:translateY(-2px);}
+.hc-btn.black{border-color:var(--rbright);background:rgba(204,34,34,0.1);color:var(--rbright);}
+.hc-btn.gray{border-color:var(--gray);background:rgba(136,136,136,0.1);color:var(--gray);}
+.hc-btn.white{border-color:var(--gbright);background:rgba(68,255,119,0.08);color:var(--gbright);}
+.hc-btn:disabled{cursor:default;transform:none;opacity:0.7;}
+.verdict-fb{border-radius:8px;padding:14px 18px;font-size:13px;line-height:1.7;margin-top:12px;display:none;}
+.verdict-fb.show{display:block;}
+.verdict-fb.ok{background:rgba(26,170,58,0.1);border:1px solid var(--green);color:var(--gbright);}
+.verdict-fb.fail{background:rgba(204,34,34,0.1);border:1px solid var(--red);color:#ffaaaa;}
+.next-btn{background:linear-gradient(135deg,var(--green),#0d6627);border:none;border-radius:8px;padding:13px;color:var(--white);font-family:'Orbitron',monospace;font-size:13px;font-weight:700;cursor:pointer;width:100%;margin-top:12px;transition:all 0.2s;display:none;letter-spacing:1px;}
+.next-btn.show{display:block;}
+.next-btn:hover{transform:translateY(-2px);}
+.results-card{display:none;background:var(--panel);border:2px solid var(--border2);border-radius:14px;padding:36px 24px;text-align:center;}
+.results-card.show{display:block;}
+.re-emoji{font-size:52px;margin-bottom:14px;}.re-title{font-family:'Special Elite',cursive;font-size:26px;color:var(--amber2);margin-bottom:8px;}
+.re-sub{font-size:13px;color:#7a9a7a;margin-bottom:24px;line-height:1.6;}
+.re-stats{display:flex;justify-content:center;gap:20px;flex-wrap:wrap;margin-bottom:24px;}
+.re-stat{background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:12px 18px;min-width:90px;}
+.re-val{font-family:'Orbitron',monospace;font-size:24px;font-weight:700;color:var(--amber2);}
+.re-lbl{font-size:10px;color:#7a9a7a;text-transform:uppercase;}
+.btn-restart{background:var(--bg2);border:2px solid var(--amber);border-radius:8px;padding:11px 24px;color:var(--amber2);font-family:'Orbitron',monospace;font-size:13px;font-weight:700;cursor:pointer;transition:all 0.2s;}
+.btn-restart:hover{background:var(--amber);color:var(--bg);}
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div class="htag">// SEGURIDAD INFORMÁTICA · SIMULACIÓN 7.6</div>
+    <h1>🔎 Sala de <span>Crímenes</span> Digitales</h1>
+    <p class="hsub">Lee las evidencias de cada caso y decide: ¿Black Hat, Gray Hat o White Hat?</p>
+  </header>
+  <div class="instr"><strong>📋 Cómo jugar:</strong> Cada caso presenta evidencias reales de un incidente informático. Lee con atención y decide qué tipo de hacker es el responsable. Acierto: <strong style="color:var(--gbright)">+100 pts</strong> · Fallo: <strong style="color:var(--rbright)">−10 pts</strong></div>
+  <div class="hat-legend">
+    <div class="hat-pill hp-black"><div class="hp-icon">🎩</div><div class="hp-name">BLACK HAT</div><div class="hp-desc">Malicioso · sin permiso · delito</div></div>
+    <div class="hat-pill hp-gray"><div class="hp-icon">🪖</div><div class="hp-name">GRAY HAT</div><div class="hp-desc">Sin permiso · pero reporta el fallo</div></div>
+    <div class="hat-pill hp-white"><div class="hp-icon">👒</div><div class="hp-name">WHITE HAT</div><div class="hp-desc">Ético · con permiso · legal</div></div>
+  </div>
+  <div class="score-bar">
+    <div class="sc-i"><div class="sc-l">Puntos</div><div class="sc-v" id="scScore">0</div></div>
+    <div class="sc-i"><div class="sc-l">Veredictos correctos</div><div class="sc-v" style="color:var(--gbright)" id="scCorrect">0</div></div>
+    <div class="sc-i"><div class="sc-l">Caso</div><div class="sc-v" style="color:#2a7fff" id="scCase">1/7</div></div>
+  </div>
+  <div class="prog-bar"><div class="pb-label">Progreso</div><div class="pb-track"><div class="pb-fill" id="pbFill" style="width:0%"></div></div><div class="pb-val" id="pbVal">1/7</div></div>
+  <div id="caseArea"></div>
+  <div class="results-card" id="resultsCard">
+    <div class="re-emoji" id="reEmoji"></div><div class="re-title" id="reTitle"></div><div class="re-sub" id="reSub"></div>
+    <div class="re-stats">
+      <div class="re-stat"><div class="re-val" id="reScore"></div><div class="re-lbl">Puntos</div></div>
+      <div class="re-stat"><div class="re-val" id="reCorrect"></div><div class="re-lbl">Aciertos</div></div>
+      <div class="re-stat"><div class="re-val" id="rePct"></div><div class="re-lbl">Del máximo</div></div>
+    </div>
+    <button class="btn-restart" onclick="restartGame()">↩ NUEVOS CASOS</button>
+  </div>
+</div>
+<script>
+const CASES=[
+  {num:'CASO #001',title:'El robo del banco online',evidence:['Accedió sin autorización al servidor de un banco de inversiones','Copió los datos de 50.000 tarjetas de crédito de clientes','Vendió los datos en foros de la Dark Web por 80.000€ en Bitcoin','Nunca contactó con el banco ni reportó nada'],correct:'black',fb:'🎩 VEREDICTO: BLACK HAT. Acceso sin autorización + robo de datos + venta ilegal = delito penal grave. Es el perfil clásico del ciberdelincuente. Puede enfrentarse a años de prisión.'},
+  {num:'CASO #002',title:'El aviso anónimo',evidence:['Encontró una vulnerabilidad grave en el sistema de un banco','No tenía ningún permiso para acceder al sistema','No robó ningún dato ni causó daño alguno','Envió un email anónimo al banco explicando el fallo técnico'],correct:'gray',fb:'🪖 VEREDICTO: GRAY HAT. Accedió sin permiso (lo que técnicamente es ilegal) pero reportó el fallo en lugar de explotarlo. Sus intenciones son buenas, pero el banco podría denunciarlo igualmente por el acceso no autorizado.'},
+  {num:'CASO #003',title:'La auditoría de seguridad',evidence:['La empresa XYZ le contrató y pagó por sus servicios','Firmaron un contrato y un acuerdo de confidencialidad','Intentó hackear los sistemas de la propia empresa durante 2 semanas','Entregó un informe detallado con todos los fallos encontrados'],correct:'white',fb:'👒 VEREDICTO: WHITE HAT. Trabaja con permiso explícito, contrato y confidencialidad. Es el perfil del Pen Tester profesional. Su trabajo es completamente legal y muy valorado: puede cobrar entre 3.000 y 15.000€ por una auditoría.'},
+  {num:'CASO #004',title:'El gusano del amor (año 2000)',evidence:['Creó ILOVEYOU, un programa que se enviaba a todos los contactos del email','Se propagó por todo el mundo infectando 50 millones de PCs en 10 días','Borró archivos de imagen y audio en los ordenadores infectados','Causó pérdidas estimadas de 10.000 millones de dólares'],correct:'black',fb:'🎩 VEREDICTO: BLACK HAT. Aunque el creador alegó que no sabía las consecuencias, el daño causado fue masivo e irreversible. La intención y el resultado importan. Este es un caso real: Onel de Guzmán, 24 años, Manila (Filipinas).'},
+  {num:'CASO #005',title:'El investigador de bug bounty',evidence:['Una gran empresa tecnológica tenía un programa oficial de recompensas por fallos','Encontró un grave fallo de seguridad en su aplicación móvil','Reportó el fallo siguiendo exactamente el proceso oficial de la empresa','Recibió una recompensa de 15.000€ por su hallazgo'],correct:'white',fb:'👒 VEREDICTO: WHITE HAT. Los programas de Bug Bounty son contratos implícitos: la empresa invita a investigadores a buscar fallos y promete pagarles. Es un negocio legal y muy lucrativo. Google, Microsoft y Apple tienen programas que pagan millones al año.'},
+  {num:'CASO #006',title:'El escáner de Internet',evidence:['Escaneó miles de servidores en Internet sin pedir permiso','Encontró una vulnerabilidad en varios servidores del Gobierno','No robó ningún dato ni alteró ningún sistema','Publicó en Twitter la lista de servidores vulnerables sin avisar antes al Gobierno'],correct:'gray',fb:'🪖 VEREDICTO: GRAY HAT. El escáner sin permiso es técnicamente ilegal. Publicar sin avisar antes puede empeorar la situación (alerta a atacantes maliciosos). Lo correcto sería haber avisado primero y dado tiempo para corregirlo (Responsible Disclosure).'},
+  {num:'CASO #007',title:'La ciberarma estatal',evidence:['Trabajaba para una agencia de ciberdefensa gubernamental con plena autorización','Desarrolló un malware para sabotear instalaciones nucleares de un país adversario','El objetivo era ralentizar el programa nuclear sin causar víctimas humanas','Toda la operación estaba sancionada por el más alto nivel gubernamental'],correct:'white',fb:'👒 VEREDICTO: WHITE HAT (en sentido técnico y legal). Stuxnet fue una operación de ciberguerra con autorización estatal oficial. Aunque éticamente discutible, los operativos actuaban dentro del marco legal de su gobierno. La ciberguerra es una realidad geopolítica del siglo XXI.'}
+];
+let score=0,correct=0,caseIdx=0,answered=false;
+const MAX=CASES.length*100;
+function renderCase(){
+  answered=false;
+  const c=CASES[caseIdx];
+  document.getElementById('scCase').textContent=(caseIdx+1)+'/'+CASES.length;
+  document.getElementById('pbVal').textContent=(caseIdx+1)+'/'+CASES.length;
+  document.getElementById('pbFill').style.width=Math.round((caseIdx/CASES.length)*100)+'%';
+  const evHtml=c.evidence.map(e=>'<div class="ev-item"><span class="ev-icon">►</span><span>'+e+'</span></div>').join('');
+  document.getElementById('caseArea').innerHTML='<div class="case-card"><div class="case-num">'+c.num+'</div><div class="case-title">'+c.title+'</div><div class="evidence-box"><div class="ev-title">🔬 Evidencias del caso</div>'+evHtml+'</div><div class="verdict-q">¿Qué tipo de hacker es el responsable?</div><div class="hat-choices"><button class="hc-btn black" onclick="verdict(\'black\')">🎩 BLACK HAT</button><button class="hc-btn gray" onclick="verdict(\'gray\')">🪖 GRAY HAT</button><button class="hc-btn white" onclick="verdict(\'white\')">👒 WHITE HAT</button></div><div class="verdict-fb" id="vfb"></div><button class="next-btn" id="nextBtn" onclick="nextCase()">SIGUIENTE CASO →</button></div>';
+}
+function verdict(hat){
+  if(answered)return;answered=true;
+  const c=CASES[caseIdx];
+  const ok=hat===c.correct;
+  if(ok){score+=100;correct++;}else{score=Math.max(0,score-10);}
+  document.querySelectorAll('.hc-btn').forEach(b=>b.disabled=true);
+  const fb=document.getElementById('vfb');
+  fb.className='verdict-fb show '+(ok?'ok':'fail');fb.textContent=(ok?'✅ ':'❌ ')+c.fb;
+  document.getElementById('scScore').textContent=score;document.getElementById('scCorrect').textContent=correct;
+  const nb=document.getElementById('nextBtn');nb.className='next-btn show';
+  nb.textContent=caseIdx<CASES.length-1?'SIGUIENTE CASO →':'🏁 VER RESULTADOS';
+}
+function nextCase(){caseIdx++;if(caseIdx>=CASES.length)showResults();else renderCase();}
+function showResults(){
+  document.getElementById('caseArea').style.display='none';document.getElementById('resultsCard').className='results-card show';
+  const pct=Math.round((score/MAX)*100);
+  document.getElementById('pbFill').style.width='100%';
+  document.getElementById('reScore').textContent=score;document.getElementById('reCorrect').textContent=correct+'/'+CASES.length;document.getElementById('rePct').textContent=pct+'%';
+  let e,t,s;
+  if(pct>=85){e='🧙';t='¡Maestro de la Seguridad!';s='Clasificas perfectamente a los hackers. Conoces la diferencia legal entre actuar con permiso y sin él.';}
+  else if(pct>=65){e='🕵️';t='Buen Detective Digital';s='Distingues bien los tipos de hackers. Repasa los casos de zona gris que fallaste.';}
+  else if(pct>=45){e='📖';t='Aprendiz de Perito';s='La clasificación de hackers tiene matices. Vuelve a intentarlo con calma.';}
+  else{e='⚠️';t='¡Sigue Estudiando!';s='Los sombreros de hacker tienen diferencias importantes. Relee las explicaciones y vuelve a intentarlo.';}
+  document.getElementById('reEmoji').textContent=e;document.getElementById('reTitle').textContent=t;document.getElementById('reSub').textContent=s;
+}
+function restartGame(){score=0;correct=0;caseIdx=0;answered=false;document.getElementById('scScore').textContent=0;document.getElementById('scCorrect').textContent=0;document.getElementById('resultsCard').className='results-card';document.getElementById('caseArea').style.display='block';renderCase();}
+renderCase();
+</script>
+</body>
+</html>

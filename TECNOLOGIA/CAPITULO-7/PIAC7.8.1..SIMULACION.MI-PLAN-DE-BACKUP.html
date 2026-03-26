@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PIAC7.8.1 · Simulación · Mi Plan de Backup</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Syne:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#060d14;--panel:#0a1520;--panel2:#0e1e2e;--border:#1a2f40;--border2:#243a50;--cyan:#00d4ff;--green:#00e060;--yellow:#ffdd00;--red:#ff3355;--text:#c8e8f0;--text2:#507090;--white:#e8f8ff;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monospace;min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:999;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.05) 2px,rgba(0,0,0,0.05) 3px);}
+.page{max-width:860px;margin:0 auto;padding:22px 14px 60px;position:relative;z-index:1;}
+header{text-align:center;margin-bottom:24px;}
+.htag{font-size:11px;color:var(--cyan);letter-spacing:3px;text-transform:uppercase;margin-bottom:8px;}
+h1{font-family:'Syne',sans-serif;font-size:clamp(20px,5vw,34px);font-weight:900;color:var(--white);margin-bottom:8px;}
+h1 span{color:var(--cyan);}
+.hsub{font-size:13px;color:var(--text2);line-height:1.6;}
+.instr{background:var(--panel);border:1px solid var(--cyan);border-radius:10px;padding:12px 16px;margin-bottom:20px;font-size:13px;line-height:1.6;}
+.instr strong{color:var(--cyan);}
+/* PROGRESS SUMMARY */
+.summary-bar{background:var(--panel);border:1px solid var(--border2);border-radius:10px;padding:14px 18px;margin-bottom:20px;}
+.sb-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--white);margin-bottom:10px;}
+.sb-meter{display:flex;align-items:center;gap:12px;margin-bottom:8px;}
+.sb-track{flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden;}
+.sb-fill{height:100%;background:linear-gradient(90deg,var(--red),var(--yellow),var(--cyan));border-radius:4px;transition:width 0.6s;}
+.sb-pct{font-family:'Syne',sans-serif;font-size:18px;font-weight:900;color:var(--cyan);}
+.sb-label{font-size:12px;color:var(--text2);}
+/* CHECKLIST */
+.checklist{display:flex;flex-direction:column;gap:12px;margin-bottom:20px;}
+.check-item{background:var(--panel);border:2px solid var(--border2);border-radius:12px;padding:18px 20px;transition:all 0.3s;}
+.check-item.done{border-color:var(--green);background:rgba(0,224,96,0.05);}
+.check-item.active{border-color:var(--cyan);box-shadow:0 0 16px rgba(0,212,255,0.15);}
+.ci-header{display:flex;gap:14px;align-items:flex-start;cursor:pointer;}
+.ci-check{width:24px;height:24px;border-radius:6px;border:2px solid var(--border2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all 0.3s;margin-top:2px;}
+.check-item.done .ci-check{background:var(--green);border-color:var(--green);color:var(--bg);}
+.ci-content{flex:1;}
+.ci-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:var(--white);margin-bottom:4px;}
+.ci-desc{font-size:12px;color:var(--text2);line-height:1.5;}
+.ci-detail{margin-top:12px;display:none;padding-top:12px;border-top:1px solid var(--border2);}
+.check-item.active .ci-detail{display:block;}
+.ci-steps{font-size:13px;line-height:1.85;color:var(--text);}
+.ci-steps strong{color:var(--cyan);}
+.ci-rule{background:var(--panel2);border-left:3px solid var(--cyan);border-radius:0 6px 6px 0;padding:8px 12px;margin:8px 0;font-size:12px;line-height:1.5;}
+.ci-rule.g{border-color:var(--green);}
+.ci-rule.y{border-color:var(--yellow);}
+.ci-rule.r{border-color:var(--red);}
+.mark-btn{background:var(--green);border:none;border-radius:8px;padding:10px 18px;color:var(--bg);font-family:'Syne',sans-serif;font-size:13px;font-weight:800;cursor:pointer;margin-top:12px;transition:all 0.2s;}
+.mark-btn:hover{transform:translateY(-1px);}
+.mark-btn.undo{background:var(--panel2);border:1px solid var(--border2);color:var(--text2);}
+/* FINAL PLAN */
+.final-plan{background:var(--panel);border:2px solid var(--cyan);border-radius:12px;padding:22px 20px;display:none;margin-bottom:20px;}
+.final-plan.show{display:block;}
+.fp-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:900;color:var(--cyan);margin-bottom:14px;}
+.fp-row{display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;font-size:13px;line-height:1.5;}
+.fp-icon{flex-shrink:0;font-size:18px;}
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div class="htag">// SEGURIDAD INFORMÁTICA · SIMULACIÓN 7.8</div>
+    <h1>📋 Mi Plan de <span>Backup</span></h1>
+    <p class="hsub">Configura tu plan personal de copias de seguridad paso a paso. Pulsa cada tarea para ver cómo hacerla.</p>
+  </header>
+  <div class="instr"><strong>📋 Cómo funciona:</strong> Esta simulación te guía para crear tu propio plan de backup real. Pulsa cada tarea para ver las instrucciones detalladas. Cuando la hayas completado (o entendido), márcala como hecha. El medidor de seguridad subirá con cada tarea completada.</div>
+  <div class="summary-bar">
+    <div class="sb-title">🛡️ Tu nivel de seguridad de datos</div>
+    <div class="sb-meter"><div class="sb-track"><div class="sb-fill" id="sbFill" style="width:0%"></div></div><div class="sb-pct" id="sbPct">0%</div></div>
+    <div class="sb-label" id="sbLabel">Sin protección — completa las tareas para proteger tus datos</div>
+  </div>
+  <div class="checklist" id="checklist"></div>
+  <div class="final-plan" id="finalPlan">
+    <div class="fp-title">🎉 ¡Tu Plan de Backup está completo!</div>
+    <div class="fp-row"><span class="fp-icon">☁️</span><span><strong style="color:var(--cyan)">Nube:</strong> Google Fotos / iCloud / OneDrive activados → copias automáticas cada día</span></div>
+    <div class="fp-row"><span class="fp-icon">💿</span><span><strong style="color:var(--green)">Disco externo:</strong> Conectar cada domingo → copiar → desconectar → guardar en cajón</span></div>
+    <div class="fp-row"><span class="fp-icon">🔄</span><span><strong style="color:var(--yellow)">Actualizaciones:</strong> Automáticas activadas en Windows y en el móvil</span></div>
+    <div class="fp-row"><span class="fp-icon">🦠</span><span><strong style="color:var(--cyan)">Antivirus:</strong> Windows Defender activo y actualizado</span></div>
+    <div class="fp-row"><span class="fp-icon">📅</span><span><strong style="color:var(--green)">Revisión:</strong> Una vez al mes, verificar que las copias en la nube están funcionando</span></div>
+  </div>
+</div>
+<script>
+const TASKS=[
+  {icon:'☁️',title:'Activar Google Fotos en el móvil Android',desc:'Copia automática de todas tus fotos en la nube, gratis hasta 15 GB',detail:'<div class="ci-steps">Para activar la copia de seguridad automática de tus fotos:<br><div class="ci-rule">1. Abre la app <strong>Google Fotos</strong> en tu móvil Android</div><div class="ci-rule">2. Pulsa tu foto de perfil (arriba a la derecha)</div><div class="ci-rule">3. Selecciona <strong>"Copia de seguridad"</strong></div><div class="ci-rule g">4. Activa el interruptor → elige "Calidad de almacenamiento": Normal (gratis) o Alta</div><div class="ci-rule g">5. ✅ Listo. Desde ahora todas tus fotos se copiarán automáticamente cuando tengas Wi-Fi</div><div class="ci-rule y">⚡ Consejo: actívalo con Wi-Fi para no gastar datos móviles. La primera copia tarda un poco si tienes muchas fotos.</div></div>'},
+  {icon:'📱',title:'Activar iCloud en iPhone/iPad (usuarios Apple)',desc:'Copia automática de fotos y documentos en iCloud, 5 GB gratis',detail:'<div class="ci-steps">Para activar iCloud en tu iPhone o iPad:<br><div class="ci-rule">1. Ve a <strong>Ajustes</strong> → pulsa tu nombre en la parte superior</div><div class="ci-rule">2. Selecciona <strong>iCloud</strong></div><div class="ci-rule g">3. Activa <strong>"Fotos"</strong> → elige "Sincronizar este iPhone"</div><div class="ci-rule g">4. Activa también <strong>"iCloud Drive"</strong> para tus documentos</div><div class="ci-rule y">💡 El plan gratuito incluye 5 GB. Si tienes muchas fotos, considera el plan de 50 GB por 0,99€/mes</div></div>'},
+  {icon:'💻',title:'Activar OneDrive en Windows 10/11',desc:'Copia automática de tus documentos en la nube de Microsoft, 5 GB gratis',detail:'<div class="ci-steps">OneDrive viene incluido en Windows 10 y 11:<br><div class="ci-rule">1. Busca el icono de la nube en la barra inferior derecha del escritorio</div><div class="ci-rule">2. Si no está activo: Inicio → busca "OneDrive" → ábrelo e inicia sesión con tu cuenta Microsoft</div><div class="ci-rule g">3. Asegúrate de que la carpeta "Documentos" y "Escritorio" están dentro de OneDrive</div><div class="ci-rule g">4. ✅ Todo lo que guardes en esas carpetas se copiará automáticamente a la nube</div><div class="ci-rule y">💡 Comprueba que el icono de la nube esté en <strong>azul</strong> (sincronizando) y no en rojo (error)</div></div>'},
+  {icon:'💿',title:'Comprar y configurar un disco duro externo',desc:'La segunda copia fuera de la nube: copia semanal y guardar desconectado',detail:'<div class="ci-steps">El disco duro externo es tu copia de seguridad física:<br><div class="ci-rule">💰 <strong>Precio orientativo:</strong> 1 TB (1.000 GB) cuesta entre 50€ y 80€. Marcas fiables: Seagate, WD.</div><div class="ci-rule g">📅 <strong>Rutina semanal:</strong> Cada domingo → conecta el disco → copia las carpetas "Fotos", "Documentos", "Escritorio" → desconecta el disco → guárdalo en un cajón</div><div class="ci-rule r">⚠️ MUY IMPORTANTE: No dejes el disco conectado siempre. Un ransomware cifraría también el disco externo si está conectado durante el ataque.</div><div class="ci-rule y">💡 Puedes usar Windows Backup (Inicio → Configuración → Actualización → Copia de seguridad) para automatizarlo.</div></div>'},
+  {icon:'🔄',title:'Activar actualizaciones automáticas en Windows',desc:'Las actualizaciones corrigen los agujeros de seguridad que usan los virus',detail:'<div class="ci-steps">Para activar las actualizaciones automáticas en Windows:<br><div class="ci-rule">1. Inicio → <strong>Configuración</strong> (icono de rueda dentada)</div><div class="ci-rule">2. <strong>Windows Update</strong> → "Opciones avanzadas"</div><div class="ci-rule g">3. Activa <strong>"Recibir actualizaciones de otros productos Microsoft"</strong></div><div class="ci-rule g">4. Activa <strong>"Descargar actualizaciones a través de conexiones de uso medido"</strong></div><div class="ci-rule g">5. ✅ Windows se actualizará automáticamente. Cuando pida reiniciar, <strong>hazlo pronto</strong>: las actualizaciones pendientes solo se aplican al reiniciar.</div><div class="ci-rule r">❌ Recuerda: WannaCry (2017) infectó 200.000 ordenadores que NO habían instalado una actualización disponible 2 meses antes.</div></div>'},
+  {icon:'🦠',title:'Verificar que Windows Defender está activo',desc:'El antivirus gratuito de Windows: comprobar que está funcionando',detail:'<div class="ci-steps">Para verificar que Windows Defender está activo y actualizado:<br><div class="ci-rule">1. Inicio → busca <strong>"Seguridad de Windows"</strong> → ábrelo</div><div class="ci-rule g">2. Deberías ver todo en <strong>verde</strong>: "Protección antivirus y contra amenazas" ✅</div><div class="ci-rule">3. Pulsa en "Protección antivirus" → verifica que la última actualización fue hace menos de 1 día</div><div class="ci-rule g">4. ✅ Si todo está en verde, estás protegido. No necesitas comprar ningún antivirus adicional.</div><div class="ci-rule r">❌ Si ves algo en rojo: pulsa "Habilitar" y sigue las instrucciones. Si no sabes cómo, pide ayuda a un familiar o al servicio técnico.</div><div class="ci-rule y">⚠️ Recuerda: si una web o programa te pide desactivar el antivirus, es siempre malware. Cierra inmediatamente.</div></div>'}
+];
+let done=new Set(),active=null;
+function build(){
+  const cl=document.getElementById('checklist');cl.innerHTML='';
+  TASKS.forEach((t,i)=>{
+    const item=document.createElement('div');
+    item.className='check-item'+(done.has(i)?' done':active===i?' active':'');
+    item.innerHTML='<div class="ci-header" onclick="toggleItem('+i+')"><div class="ci-check">'+(done.has(i)?'✓':'')+'</div><div class="ci-content"><div class="ci-title">'+t.icon+' '+t.title+'</div><div class="ci-desc">'+t.desc+'</div></div></div><div class="ci-detail">'+t.detail+'<button class="mark-btn'+(done.has(i)?' undo':'')+'" onclick="markDone('+i+'),'+'event.stopPropagation()">'+( done.has(i)?'↩ Marcar como pendiente':'✅ Marcar como completada')+'</button></div>';
+    cl.appendChild(item);
+  });
+  updateMeter();
+}
+function toggleItem(i){active=active===i?null:i;build();}
+function markDone(i){if(done.has(i))done.delete(i);else done.add(i);active=null;build();}
+function updateMeter(){
+  const pct=Math.round((done.size/TASKS.length)*100);
+  document.getElementById('sbFill').style.width=pct+'%';
+  document.getElementById('sbPct').textContent=pct+'%';
+  const labels=['Sin protección — completa las tareas para proteger tus datos','Protección inicial — sigue completando las tareas','Protección básica activa — ya tienes lo más importante','Muy bien protegido — casi completo','🎉 ¡Protección completa! Tus datos están seguros'];
+  const li=Math.min(Math.floor(pct/25),4);
+  document.getElementById('sbLabel').textContent=labels[li];
+  document.getElementById('finalPlan').className='final-plan'+(done.size===TASKS.length?' show':'');
+}
+build();
+</script>
+</body>
+</html>

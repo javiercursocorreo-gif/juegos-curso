@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PIAC7.5.1 · Simulación · Asistente de Trámites</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#07080f;--panel:#0d1117;--panel2:#111827;--border:#1e2d40;--p1:#3b82f6;--p2:#f59e0b;--p3:#10b981;--p4:#ef4444;--p5:#8b5cf6;--p6:#06b6d4;--text:#e2e8f0;--text2:#607090;--white:#fff;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospace;min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:999;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.06) 2px,rgba(0,0,0,0.06) 3px);}
+.page{max-width:860px;margin:0 auto;padding:22px 14px 60px;position:relative;z-index:1;}
+header{text-align:center;margin-bottom:24px;}
+.htag{font-size:11px;color:var(--p1);letter-spacing:3px;text-transform:uppercase;margin-bottom:8px;}
+h1{font-family:'Syne',sans-serif;font-size:clamp(20px,5vw,34px);font-weight:900;color:var(--white);margin-bottom:8px;}
+h1 span{color:var(--p2);}
+.hsub{font-size:13px;color:var(--text2);line-height:1.6;}
+.instr{background:var(--panel);border:1px solid var(--p2);border-radius:10px;padding:14px 18px;margin-bottom:20px;font-size:13px;line-height:1.7;}
+.instr strong{color:var(--p2);}
+/* TRAMITE SELECTOR */
+.tramites-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-bottom:22px;}
+.tramite-card{background:var(--panel);border:2px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;transition:all 0.2s;text-align:left;}
+.tramite-card:hover{border-color:var(--p2);transform:translateY(-2px);}
+.tramite-card.done{border-color:var(--p3);opacity:0.7;cursor:default;transform:none;}
+.tc-icon{font-size:24px;margin-bottom:6px;}
+.tc-name{font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:var(--white);margin-bottom:4px;}
+.tc-desc{font-size:11px;color:var(--text2);line-height:1.4;}
+/* RESULT PANEL */
+.result-panel{background:var(--panel);border:2px solid var(--border);border-radius:14px;padding:24px 22px;margin-bottom:20px;display:none;}
+.result-panel.show{display:block;}
+.rp-tramite{font-size:12px;color:var(--text2);margin-bottom:4px;}
+.rp-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:900;color:var(--white);margin-bottom:16px;}
+.method-answer{border-radius:12px;padding:18px 20px;margin-bottom:14px;border:2px solid;}
+.ma-top{display:flex;gap:14px;align-items:center;margin-bottom:10px;}
+.ma-icon{font-size:32px;}
+.ma-name{font-family:'Syne',sans-serif;font-size:18px;font-weight:900;}
+.ma-why{font-size:13px;line-height:1.7;color:var(--text);}
+.ma-steps{margin-top:12px;}
+.ma-steps-title{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;}
+.ma-step{display:flex;gap:8px;font-size:12px;line-height:1.5;margin-bottom:6px;color:var(--text);}
+.ma-step-num{font-family:'Syne',sans-serif;font-weight:800;min-width:18px;color:var(--text2);}
+.alternatives{margin-top:14px;}
+.alt-title{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;}
+.alt-chips{display:flex;flex-wrap:wrap;gap:8px;}
+.alt-chip{padding:6px 12px;border-radius:6px;border:1px solid;font-size:12px;}
+.prog-bar{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:10px 16px;margin-bottom:18px;display:flex;align-items:center;gap:12px;}
+.pb-label{font-size:11px;color:var(--text2);white-space:nowrap;}
+.pb-track{flex:1;height:5px;background:var(--border);border-radius:4px;overflow:hidden;}
+.pb-fill{height:100%;background:linear-gradient(90deg,var(--p1),var(--p3));border-radius:4px;transition:width 0.5s;}
+.pb-val{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--p3);}
+.close-btn{background:none;border:1px solid var(--border);border-radius:6px;padding:8px 16px;color:var(--text2);font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all 0.2s;margin-top:4px;}
+.close-btn:hover{border-color:var(--white);color:var(--white);}
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div class="htag">// SEGURIDAD INFORMÁTICA · SIMULACIÓN 7.5</div>
+    <h1>🤖 Asistente de <span>Trámites Digitales</span></h1>
+    <p class="hsub">Pulsa el trámite que necesitas hacer y te diremos exactamente qué método de identificación usar y cómo</p>
+  </header>
+  <div class="instr"><strong>📋 Cómo funciona:</strong> Elige el trámite que quieres realizar. El asistente te explicará qué método de identificación digital necesitas, por qué es el más adecuado y los pasos para usarlo. Explora los 10 trámites para completar la simulación.</div>
+  <div class="prog-bar"><div class="pb-label">Trámites explorados</div><div class="pb-track"><div class="pb-fill" id="pbFill" style="width:0%"></div></div><div class="pb-val" id="pbVal">0/10</div></div>
+  <div class="result-panel" id="resultPanel"></div>
+  <div class="tramites-grid" id="tramitesGrid"></div>
+</div>
+<script>
+const COLORS={dnie:'var(--p1)',cert:'var(--p3)',movil:'var(--p2)',permanente:'var(--p5)',pin:'var(--p6)',firma:'var(--p4)'};
+const METHOD_NAMES={dnie:'DNI Electrónico',cert:'Certificado Digital (FNMT)',movil:'DNI Digital en el Móvil',permanente:'Cl@ve Permanente',pin:'Cl@ve PIN',firma:'Firma Digital'};
+const METHOD_ICONS={dnie:'🪪',cert:'📜',movil:'📱',permanente:'🔑',pin:'📟',firma:'✍️'};
+
+const TRAMITES=[
+  {icon:'📝',name:'Hacer la declaración de la Renta',desc:'Presentar el IRPF anual en la AEAT',method:'cert',why:'El Certificado Digital es el método más completo para trámites fiscales complejos. Te permite ver todos tus datos, modificar el borrador y presentarlo con firma legal.',steps:['Instala el Certificado Digital de la FNMT en tu ordenador (fnmt.es)','Entra en sede.agenciatributaria.gob.es','Selecciona "Renta 2024" → "Acceder con Certificado Digital"','Consulta tu borrador, modifica si es necesario y presenta'],alts:['dnie','movil']},
+  {icon:'🚗',name:'Consultar puntos del carnet',desc:'Ver los puntos que te quedan en la DGT',method:'permanente',why:'La Cl@ve Permanente es ideal para consultas frecuentes como los puntos del carnet. Es rápida y solo necesitas tu DNI/NIE y una contraseña que tú eliges.',steps:['Entra en sede.dgt.es','Selecciona "Acceder con Cl@ve"','Elige "Cl@ve Permanente" → introduce tu DNI y contraseña','En "Mis trámites" → "Consultar mi saldo de puntos"'],alts:['cert','dnie']},
+  {icon:'👴',name:'Ver mi pensión en la Seguridad Social',desc:'Consultar el importe y estado de tu pensión',method:'permanente',why:'La Seguridad Social recomienda Cl@ve Permanente para accesos frecuentes como consultar tu pensión o tus datos laborales. Es el método más cómodo para este tipo de consultas habituales.',steps:['Entra en importass.seg-social.es','Pulsa "Acceder" → "Cl@ve Permanente"','Introduce tu DNI/NIE y contraseña','En "Mis prestaciones" → "Pensión"'],alts:['cert','pin']},
+  {icon:'💳',name:'Pagar una tasa en la AEAT',desc:'Abonar una multa o tasa tributaria online',method:'pin',why:'La Cl@ve PIN es perfecta para pagos puntuales: genera un código temporal válido pocos minutos. No necesitas recordar contraseñas largas, solo esperar el SMS.',steps:['Entra en sede.agenciatributaria.gob.es','Selecciona el tipo de pago → "Acceder con Cl@ve PIN"','Introduce tu DNI/NIE → pulsa "Solicitar PIN"','Recibirás el código por SMS → introdúcelo → confirma el pago'],alts:['permanente','cert']},
+  {icon:'📋',name:'Pedir certificado de empadronamiento',desc:'Solicitar el certificado al Ayuntamiento online',method:'cert',why:'El Certificado Digital permite relacionarse electrónicamente con el Ayuntamiento para solicitar documentos oficiales sin desplazarse. Es el método habitual para trámites municipales.',steps:['Entra en la sede electrónica de tu Ayuntamiento','Busca "Certificado de empadronamiento"','Selecciona "Acceder con Certificado Digital"','Rellena el formulario y descarga o recibe el certificado por email'],alts:['dnie']},
+  {icon:'📱',name:'Pedir cita médica desde el móvil',desc:'Solicitar cita en el centro de salud por el móvil',method:'pin',why:'La Cl@ve PIN es ideal para accesos rápidos desde el móvil: solo necesitas tu DNI y un SMS. En segundos puedes pedir cita médica sin necesidad de instalar certificados.',steps:['Descarga la app de salud de tu comunidad autónoma','Selecciona "Acceder con Cl@ve"','Elige "Cl@ve PIN" → introduce tu DNI → solicita el PIN por SMS','Introduce el código recibido → ya puedes pedir tu cita'],alts:['movil','permanente']},
+  {icon:'📄',name:'Firmar un contrato de trabajo',desc:'Firmar un contrato laboral con validez legal',method:'firma',why:'La Firma Digital es obligatoria para documentos con validez jurídica como contratos. Garantiza que el documento no ha sido modificado y que eres tú quien ha firmado.',steps:['Asegúrate de tener el Certificado Digital instalado','Usa Adobe Acrobat o AutoFirma (app gratuita del Gobierno)','Abre el PDF del contrato → "Herramientas" → "Firmar"','Selecciona tu certificado → firma digitalmente → envía el PDF firmado'],alts:['dnie']},
+  {icon:'🔔',name:'Ver notificaciones de Hacienda en el móvil',desc:'Consultar avisos de la AEAT desde el smartphone',method:'movil',why:'El DNI Digital en el Móvil permite acceder a notificaciones de Hacienda sin necesidad de llevar el lector de DNI. Solo acercas tu DNI físico al móvil la primera vez para activarlo.',steps:['Descarga la app "Cl@ve" en tu móvil (App Store o Google Play)','Activa el DNI Digital: acerca tu DNI físico al móvil con NFC','Entra en la notificación de Hacienda → selecciona "DNI Digital"','Lee y firma electrónicamente la notificación'],alts:['cert','permanente']},
+  {icon:'✈️',name:'Solicitar cita para renovar el pasaporte',desc:'Pedir cita en comisaría para renovar el pasaporte',method:'dnie',why:'Los trámites policiales online (pasaporte, NIE, cita Policía Nacional) requieren el DNI Electrónico que acredita tu identidad ante organismos de seguridad del Estado.',steps:['Entra en citapreviadnie.es o la web de la Policía Nacional','Selecciona "Renovación de pasaporte" → "Acceder con DNI Electrónico"','Conecta el lector de tarjetas + inserta tu DNI + introduce tu PIN del chip','Selecciona la comisaría y fecha que te convienen'],alts:['cert']},
+  {icon:'🧾',name:'Firmar una factura como autónomo',desc:'Emitir facturas electrónicas con validez legal',method:'firma',why:'Los autónomos deben usar la Firma Digital para emitir facturas electrónicas. A partir de 2025 será obligatoria para muchos autónomos en España (Ley Crea y Crece).',steps:['Instala el Certificado Digital de la FNMT si no lo tienes','Usa un software de facturación compatible (FacturaDirecta, Holded, etc.)','Al emitir la factura, el software la firma automáticamente con tu certificado','El cliente recibe una factura con firma digital verificable'],alts:['cert','dnie']}
+];
+
+let explored=new Set();
+
+function build(){
+  const grid=document.getElementById('tramitesGrid');
+  TRAMITES.forEach((t,i)=>{
+    const card=document.createElement('div');
+    card.className='tramite-card'+(explored.has(i)?' done':'');
+    card.id='tc'+i;
+    card.innerHTML='<div class="tc-icon">'+t.icon+(explored.has(i)?' ✓':'')+'</div><div class="tc-name">'+t.name+'</div><div class="tc-desc">'+t.desc+'</div>';
+    if(!explored.has(i))card.onclick=()=>showResult(i);
+    grid.appendChild(card);
+  });
+}
+
+function showResult(idx){
+  explored.add(idx);
+  const t=TRAMITES[idx];
+  const m=t.method;
+  const color=COLORS[m];
+  const stepsHtml=t.steps.map((s,i)=>'<div class="ma-step"><span class="ma-step-num">'+(i+1)+'.</span><span>'+s+'</span></div>').join('');
+  const altsHtml=t.alts.map(a=>'<span class="alt-chip" style="border-color:'+COLORS[a]+';color:'+COLORS[a]+'">'+METHOD_ICONS[a]+' '+METHOD_NAMES[a]+'</span>').join('');
+  const panel=document.getElementById('resultPanel');
+  panel.style.borderColor=color;
+  panel.innerHTML='<div class="rp-tramite">Trámite seleccionado</div><div class="rp-title">'+t.icon+' '+t.name+'</div><div class="method-answer" style="border-color:'+color+';background:'+color.replace('var(','rgba(').replace(')',',0.07)')+'"><div class="ma-top"><div class="ma-icon">'+METHOD_ICONS[m]+'</div><div><div class="ma-name" style="color:'+color+'">'+METHOD_NAMES[m]+'</div><div style="font-size:11px;color:var(--text2)">Método recomendado</div></div></div><div class="ma-why">'+t.why+'</div><div class="ma-steps"><div class="ma-steps-title">📋 Pasos a seguir</div>'+stepsHtml+'</div></div><div class="alternatives"><div class="alt-title">🔄 También funciona con</div><div class="alt-chips">'+altsHtml+'</div></div><button class="close-btn" onclick="closePanel()">✕ Cerrar y elegir otro trámite</button>';
+  panel.className='result-panel show';
+  panel.scrollIntoView({behavior:'smooth',block:'start'});
+  document.getElementById('pbVal').textContent=explored.size+'/'+TRAMITES.length;
+  document.getElementById('pbFill').style.width=Math.round((explored.size/TRAMITES.length)*100)+'%';
+  document.getElementById('tramitesGrid').innerHTML='';build();
+}
+
+function closePanel(){document.getElementById('resultPanel').className='result-panel';}
+build();
+</script>
+</body>
+</html>
