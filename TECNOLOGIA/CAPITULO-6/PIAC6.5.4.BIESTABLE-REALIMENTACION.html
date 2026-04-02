@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>1.4 SIMULACION Biestable SR — NAND con Transistores NPN</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Syne:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#060d14;--panel:#0a1520;--panel2:#0e1e2e;
+  --border:#1a2f40;--border2:#243a50;
+  --cyan:#00d4ff;--green:#00e060;
+  --red:#ff3355;--amber:#e07b00;--amberB:#00aacc;
+  --text:#c8e8f0;--text2:#507090;--white:#e8f8ff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monospace;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:999;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.05) 2px,rgba(0,0,0,.05) 3px)}
+.page{max-width:1100px;margin:0 auto;padding:20px 14px 60px;position:relative;z-index:1}
+header{text-align:center;margin-bottom:20px}
+.htag{font-size:11px;color:var(--cyan);letter-spacing:3px;text-transform:uppercase;margin-bottom:8px}
+h1{font-family:'Syne',sans-serif;font-size:clamp(18px,4vw,28px);font-weight:900;color:var(--white);margin-bottom:6px}
+h1 span{color:var(--cyan)}
+.hsub{font-size:13px;color:var(--text2)}
+.instr{background:var(--panel);border:1px solid var(--cyan);border-radius:10px;padding:11px 16px;margin-bottom:18px;font-size:13px;line-height:1.6}
+.instr strong{color:var(--cyan)}
+.layout{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start}
+@media(max-width:720px){.layout{grid-template-columns:1fr}}
+.canvas-wrap{background:var(--panel);border:1px solid var(--border2);border-radius:12px;padding:14px}
+.clabel{font-size:10px;color:var(--cyan);letter-spacing:3px;text-transform:uppercase;margin-bottom:8px}
+canvas{display:block;width:100%;border-radius:6px;background:#03090f}
+.side{display:flex;flex-direction:column;gap:12px}
+.card{background:var(--panel);border:1px solid var(--border2);border-radius:10px;padding:14px}
+.ctitle{font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:var(--white);margin-bottom:10px}
+.cbtn{width:100%;padding:11px 8px;border-radius:6px;border:1px solid var(--border2);background:var(--panel2);
+  color:var(--text2);font-family:'Share Tech Mono',monospace;font-size:12px;cursor:pointer;
+  transition:all .2s;text-align:center;margin-bottom:8px}
+.cbtn:hover{border-color:var(--cyan);color:var(--cyan)}
+.cbtn.set-on{border-color:var(--green);background:rgba(0,224,96,.12);color:var(--green)}
+.cbtn.rst-on{border-color:var(--red);background:rgba(255,51,85,.1);color:var(--red)}
+.srow{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px}
+.srow:last-child{border-bottom:none}
+.slbl{color:var(--text2)}.sval{font-family:'Syne',sans-serif;font-size:14px;font-weight:800}
+.state-box{border-radius:8px;padding:10px 12px;text-align:center;transition:all .3s;margin-top:8px}
+.s-q1{background:rgba(0,224,96,.08);border:1px solid var(--green)}
+.s-q0{background:rgba(255,51,85,.08);border:1px solid var(--red)}
+.sname{font-family:'Syne',sans-serif;font-size:14px;font-weight:900;margin-bottom:4px}
+.sdesc{font-size:10px;line-height:1.5;opacity:.85}
+.leg{font-size:10px;color:var(--text2);line-height:1.9}
+.ld{width:18px;height:3px;display:inline-block;vertical-align:middle;margin-right:3px;border-radius:2px}
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div class="htag">// CURSO ROBÓTICA · CAPÍTULO 1 · CLASE 1.4</div>
+    <h1>Biestable SR — <span>NAND con Transistores NPN</span></h1>
+    <p class="hsub">4 transistores NPN visibles · realimentación cruzada · 1 bit de memoria</p>
+  </header>
+  <div class="instr">
+    <strong>📋 Instrucciones:</strong> Pulsa <strong>SET</strong> para guardar un 1 y <strong>RESET</strong> para guardar un 0.
+    Las curvas <strong style="color:#e07b00">naranjas</strong> y <strong style="color:#00aacc">azules</strong>
+    muestran la realimentación cruzada que mantiene el valor guardado aunque sueltes el pulsador.
+  </div>
+  <div class="layout">
+    <div class="canvas-wrap">
+      <div class="clabel">▸ Biestable SR — transistores NPN con realimentación cruzada</div>
+      <canvas id="cv" width="680" height="520"></canvas>
+    </div>
+    <div class="side">
+      <div class="card">
+        <div class="ctitle">⚡ Control</div>
+        <button class="cbtn" id="bS" onclick="doSet()">▶ Pulsar SET — guardar 1</button>
+        <button class="cbtn" id="bR" onclick="doReset()">▶ Pulsar RESET — guardar 0</button>
+      </div>
+      <div class="card">
+        <div class="ctitle">📊 Estado actual</div>
+        <div class="srow"><span class="slbl">Bit guardado Q</span><span class="sval" id="dQ" style="color:var(--red)">0</span></div>
+        <div class="srow"><span class="slbl">Q̄ (complementario)</span><span class="sval" id="dQb" style="color:var(--green)">1</span></div>
+        <div class="srow"><span class="slbl">T1 — puerta 1 sup.</span><span class="sval" id="dT1" style="color:var(--text2)">OFF</span></div>
+        <div class="srow"><span class="slbl">T2 — puerta 1 inf.</span><span class="sval" id="dT2" style="color:var(--text2)">OFF</span></div>
+        <div class="srow"><span class="slbl">T3 — puerta 2 sup.</span><span class="sval" id="dT3" style="color:var(--green)">ON</span></div>
+        <div class="srow"><span class="slbl">T4 — puerta 2 inf.</span><span class="sval" id="dT4" style="color:var(--green)">ON</span></div>
+        <div class="state-box s-q0" id="stbox">
+          <div class="sname" id="stname" style="color:var(--red)">Q = 0 — RESET</div>
+          <div class="sdesc" id="stdesc">T3 y T4 conducen. La realimentación mantiene este estado sin señal externa.</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ctitle">💡 Leyenda</div>
+        <div class="leg">
+          <span><span class="ld" style="background:#378ADD"></span>Señal de base (SET / RST)</span><br>
+          <span><span class="ld" style="background:#00e060"></span>Corriente activa (TRT ON)</span><br>
+          <span><span class="ld" style="background:#1a2f40"></span>Circuito abierto (TRT OFF)</span><br>
+          <span><span class="ld" style="background:#e07b00"></span>Realim. Q̄ → base T3, T4</span><br>
+          <span><span class="ld" style="background:#00aacc"></span>Realim. Q → base T1, T2</span><br>
+          <span><span class="ld" style="background:#f0b830"></span>Alimentación Vcc +5V</span>
+        </div>
+        <div style="font-size:10px;color:var(--text2);margin-top:10px;line-height:1.8">
+          Puerta 1 = T1 + T2 en serie → salida Q̄<br>
+          Puerta 2 = T3 + T4 en serie → salida Q<br>
+          Q̄ (naranja) realimenta bases T3, T4<br>
+          Q (azul) realimenta bases T1, T2
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+var Q=0,frame=0,particles=[];
+var cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+var W=680,H=520;
+
+function doSet(){
+  Q=1;
+  document.getElementById('bS').className='cbtn set-on';
+  document.getElementById('bR').className='cbtn';
+  setTimeout(function(){document.getElementById('bS').className='cbtn';},500);
+  updateUI();particles=[];
+}
+function doReset(){
+  Q=0;
+  document.getElementById('bS').className='cbtn';
+  document.getElementById('bR').className='cbtn rst-on';
+  setTimeout(function(){document.getElementById('bR').className='cbtn';},500);
+  updateUI();particles=[];
+}
+function updateUI(){
+  var t1=Q===1,t3=Q===0;
+  document.getElementById('dQ').textContent=Q;
+  document.getElementById('dQ').style.color=Q?'var(--green)':'var(--red)';
+  document.getElementById('dQb').textContent=Q?0:1;
+  document.getElementById('dQb').style.color=Q?'var(--red)':'var(--green)';
+  function ts(id,on){document.getElementById(id).textContent=on?'ON':'OFF';document.getElementById(id).style.color=on?'var(--green)':'var(--text2)';}
+  ts('dT1',t1);ts('dT2',t1);ts('dT3',t3);ts('dT4',t3);
+  var box=document.getElementById('stbox'),nm=document.getElementById('stname'),ds=document.getElementById('stdesc');
+  if(Q){box.className='state-box s-q1';nm.style.color='var(--green)';nm.textContent='Q = 1 — SET';ds.textContent='T1 y T2 conducen. La realimentación mantiene este estado sin señal externa.';}
+  else{box.className='state-box s-q0';nm.style.color='var(--red)';nm.textContent='Q = 0 — RESET';ds.textContent='T3 y T4 conducen. La realimentación mantiene este estado sin señal externa.';}
+}
+updateUI();
+
+function drawNPN(cx,cy,isOn){
+  var R=20,wc=isOn?'#00e060':'#1a2f40';
+  ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);
+  ctx.fillStyle=isOn?'#0a1f0a':'#0a1520';ctx.fill();
+  ctx.strokeStyle=isOn?'#00e060':'#1a2f40';ctx.lineWidth=isOn?1.8:1;ctx.stroke();
+  ctx.strokeStyle=wc;ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(cx-8,cy-14);ctx.lineTo(cx-8,cy+14);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx-8,cy-10);ctx.lineTo(cx+13,cy-23);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx-8,cy+10);ctx.lineTo(cx+13,cy+23);ctx.stroke();
+  var ex=cx+13,ey=cy+23,ang=Math.atan2(13,21);
+  ctx.fillStyle=wc;ctx.beginPath();ctx.moveTo(ex,ey);
+  ctx.lineTo(ex-8*Math.cos(ang-.5),ey-8*Math.sin(ang-.5));
+  ctx.lineTo(ex-8*Math.cos(ang+.5),ey-8*Math.sin(ang+.5));
+  ctx.closePath();ctx.fill();
+  ctx.strokeStyle=wc;ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(cx-R,cy);ctx.lineTo(cx-8,cy);ctx.stroke();
+  return{b:{x:cx-R,y:cy},c:{x:cx+13,y:cy-23},e:{x:cx+13,y:cy+23}};
+}
+function wire(x1,y1,x2,y2,col,w){ctx.strokeStyle=col;ctx.lineWidth=w||1.8;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();}
+function poly(pts,col,w){ctx.strokeStyle=col;ctx.lineWidth=w||1.8;ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);for(var i=1;i<pts.length;i++)ctx.lineTo(pts[i][0],pts[i][1]);ctx.stroke();}
+function dot(x,y,col){ctx.fillStyle=col;ctx.beginPath();ctx.arc(x,y,3.5,0,Math.PI*2);ctx.fill();}
+
+// Dibuja una curva bezier con una flecha a mitad del recorrido
+function curveFB(x1,y1,cx1,cy1,cx2,cy2,x2,y2,col,lbl,lblX,lblY){
+  ctx.strokeStyle=col;ctx.lineWidth=2.2;
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.bezierCurveTo(cx1,cy1,cx2,cy2,x2,y2);ctx.stroke();
+  // flecha a t=0.5
+  var t=0.5;
+  var ax=Math.pow(1-t,3)*x1+3*Math.pow(1-t,2)*t*cx1+3*(1-t)*t*t*cx2+t*t*t*x2;
+  var ay=Math.pow(1-t,3)*y1+3*Math.pow(1-t,2)*t*cy1+3*(1-t)*t*t*cy2+t*t*t*y2;
+  var dt=0.01;
+  var ax2=Math.pow(1-t-dt,3)*x1+3*Math.pow(1-t-dt,2)*(t+dt)*cx1+3*(1-t-dt)*(t+dt)*(t+dt)*cx2+(t+dt)*(t+dt)*(t+dt)*x2;
+  var ay2=Math.pow(1-t-dt,3)*y1+3*Math.pow(1-t-dt,2)*(t+dt)*cy1+3*(1-t-dt)*(t+dt)*(t+dt)*cy2+(t+dt)*(t+dt)*(t+dt)*y2;
+  var ang=Math.atan2(ay-ay2,ax-ax2);
+  ctx.fillStyle=col;ctx.beginPath();
+  ctx.moveTo(ax+9*Math.cos(ang),ay+9*Math.sin(ang));
+  ctx.lineTo(ax+9*Math.cos(ang+2.4),ay+9*Math.sin(ang+2.4));
+  ctx.lineTo(ax+9*Math.cos(ang-2.4),ay+9*Math.sin(ang-2.4));
+  ctx.closePath();ctx.fill();
+  if(lbl){ctx.fillStyle=col;ctx.font='bold 9px Share Tech Mono';ctx.textAlign='center';ctx.fillText(lbl,lblX,lblY);}
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  frame++;
+  var wOn='#00e060',wOff='#1a2f40',wFB1='#e07b00',wFB2='#00aacc',wB='#378ADD',wV='#f0b830';
+  var t1on=(Q===1),t2on=(Q===1),t3on=(Q===0),t4on=(Q===0);
+  var wL=t1on?wOn:wOff,wR=t3on?wOn:wOff;
+
+  // Scanlines
+  ctx.strokeStyle='rgba(26,47,64,.3)';ctx.lineWidth=.5;
+  for(var g=0;g<H;g+=28){ctx.beginPath();ctx.moveTo(0,g);ctx.lineTo(W,g);ctx.stroke();}
+
+  // ── Posiciones ──
+  // Puerta 1 (izq): T1 en (175,165), T2 en (175,310)
+  // Puerta 2 (der): T3 en (505,165), T4 en (505,310)
+  var T1cx=175,T1cy=165,T2cx=175,T2cy=310;
+  var T3cx=505,T3cy=165,T4cx=505,T4cy=310;
+  var VY=40,GY=475;
+  var serXL=228,serXR=558; // x donde van los cables de serie (derecha de cada par)
+
+  // ── VCC — UN SOLO cable por transistor superior ──
+  function vcc(x,y){
+    ctx.fillStyle='#1a1a00';ctx.strokeStyle='#554400';ctx.lineWidth=1;
+    ctx.beginPath();ctx.roundRect(x-28,y-16,56,16,4);ctx.fill();ctx.stroke();
+    ctx.fillStyle='#997700';ctx.font='10px Share Tech Mono';ctx.textAlign='center';ctx.fillText('Vcc +5V',x,y-4);
+  }
+  function gnd(x,y){
+    ctx.strokeStyle='#243a50';ctx.lineWidth=1.5;
+    [[18,0],[12,6],[6,12]].forEach(function(r){ctx.beginPath();ctx.moveTo(x-r[0],y+r[1]);ctx.lineTo(x+r[0],y+r[1]);ctx.stroke();});
+  }
+
+  vcc(T1cx,VY); vcc(T3cx,VY);
+
+  // ── Transistores ──
+  var p1=drawNPN(T1cx,T1cy,t1on);
+  var p2=drawNPN(T2cx,T2cy,t2on);
+  var p3=drawNPN(T3cx,T3cy,t3on);
+  var p4=drawNPN(T4cx,T4cy,t4on);
+
+  // ── Cable VCC → colector T1 y T3 (UNA SOLA VEZ, después de drawNPN) ──
+  wire(T1cx,VY,p1.c.x,p1.c.y,wV,1.8);
+  wire(T3cx,VY,p3.c.x,p3.c.y,wV,1.8);
+
+  // ── Serie izq: emisor T1 → colector T2 (por serXL) ──
+  poly([[p1.e.x,p1.e.y],[serXL,p1.e.y],[serXL,p2.c.y],[p2.c.x,p2.c.y]],wL,2);
+  var nodeL_y=(p1.e.y+p2.c.y)/2;
+  dot(serXL,nodeL_y,wL);
+
+  // ── Serie der: emisor T3 → colector T4 (por serXR) ──
+  poly([[p3.e.x,p3.e.y],[serXR,p3.e.y],[serXR,p4.c.y],[p4.c.x,p4.c.y]],wR,2);
+  var nodeR_y=(p3.e.y+p4.c.y)/2;
+  dot(serXR,nodeR_y,wR);
+
+  // ── Emisores → GND ──
+  poly([[p2.e.x,p2.e.y],[serXL,p2.e.y],[serXL,GY]],wL,2);
+  gnd(serXL,GY+2);
+  poly([[p4.e.x,p4.e.y],[serXR,p4.e.y],[serXR,GY]],wR,2);
+  gnd(serXR,GY+2);
+
+  // ── Etiquetas Q y Q̄ ──
+  ctx.font='bold 12px Share Tech Mono';
+  ctx.textAlign='right';ctx.fillStyle=Q?'#00e060':'#ff3355';ctx.fillText('Q\u0305='+(Q?0:1),serXL-8,nodeL_y+5);
+  ctx.textAlign='left'; ctx.fillStyle=Q?'#00e060':'#ff3355';ctx.fillText('Q='+Q,serXR+8,nodeR_y+5);
+
+  // ── Cajas puertas (dashed) ──
+  ctx.save();
+  ctx.strokeStyle='rgba(0,212,255,.18)';ctx.lineWidth=1;ctx.setLineDash([5,4]);
+  ctx.beginPath();ctx.roundRect(110,88,156,300,10);ctx.stroke();
+  ctx.fillStyle='rgba(0,212,255,.04)';ctx.fill();
+  ctx.strokeStyle='rgba(255,140,0,.22)';
+  ctx.beginPath();ctx.roundRect(414,88,156,300,10);ctx.stroke();
+  ctx.fillStyle='rgba(255,140,0,.04)';ctx.fill();
+  ctx.setLineDash([]);ctx.restore();
+  ctx.fillStyle='rgba(0,212,255,.65)';ctx.font='10px Share Tech Mono';ctx.textAlign='center';
+  ctx.fillText('// NAND 1  (T1+T2)',175,83);
+  ctx.fillStyle='rgba(255,140,0,.65)';
+  ctx.fillText('// NAND 2  (T3+T4)',505,83);
+
+  // ── Pulsadores SET y RST ──
+  function pulsador(x,y,lbl,sub,col,bg){
+    ctx.fillStyle=bg;ctx.strokeStyle=col;ctx.lineWidth=1.2;
+    ctx.beginPath();ctx.roundRect(x-26,y-18,52,36,6);ctx.fill();ctx.stroke();
+    ctx.fillStyle=col;ctx.font='bold 10px Share Tech Mono';ctx.textAlign='center';
+    ctx.fillText(lbl,x,y-3);ctx.font='9px Share Tech Mono';ctx.fillText(sub,x,y+10);
+  }
+  var setY=(T1cy+T2cy)/2,rstY=(T3cy+T4cy)/2;
+  pulsador(50,setY,'SET','S\u0305','#00d4ff','rgba(0,212,255,.1)');
+  pulsador(630,rstY,'RST','R\u0305','#ff3355','rgba(255,51,85,.1)');
+
+  // Cables base desde pulsadores (línea azul a ambas bases)
+  var bLnodeX=84,bRnodeX=596;
+  wire(bLnodeX,T1cy,p1.b.x,T1cy,wB,1.6);
+  wire(bLnodeX,T2cy,p2.b.x,T2cy,wB,1.6);
+  wire(bLnodeX,T1cy,bLnodeX,T2cy,wB,1.6); dot(bLnodeX,setY,wB);
+  wire(bRnodeX,T3cy,p3.b.x,T3cy,wB,1.6);
+  wire(bRnodeX,T4cy,p4.b.x,T4cy,wB,1.6);
+  wire(bRnodeX,T3cy,bRnodeX,T4cy,wB,1.6); dot(bRnodeX,rstY,wB);
+
+  // ══════════════════════════════════════════════════
+  // ── REALIMENTACIÓN CRUZADA — curvas bezier claras ──
+  // ══════════════════════════════════════════════════
+  //
+  // FB-NARANJA: salida Q̄ (nodo izq, serXL,nodeL_y)
+  //             → curva que pasa POR DEBAJO del circuito
+  //             → llega a las bases de T3 y T4 (bRnodeX)
+  //
+  // FB-AZUL:    salida Q (nodo der, serXR,nodeR_y)
+  //             → curva que pasa POR ARRIBA del circuito
+  //             → llega a las bases de T1 y T2 (bLnodeX)
+
+  // ── FB-NARANJA: Q̄ → T3, T4 (por debajo) ──
+  // Sale de serXL,nodeL_y hacia abajo y cruza hacia la derecha
+  var fbOrangeEndX=bRnodeX, fbOrangeEndY=(T3cy+T4cy)/2;
+  dot(serXL,nodeL_y,wFB1);
+  curveFB(
+    serXL, nodeL_y,            // origen: nodo Q̄
+    serXL, GY+50,              // control 1: baja mucho
+    fbOrangeEndX, GY+50,       // control 2: cruza horizontalmente abajo
+    fbOrangeEndX, fbOrangeEndY,// destino: nodo bases T3,T4
+    wFB1,
+    'Q\u0305 \u2192 base T3, T4',
+    340, GY+46
+  );
+  dot(fbOrangeEndX,fbOrangeEndY,wFB1);
+
+  // ── FB-AZUL: Q → T1, T2 (por arriba) ──
+  // Sale de serXR,nodeR_y hacia arriba y cruza hacia la izquierda
+  var fbBlueEndX=bLnodeX, fbBlueEndY=(T1cy+T2cy)/2;
+  dot(serXR,nodeR_y,wFB2);
+  curveFB(
+    serXR, nodeR_y,            // origen: nodo Q
+    serXR, VY-50,              // control 1: sube mucho
+    fbBlueEndX, VY-50,         // control 2: cruza horizontalmente arriba
+    fbBlueEndX, fbBlueEndY,    // destino: nodo bases T1,T2
+    wFB2,
+    'Q \u2192 base T1, T2',
+    340, VY-46
+  );
+  dot(fbBlueEndX,fbBlueEndY,wFB2);
+
+  // ── Etiquetas B/C/E y T1-T4 ──
+  ctx.fillStyle='#507090';ctx.font='8px Share Tech Mono';
+  ctx.textAlign='left';
+  [[p1,'C','E'],[p2,'C','E'],[p3,'C','E'],[p4,'C','E']].forEach(function(r){
+    ctx.fillText(r[1],r[0].c.x+2,r[0].c.y+3);ctx.fillText(r[2],r[0].e.x+2,r[0].e.y+3);
+  });
+  ctx.textAlign='right';
+  [p1,p2,p3,p4].forEach(function(p){ctx.fillText('B',p.b.x-3,p.b.y+3);});
+  ctx.fillStyle='#507090';ctx.font='9px Share Tech Mono';
+  ctx.textAlign='right';ctx.fillText('T1',T1cx-23,T1cy-25);ctx.fillText('T2',T2cx-23,T2cy-25);
+  ctx.textAlign='left'; ctx.fillText('T3',T3cx+23,T3cy-25);ctx.fillText('T4',T4cx+23,T4cy-25);
+
+  // ── Partículas ──
+  if(frame%6===0){
+    if(Q) particles.push({x:serXR,startY:VY,endY:nodeR_y,prog:0});
+    else  particles.push({x:serXL,startY:VY,endY:nodeL_y,prog:0});
+  }
+  particles=particles.filter(function(p){
+    p.prog+=0.05;if(p.prog>=1)return false;
+    var py=p.startY+(p.endY-p.startY)*p.prog;
+    ctx.beginPath();ctx.arc(p.x,py,3.5,0,Math.PI*2);
+    ctx.fillStyle='rgba(0,224,96,.85)';ctx.fill();
+    return true;
+  });
+
+  requestAnimationFrame(draw);
+}
+draw();
+</script>
+</body>
+</html>
