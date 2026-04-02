@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>1.3 SIMULACION Puerta NAND con Transistores</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Syne:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#060d14;--panel:#0a1520;--panel2:#0e1e2e;
+  --border:#1a2f40;--border2:#243a50;
+  --cyan:#00d4ff;--cyan2:rgba(0,212,255,0.12);
+  --green:#00e060;--yellow:#ffdd00;
+  --red:#ff3355;--orange:#ff8c00;
+  --blue:#378ADD;--amber:#f0b830;
+  --text:#c8e8f0;--text2:#507090;--white:#e8f8ff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monospace;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:999;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.05) 2px,rgba(0,0,0,0.05) 3px)}
+.page{max-width:1000px;margin:0 auto;padding:20px 14px 60px;position:relative;z-index:1}
+header{text-align:center;margin-bottom:20px}
+.htag{font-size:11px;color:var(--cyan);letter-spacing:3px;text-transform:uppercase;margin-bottom:8px}
+h1{font-family:'Syne',sans-serif;font-size:clamp(18px,4vw,28px);font-weight:900;color:var(--white);margin-bottom:6px}
+h1 span{color:var(--cyan)}
+.hsub{font-size:13px;color:var(--text2)}
+.instr{background:var(--panel);border:1px solid var(--cyan);border-radius:10px;
+  padding:11px 16px;margin-bottom:18px;font-size:13px;line-height:1.6}
+.instr strong{color:var(--cyan)}
+.layout{display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:start}
+@media(max-width:700px){.layout{grid-template-columns:1fr}}
+.canvas-wrap{background:var(--panel);border:1px solid var(--border2);border-radius:12px;padding:14px}
+.clabel{font-size:10px;color:var(--cyan);letter-spacing:3px;text-transform:uppercase;margin-bottom:8px}
+canvas{display:block;width:100%;border-radius:6px;background:#03090f}
+.side{display:flex;flex-direction:column;gap:12px}
+.card{background:var(--panel);border:1px solid var(--border2);border-radius:10px;padding:14px}
+.ctitle{font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:var(--white);margin-bottom:10px}
+.ctrl{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.cbtn{flex:1;min-width:60px;padding:9px 6px;border-radius:6px;border:1px solid var(--border2);
+  background:var(--panel2);color:var(--text2);font-family:'Share Tech Mono',monospace;
+  font-size:12px;cursor:pointer;transition:all 0.2s;text-align:center}
+.cbtn:hover{border-color:var(--cyan);color:var(--cyan)}
+.cbtn.on{border-color:var(--green);background:rgba(0,224,96,0.12);color:var(--green)}
+.truth-table{width:100%;border-collapse:collapse;font-size:12px}
+.truth-table th{padding:7px 8px;text-align:center;font-weight:500;font-size:11px;
+  color:var(--text2);border-bottom:1px solid var(--border2);background:var(--panel2)}
+.truth-table td{padding:7px 8px;text-align:center;
+  border-bottom:1px solid var(--border);color:var(--text);font-size:12px;transition:all 0.3s}
+.truth-table tr.hi td{background:var(--panel2);color:var(--white);font-weight:500}
+.truth-table tr.hi td.g{color:var(--green);background:rgba(0,224,96,0.1)}
+.truth-table tr.hi td.r{color:var(--red);background:rgba(255,51,85,0.1)}
+.state-box{border-radius:8px;padding:10px 12px;text-align:center;transition:all 0.3s;margin-top:6px}
+.s-on{background:rgba(0,224,96,0.08);border:1px solid var(--green)}
+.s-off{background:rgba(255,51,85,0.08);border:1px solid var(--red)}
+.sname{font-family:'Syne',sans-serif;font-size:14px;font-weight:900;margin-bottom:4px}
+.sdesc{font-size:10px;line-height:1.5;opacity:0.85}
+.leg{display:flex;gap:10px;flex-wrap:wrap;font-size:10px;color:var(--text2);margin-top:6px}
+.ld{width:18px;height:3px;display:inline-block;vertical-align:middle;margin-right:3px;border-radius:2px}
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div class="htag">// CURSO ROBÓTICA · CAPÍTULO 1 · CLASE 1.3</div>
+    <h1>Puerta <span>NAND</span> con Transistores NPN</h1>
+    <p class="hsub">Esquema interior: 2 transistores en serie con tabla de verdad interactiva</p>
+  </header>
+  <div class="instr">
+    <strong>📋 Instrucciones:</strong> Pulsa los botones <strong>A</strong> y <strong>B</strong> para cambiar las entradas.
+    Observa cómo los transistores T1 y T2 se activan o desactivan y cómo cambia la salida NAND.
+    La fila activa de la tabla de verdad se resalta automáticamente.
+  </div>
+  <div class="layout">
+    <div class="canvas-wrap">
+      <div class="clabel">▸ Circuito interior de la puerta NAND</div>
+      <canvas id="cv" width="560" height="380"></canvas>
+    </div>
+    <div class="side">
+      <div class="card">
+        <div class="ctitle">⚡ Entradas</div>
+        <div style="margin-bottom:10px">
+          <div style="font-size:11px;color:var(--text2);margin-bottom:6px">Entrada A (controla T1)</div>
+          <div class="ctrl">
+            <div class="cbtn on" id="bA0" onclick="setA(0)">A = 0</div>
+            <div class="cbtn" id="bA1" onclick="setA(1)">A = 1</div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text2);margin-bottom:6px">Entrada B (controla T2)</div>
+          <div class="ctrl">
+            <div class="cbtn on" id="bB0" onclick="setB(0)">B = 0</div>
+            <div class="cbtn" id="bB1" onclick="setB(1)">B = 1</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ctitle">📊 Tabla de verdad NAND</div>
+        <table class="truth-table">
+          <thead>
+            <tr><th>A</th><th>B</th><th>T1</th><th>T2</th><th>Salida</th></tr>
+          </thead>
+          <tbody>
+            <tr id="r00"><td>0</td><td>0</td><td>OFF</td><td>OFF</td><td class="g">1</td></tr>
+            <tr id="r01"><td>0</td><td>1</td><td>OFF</td><td>ON</td><td class="g">1</td></tr>
+            <tr id="r10"><td>1</td><td>0</td><td>ON</td><td>OFF</td><td class="g">1</td></tr>
+            <tr id="r11"><td>1</td><td>1</td><td>ON</td><td>ON</td><td class="r">0</td></tr>
+          </tbody>
+        </table>
+        <div class="state-box s-off" id="stbox" style="margin-top:10px">
+          <div class="sname" id="stname" style="color:var(--green)">NAND = 1</div>
+          <div class="sdesc" id="stdesc">Al menos un transistor está en corte. La corriente sube por Rc a la salida.</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ctitle">💡 Leyenda</div>
+        <div class="leg">
+          <span><span class="ld" style="background:#378ADD"></span>Señal de base</span>
+          <span><span class="ld" style="background:#00e060"></span>TRT conduciendo</span>
+          <span><span class="ld" style="background:#243a50"></span>TRT en corte</span>
+          <span><span class="ld" style="background:#f0b830"></span>+Vcc / Rc</span>
+        </div>
+        <div style="font-size:11px;color:var(--text2);margin-top:10px;line-height:1.7">
+          La puerta NAND da <strong style="color:var(--red)">0</strong> solo cuando
+          <strong>A=1 y B=1</strong> al mismo tiempo.<br>
+          En cualquier otro caso la salida es <strong style="color:var(--green)">1</strong>.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+var A=0,B=0,frame=0,particles=[];
+var cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+var W=560,H=380;
+
+function setA(v){
+  A=v;
+  document.getElementById('bA0').className='cbtn'+(v===0?' on':'');
+  document.getElementById('bA1').className='cbtn'+(v===1?' on':'');
+  updateUI();particles=[];
+}
+function setB(v){
+  B=v;
+  document.getElementById('bB0').className='cbtn'+(v===0?' on':'');
+  document.getElementById('bB1').className='cbtn'+(v===1?' on':'');
+  updateUI();particles=[];
+}
+function updateUI(){
+  ['r00','r01','r10','r11'].forEach(function(id){document.getElementById(id).className='';});
+  document.getElementById('r'+A+B).className='hi';
+  var out=(A&&B)?0:1;
+  var box=document.getElementById('stbox');
+  var nm=document.getElementById('stname');
+  var ds=document.getElementById('stdesc');
+  if(out){
+    box.className='state-box s-on';nm.style.color='var(--green)';nm.textContent='NAND = 1';
+    if(A===0&&B===0) ds.textContent='T1 y T2 en corte. Camino a GND bloqueado. Rc eleva la salida a +Vcc.';
+    else if(A===0) ds.textContent='T1 en corte (A=0). Aunque T2 conduce, la serie está rota. Salida alta.';
+    else ds.textContent='T2 en corte (B=0). Aunque T1 conduce, la serie está rota. Salida alta.';
+  } else {
+    box.className='state-box s-off';nm.style.color='var(--red)';nm.textContent='NAND = 0';
+    ds.textContent='T1 y T2 conducen en serie. La corriente drena a GND. La salida cae a 0.';
+  }
+}
+updateUI();
+
+function drawNPN(cx,cy,isOn){
+  var R=22;
+  var wc=isOn?'#00e060':'#243a50';
+  var fill=isOn?'#0a1f0a':'#0a1520';
+  var stroke=isOn?'#00e060':'#1a2f40';
+  ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);
+  ctx.fillStyle=fill;ctx.fill();
+  ctx.strokeStyle=stroke;ctx.lineWidth=isOn?2:1;ctx.stroke();
+  ctx.strokeStyle=wc;ctx.lineWidth=2.2;
+  ctx.beginPath();ctx.moveTo(cx-9,cy-16);ctx.lineTo(cx-9,cy+16);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx-9,cy-11);ctx.lineTo(cx+15,cy-26);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx-9,cy+11);ctx.lineTo(cx+15,cy+26);ctx.stroke();
+  var ex=cx+15,ey=cy+26,ang=Math.atan2(15,24);
+  ctx.fillStyle=wc;
+  ctx.beginPath();ctx.moveTo(ex,ey);
+  ctx.lineTo(ex-9*Math.cos(ang-0.5),ey-9*Math.sin(ang-0.5));
+  ctx.lineTo(ex-9*Math.cos(ang+0.5),ey-9*Math.sin(ang+0.5));
+  ctx.closePath();ctx.fill();
+  ctx.strokeStyle=wc;ctx.lineWidth=2.2;
+  ctx.beginPath();ctx.moveTo(cx-R,cy);ctx.lineTo(cx-9,cy);ctx.stroke();
+  return{b:{x:cx-R,y:cy},c:{x:cx+15,y:cy-26},e:{x:cx+15,y:cy+26}};
+}
+function wire(x1,y1,x2,y2,col,w){
+  ctx.strokeStyle=col;ctx.lineWidth=w||2;
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+}
+function poly(pts,col,w){
+  ctx.strokeStyle=col;ctx.lineWidth=w||2;ctx.beginPath();
+  ctx.moveTo(pts[0][0],pts[0][1]);
+  for(var i=1;i<pts.length;i++)ctx.lineTo(pts[i][0],pts[i][1]);
+  ctx.stroke();
+}
+function dot(x,y,col){
+  ctx.fillStyle=col;ctx.beginPath();ctx.arc(x,y,3.5,0,Math.PI*2);ctx.fill();
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  frame++;
+  var out=(A&&B)?0:1;
+  var t1on=(A===1),t2on=(B===1);
+  var flow=(t1on&&t2on);
+  var wOn='#00e060',wOff='#1a2f40',wB='#378ADD',wV='#f0b830';
+  var wL=flow?wOn:wOff;
+
+  var T1cx=280,T1cy=145,T2cx=280,T2cy=275;
+  var VY=28,GY=355,serX=330;
+
+  // Fondo scanlines
+  ctx.strokeStyle='rgba(26,47,64,0.3)';ctx.lineWidth=0.5;
+  for(var gy=0;gy<H;gy+=28){ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(W,gy);ctx.stroke();}
+
+  // Vcc
+  ctx.fillStyle='#1a1a00';ctx.strokeStyle='#554400';ctx.lineWidth=1;
+  ctx.beginPath();ctx.roundRect(T1cx-30,VY-16,60,16,4);ctx.fill();ctx.stroke();
+  ctx.fillStyle='#997700';ctx.font='10px Share Tech Mono';ctx.textAlign='center';
+  ctx.fillText('Vcc +5V',T1cx,VY-4);
+
+  var p1=drawNPN(T1cx,T1cy,t1on);
+  var p2=drawNPN(T2cx,T2cy,t2on);
+
+  // Cable Vcc → colector T1
+  wire(T1cx,VY,p1.c.x,p1.c.y,wV,2);
+
+  // Serie: emisor T1 → colector T2
+  poly([[p1.e.x,p1.e.y],[serX,p1.e.y],[serX,p2.c.y],[p2.c.x,p2.c.y]],wL,2);
+  var nodeY=(p1.e.y+p2.c.y)/2;
+  dot(serX,nodeY,out?wOn:wOff);
+
+  // Emisor T2 → GND
+  poly([[p2.e.x,p2.e.y],[serX,p2.e.y],[serX,GY]],wL,2);
+  ctx.strokeStyle='#507090';ctx.lineWidth=1.5;
+  [[18,0],[12,6],[6,12]].forEach(function(r){
+    ctx.beginPath();ctx.moveTo(serX-r[0],GY+r[1]);ctx.lineTo(serX+r[0],GY+r[1]);ctx.stroke();
+  });
+
+  // Resistencia Rc (Vcc → nodo salida)
+  var resX=200,resTop=VY,resMid=(VY+nodeY)/2,resBotY=nodeY;
+  wire(T1cx,VY,resX,VY,wV,1.5);
+  wire(resX,VY,resX,resMid-22,wV,1.5);
+  ctx.strokeStyle=wV;ctx.lineWidth=1.5;ctx.beginPath();
+  var rz=resMid-22;ctx.moveTo(resX,rz);
+  for(var i=0;i<5;i++)ctx.lineTo(resX+(i%2===0?10:-10),rz+8+i*8);
+  ctx.lineTo(resX,rz+48);ctx.stroke();
+  wire(resX,rz+48,resX,resBotY,wV,1.5);
+  wire(resX,resBotY,serX,resBotY,out?wOn:wOff,1.5);
+  dot(serX,resBotY,out?wOn:wOff);
+  ctx.fillStyle='#997700';ctx.font='9px Share Tech Mono';ctx.textAlign='left';
+  ctx.fillText('Rc',resX+14,resMid+4);
+
+  // Salida → LED
+  wire(serX,nodeY,serX+50,nodeY,out?wOn:wOff,2);
+  var ledX=serX+70,ledY=nodeY;
+  var ledCol=out?'#00e060':'#ff3355';
+  ctx.fillStyle=out?'rgba(0,224,96,0.15)':'rgba(255,51,85,0.15)';
+  ctx.strokeStyle=ledCol;ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.arc(ledX,ledY,16,0,Math.PI*2);ctx.fill();ctx.stroke();
+  ctx.fillStyle=ledCol;ctx.font='bold 13px Share Tech Mono';ctx.textAlign='center';
+  ctx.fillText(out?'1':'0',ledX,ledY+5);
+  ctx.font='8px Share Tech Mono';ctx.fillText('NAND',ledX,ledY+20);
+
+  // Entradas base
+  function inputBox(x,y,lbl,val){
+    var on=val===1;
+    ctx.fillStyle=on?'rgba(0,212,255,0.1)':'#0a1520';
+    ctx.strokeStyle=on?'#00d4ff':'#243a50';ctx.lineWidth=1.2;
+    ctx.beginPath();ctx.roundRect(x-22,y-16,44,32,6);ctx.fill();ctx.stroke();
+    ctx.fillStyle=on?'#00d4ff':'#507090';ctx.font='bold 11px Share Tech Mono';ctx.textAlign='center';
+    ctx.fillText(lbl,x,y-2);ctx.font='10px Share Tech Mono';ctx.fillText(val===1?'= 1':'= 0',x,y+12);
+  }
+  inputBox(100,T1cy,'A',A);
+  wire(100+22,T1cy,p1.b.x,p1.b.y,wB,1.8);
+  inputBox(100,T2cy,'B',B);
+  wire(100+22,T2cy,p2.b.x,p2.b.y,wB,1.8);
+
+  // Etiquetas
+  ctx.fillStyle='#507090';ctx.font='9px Share Tech Mono';
+  ctx.textAlign='left';ctx.fillText('C',p1.c.x+3,p1.c.y+3);ctx.fillText('E',p1.e.x+3,p1.e.y+3);
+  ctx.fillText('C',p2.c.x+3,p2.c.y+3);ctx.fillText('E',p2.e.x+3,p2.e.y+3);
+  ctx.textAlign='right';ctx.fillText('B',p1.b.x-4,p1.b.y+3);ctx.fillText('B',p2.b.x-4,p2.b.y+3);
+  ctx.fillStyle='#507090';ctx.font='9px Share Tech Mono';ctx.textAlign='left';
+  ctx.fillText('T1',T1cx+26,T1cy-28);ctx.fillText('T2',T2cx+26,T2cy-28);
+
+  // Caja puerta
+  ctx.save();ctx.strokeStyle='rgba(0,212,255,0.2)';ctx.lineWidth=1;ctx.setLineDash([5,4]);
+  ctx.beginPath();ctx.roundRect(155,65,200,280,10);ctx.stroke();ctx.setLineDash([]);ctx.restore();
+  ctx.fillStyle='rgba(0,212,255,0.6)';ctx.font='10px Share Tech Mono';ctx.textAlign='center';
+  ctx.fillText('// interior puerta NAND',255,60);
+
+  // Partículas
+  if(flow&&frame%5===0) particles.push({prog:0});
+  particles=particles.filter(function(p){
+    p.prog+=0.05;if(p.prog>=1)return false;
+    var py=VY+(GY-VY)*p.prog;
+    ctx.beginPath();ctx.arc(serX,py,3.5,0,Math.PI*2);
+    ctx.fillStyle='rgba(0,224,96,0.85)';ctx.fill();
+    return true;
+  });
+
+  requestAnimationFrame(draw);
+}
+draw();
+</script>
+</body>
+</html>
