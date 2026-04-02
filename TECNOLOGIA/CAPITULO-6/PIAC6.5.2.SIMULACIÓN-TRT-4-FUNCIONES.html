@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transistor — 4 Funciones · Simulaciones Interactivas</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#09100d;--bg2:#0d160f;--panel:#101810;
+  --border:#1c2e1e;--border2:#2a4030;
+  --amber:#d4920e;--amber2:#f0b830;
+  --green:#1aaa3a;--greenbright:#44ff77;
+  --blue:#378ADD;--blue2:#85B7EB;
+  --red:#cc2222;--cream:#c8ba88;--white:#dde8dd;
+  --text:#a0b8a0;--text2:#607060;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--white);font-family:'Share Tech Mono',monospace;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:999;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.06) 2px,rgba(0,0,0,.06) 3px)}
+.page{max-width:1100px;margin:0 auto;padding:32px 24px}
+header{text-align:center;padding:32px 0 40px;border-bottom:1px solid var(--border2);margin-bottom:48px}
+.htag{font-size:12px;color:var(--amber);letter-spacing:.15em;margin-bottom:12px}
+h1{font-family:'Orbitron',monospace;font-size:28px;font-weight:700;color:var(--amber2);margin-bottom:10px}
+.hsub{font-size:14px;color:var(--text)}
+.sim-block{margin-bottom:56px}
+.sim-header{display:flex;align-items:center;gap:16px;margin-bottom:20px}
+.sim-num{font-family:'Orbitron',monospace;font-size:11px;color:var(--amber);border:1px solid var(--amber);padding:4px 10px;border-radius:20px;white-space:nowrap}
+.sim-header h2{font-family:'Orbitron',monospace;font-size:16px;color:var(--greenbright);font-weight:700}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--border2);border-radius:10px;overflow:hidden;min-height:380px}
+.split-left{background:var(--panel);padding:28px 24px;display:flex;flex-direction:column;gap:16px;border-right:1px solid var(--border2)}
+.split-right{background:var(--bg2);display:flex;align-items:center;justify-content:center;padding:20px}
+.sim-desc{font-size:13px;color:var(--text);line-height:1.7}
+.ctrl-label{font-size:11px;color:var(--text2);margin-bottom:6px;letter-spacing:.05em}
+button{padding:10px 14px;border-radius:6px;border:1px solid var(--border2);background:var(--bg2);color:var(--white);font-family:'Share Tech Mono',monospace;font-size:13px;cursor:pointer;transition:background .15s,border-color .15s;width:100%}
+button:hover{background:var(--panel);border-color:var(--green)}
+button.on{background:rgba(26,170,58,.15);border-color:var(--green);color:var(--greenbright)}
+input[type=range]{width:100%;accent-color:var(--amber)}
+.metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.metric{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:10px;text-align:center}
+.metric-val{font-size:16px;font-weight:500;color:var(--white)}
+.metric-lbl{font-size:10px;color:var(--text2);margin-bottom:2px}
+.status-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid var(--border);border-radius:6px;background:var(--bg2)}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--border2);flex-shrink:0;transition:background .3s}
+.dot.on{background:var(--green)}
+.status-text{font-size:12px;color:var(--text)}
+/* Función 4 */
+.f4-wrap{border:1px solid var(--border2);border-radius:10px;overflow:hidden}
+.f4-top{display:grid;grid-template-columns:1fr 1fr;min-height:480px}
+.f4-left{background:var(--panel);padding:20px 18px;display:flex;flex-direction:column;gap:11px;border-right:1px solid var(--border2)}
+.f4-right{background:var(--bg2);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 12px}
+.glabel{font-size:10px;font-weight:500;color:var(--text2);letter-spacing:.06em}
+.bpair{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.ibtn{padding:9px 4px;border-radius:6px;border:1px solid var(--border2);background:var(--bg2);font-size:15px;font-weight:500;color:var(--text2);cursor:pointer;text-align:center;transition:all .18s;width:100%}
+.ibtn:hover{background:var(--panel)}
+.ibtn.on{background:rgba(26,170,58,.2);border-color:var(--green);color:var(--greenbright)}
+.ibtn.off{background:rgba(204,34,34,.15);border-color:var(--red);color:#ff6666}
+.orow{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.obox{padding:9px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);text-align:center}
+.oval{font-size:26px;font-weight:500;transition:color .3s}
+.olbl{font-size:10px;color:var(--text2);margin-bottom:1px}
+.verdict{padding:9px 12px;border-radius:6px;font-size:12px;line-height:1.55}
+.vno{background:rgba(204,34,34,.12);border:1px solid rgba(204,34,34,.3);color:#ff8888}
+.vyes{background:rgba(26,170,58,.12);border:1px solid rgba(26,170,58,.3);color:var(--greenbright)}
+.vwarn{background:rgba(212,146,14,.12);border:1px solid rgba(212,146,14,.3);color:var(--amber2)}
+.ttable{width:100%;border-collapse:collapse;font-size:12px}
+.ttable th{padding:6px 8px;text-align:center;font-weight:500;font-size:11px;color:var(--text2);border-bottom:1px solid var(--border2);background:var(--panel)}
+.ttable td{padding:7px 8px;text-align:center;border-bottom:1px solid var(--border);color:var(--text);font-size:13px;transition:background .3s}
+.ttable tr.act td{background:var(--panel);color:var(--white);font-weight:500}
+.ttable tr.act td.g{color:var(--greenbright);background:rgba(26,170,58,.15)}
+.ttable tr.act td.r{color:#ff6666;background:rgba(204,34,34,.15)}
+.mem-box{padding:12px 14px;border-radius:8px;background:rgba(55,138,221,.1);border:1px solid rgba(55,138,221,.3);font-size:12px;color:var(--blue2);line-height:1.65}
+.mem-box strong{color:var(--white);font-weight:500}
+.divline{height:1px;width:100%;background:var(--border2);margin:2px 0}
+canvas{display:block}
+footer{text-align:center;padding:32px 0;border-top:1px solid var(--border2);margin-top:40px;font-size:12px;color:var(--text2)}
+</style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <div class="htag">// TELECOMUNICACIONES · TECNOLOGÍA PARA MAYORES</div>
+  <h1>El Transistor</h1>
+  <p class="hsub">4 funciones · simulaciones interactivas</p>
+</header>
+
+<!-- ===== FUNCIÓN 1: INTERRUPTOR ===== -->
+<div class="sim-block">
+  <div class="sim-header">
+    <span class="sim-num">Función 01</span>
+    <h2>Interruptor electrónico</h2>
+  </div>
+  <div class="split">
+    <div class="split-left">
+      <p class="sim-desc">Una señal pequeña en la base controla si la corriente fluye o no entre colector y emisor. Como un interruptor de luz, pero sin piezas mecánicas y millones de veces más rápido.</p>
+      <div>
+        <div class="ctrl-label">Señal en la base (entrada)</div>
+        <button id="swBtn1" onclick="toggleSwitch()">Pulsar: aplicar señal (0 → 1)</button>
+      </div>
+      <div class="status-row">
+        <div class="dot" id="dot1"></div>
+        <div class="status-text" id="st1">Circuito abierto — corriente bloqueada</div>
+      </div>
+      <div class="metric-grid">
+        <div class="metric"><div class="metric-lbl">Tensión base</div><div class="metric-val" id="bv1">0 V</div></div>
+        <div class="metric"><div class="metric-lbl">Corriente</div><div class="metric-val" id="cv1">0 mA</div></div>
+      </div>
+      <div style="background:var(--bg2);padding:10px 14px;border-radius:6px;border:1px solid var(--border);font-size:12px;color:var(--text)">
+        Ejemplo real: los miles de millones de transistores en un microprocesador son interruptores que representan unos y ceros.
+      </div>
+    </div>
+    <div class="split-right"><canvas id="c1" width="260" height="300"></canvas></div>
+  </div>
+</div>
+
+<!-- ===== FUNCIÓN 2: AMPLIFICADOR ===== -->
+<div class="sim-block">
+  <div class="sim-header">
+    <span class="sim-num">Función 02</span>
+    <h2>Amplificador de señal</h2>
+  </div>
+  <div class="split">
+    <div class="split-left">
+      <p class="sim-desc">Una señal débil en la base se reproduce multiplicada en la salida. El cociente entre ambas es la ganancia (β). Un micrófono produce microvoltios; el transistor los convierte en voltios.</p>
+      <div>
+        <div class="ctrl-label">Amplitud de entrada: <span id="ampLbl">30</span> mV</div>
+        <input type="range" min="5" max="80" value="30" step="1" id="ampSlider" oninput="updateAmp(this.value)">
+      </div>
+      <div>
+        <div class="ctrl-label">Ganancia β: <span id="gainLbl">100</span></div>
+        <input type="range" min="20" max="300" value="100" step="10" id="gainSlider" oninput="updateGain(this.value)">
+      </div>
+      <div class="metric-grid">
+        <div class="metric"><div class="metric-lbl">Entrada</div><div class="metric-val" id="mIn2">30 mV</div></div>
+        <div class="metric"><div class="metric-lbl">Salida</div><div class="metric-val" id="mOut2" style="color:var(--blue2)">3.0 V</div></div>
+      </div>
+      <div style="background:var(--bg2);padding:10px 14px;border-radius:6px;border:1px solid var(--border);text-align:center">
+        <div style="font-size:10px;color:var(--text2);margin-bottom:4px">Amplificación</div>
+        <div style="font-size:22px;font-weight:500;color:var(--amber2)" id="mGain2">× 100</div>
+      </div>
+    </div>
+    <div class="split-right" style="flex-direction:column;gap:10px">
+      <canvas id="c2in" width="260" height="120"></canvas>
+      <canvas id="c2out" width="260" height="120"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ===== FUNCIÓN 3: OSCILADOR ===== -->
+<div class="sim-block">
+  <div class="sim-header">
+    <span class="sim-num">Función 03</span>
+    <h2>Oscilador (generador de ondas)</h2>
+  </div>
+  <div class="split">
+    <div class="split-left">
+      <p class="sim-desc">El transistor, junto con una bobina (L) y un condensador (C), genera una onda continua a frecuencia fija a partir de corriente continua. Así se crea la portadora de radio, WiFi o Bluetooth.</p>
+      <div>
+        <div class="ctrl-label">Frecuencia: <span id="freqLbl3">2.4</span> GHz</div>
+        <input type="range" min="1" max="60" value="24" step="1" id="freqSlider3" oninput="updateFreq3(this.value)">
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text2);margin-top:3px"><span>FM ~100 MHz</span><span>WiFi 5 GHz</span></div>
+      </div>
+      <button id="oscBtn" onclick="toggleOsc()">Encender oscilador</button>
+      <div class="metric-grid">
+        <div class="metric"><div class="metric-lbl">Frecuencia</div><div class="metric-val" id="mFreq3">2.4 GHz</div></div>
+        <div class="metric"><div class="metric-lbl">Longitud λ</div><div class="metric-val" id="mLam3">12.5 cm</div></div>
+      </div>
+      <div style="background:var(--bg2);padding:10px 14px;border-radius:6px;border:1px solid var(--border)">
+        <div style="font-size:10px;color:var(--text2);margin-bottom:3px">Aplicación típica</div>
+        <div style="font-size:13px;color:var(--white)" id="appLbl3">WiFi 2.4 GHz</div>
+      </div>
+    </div>
+    <div class="split-right"><canvas id="c3" width="260" height="340"></canvas></div>
+  </div>
+</div>
+
+<!-- ===== FUNCIÓN 4: PUERTA LÓGICA Y MEMORIA ===== -->
+<div class="sim-block">
+  <div class="sim-header">
+    <span class="sim-num">Función 04</span>
+    <h2>Puerta lógica y memoria</h2>
+  </div>
+  <div class="f4-wrap">
+    <div class="f4-top">
+      <div class="f4-left">
+        <div style="font-size:13px;font-weight:500;color:var(--white)">AND vs NAND — con transistores visibles</div>
+        <p class="sim-desc" style="font-size:12px">La misma operación en las dos puertas. La NAND invierte el resultado, y eso es lo que permite la memoria.</p>
+        <div style="height:1px;background:var(--border2)"></div>
+
+        <div class="glabel">PUERTA AND — 2 transistores en serie</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div>
+            <div style="font-size:10px;color:var(--text2);margin-bottom:4px;text-align:center">Entrada A</div>
+            <div class="bpair"><div class="ibtn off" id="aa0" onclick="sAA(0)">0</div><div class="ibtn" id="aa1" onclick="sAA(1)">1</div></div>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--text2);margin-bottom:4px;text-align:center">Entrada B</div>
+            <div class="bpair"><div class="ibtn off" id="ab0" onclick="sAB(0)">0</div><div class="ibtn" id="ab1" onclick="sAB(1)">1</div></div>
+          </div>
+        </div>
+        <div class="orow">
+          <div class="obox"><div class="olbl">Salida AND</div><div class="oval" id="aout" style="color:#ff6666">0</div></div>
+          <div class="obox"><div class="olbl">Recuerda</div><div style="font-size:12px;font-weight:500;color:#ff6666;margin-top:6px">No — olvida</div></div>
+        </div>
+        <div class="verdict vno" id="averd">Sin las dos entradas a 1 a la vez, la salida es 0.</div>
+
+        <div style="height:1px;background:var(--border2)"></div>
+
+        <div class="glabel">PUERTA NAND — 2 transistores + inversor</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div>
+            <div style="font-size:10px;color:var(--text2);margin-bottom:4px;text-align:center">Entrada A</div>
+            <div class="bpair"><div class="ibtn off" id="na0" onclick="sNA(0)">0</div><div class="ibtn" id="na1" onclick="sNA(1)">1</div></div>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--text2);margin-bottom:4px;text-align:center">Entrada B</div>
+            <div class="bpair"><div class="ibtn off" id="nb0" onclick="sNB(0)">0</div><div class="ibtn" id="nb1" onclick="sNB(1)">1</div></div>
+          </div>
+        </div>
+        <div class="orow">
+          <div class="obox"><div class="olbl">Salida NAND</div><div class="oval" id="nout" style="color:var(--greenbright)">1</div></div>
+          <div class="obox"><div class="olbl">AND al revés</div><div style="font-size:12px;font-weight:500;color:var(--text);margin-top:6px" id="ninv">0 → 1</div></div>
+        </div>
+        <div class="verdict vwarn" id="nverd">Con A=0 B=0 la NAND da 1. Ese "1 sin señal" es la clave de la memoria.</div>
+      </div>
+
+      <div class="f4-right" style="gap:0">
+        <canvas id="cAnd" width="280" height="224"></canvas>
+        <div class="divline"></div>
+        <canvas id="cNand" width="280" height="224"></canvas>
+      </div>
+    </div>
+
+    <!-- TABLA -->
+    <div style="background:var(--bg2);padding:16px 20px;border-top:1px solid var(--border2)">
+      <div style="font-size:11px;font-weight:500;color:var(--text2);letter-spacing:.05em;margin-bottom:10px">Tabla de verdad — las 4 combinaciones posibles</div>
+      <table class="ttable">
+        <thead><tr><th>A</th><th>B</th><th>AND</th><th>NAND</th><th style="text-align:left;padding-left:12px">Qué ocurre</th></tr></thead>
+        <tbody>
+          <tr id="r00"><td>0</td><td>0</td><td class="r">0</td><td class="g">1</td><td style="text-align:left;padding-left:12px;font-size:11px">Ningún transistor activo. AND=0, NAND=1 (al revés)</td></tr>
+          <tr id="r01"><td>0</td><td>1</td><td class="r">0</td><td class="g">1</td><td style="text-align:left;padding-left:12px;font-size:11px">Solo B activo. AND sigue a 0; NAND da 1</td></tr>
+          <tr id="r10"><td>1</td><td>0</td><td class="r">0</td><td class="g">1</td><td style="text-align:left;padding-left:12px;font-size:11px">Solo A activo. Mismo resultado que fila anterior</td></tr>
+          <tr id="r11"><td>1</td><td>1</td><td class="g">1</td><td class="r">0</td><td style="text-align:left;padding-left:12px;font-size:11px">Las dos activas. AND=1, NAND=0. ¡Siempre al revés!</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- EXPLICACIÓN MEMORIA -->
+    <div style="padding:16px 20px;border-top:1px solid var(--border2);background:var(--panel)">
+      <div style="font-size:11px;font-weight:500;color:var(--text2);letter-spacing:.05em;margin-bottom:10px">En qué consiste exactamente la memoria de la NAND</div>
+      <div class="mem-box">
+        La <strong>AND</strong> solo tiene un estado posible cuando no hay señal: siempre <strong>0</strong>. En cuanto quitas las entradas, la salida cae. <strong>Nunca recuerda.</strong><br><br>
+        La <strong>NAND</strong> puede quedarse en <strong>dos estados estables: 0 ó 1</strong>. Cuando conectas dos puertas NAND cruzadas, cada una le pasa su salida a la otra y el circuito se "engancha". Así mantiene el último valor que recibió, aunque las entradas desaparezcan. <strong>Eso es exactamente un bit de memoria: poder guardar un 0 o un 1 y que no se olvide.</strong><br><br>
+        Cada celda de la RAM de tu ordenador es un grupo de transistores NAND funcionando así — millones de bits, cada uno "enganchado" en su estado.
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+        <div style="padding:10px 14px;border-radius:8px;background:rgba(204,34,34,.12);border:1px solid rgba(204,34,34,.3);font-size:12px;color:#ff8888;line-height:1.6">
+          <span style="font-weight:500;color:var(--white)">AND:</span> un solo estado sin señal → siempre 0. Sin entradas = sin salida. No puede guardar nada.
+        </div>
+        <div style="padding:10px 14px;border-radius:8px;background:rgba(26,170,58,.12);border:1px solid rgba(26,170,58,.3);font-size:12px;color:var(--greenbright);line-height:1.6">
+          <span style="font-weight:500;color:var(--white)">NAND:</span> dos estados estables → puede ser 0 ó 1 sin señal. Guarda el último valor. Eso es memoria.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>Telecomunicaciones · Tecnología para Mayores · Simulaciones de transistor</footer>
+</div>
+
+<script>
+/* ===== F1: INTERRUPTOR ===== */
+var sw1=false,particles1=[];
+function toggleSwitch(){
+  sw1=!sw1;
+  document.getElementById('swBtn1').textContent=sw1?'Pulsar: quitar señal (1 → 0)':'Pulsar: aplicar señal (0 → 1)';
+  document.getElementById('swBtn1').className=sw1?'on':'';
+  document.getElementById('dot1').className=sw1?'dot on':'dot';
+  document.getElementById('st1').textContent=sw1?'Circuito cerrado — corriente fluyendo':'Circuito abierto — corriente bloqueada';
+  document.getElementById('bv1').textContent=sw1?'0.7 V':'0 V';
+  document.getElementById('cv1').textContent=sw1?'48 mA':'0 mA';
+  if(sw1) spawnP1();
+}
+function spawnP1(){if(!sw1)return;particles1.push({y:60,speed:2+Math.random()*1.5,alpha:1});setTimeout(spawnP1,200);}
+function drawC1(){
+  var cv=document.getElementById('c1'),ctx=cv.getContext('2d'),W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  var wire='#2a4030',wireOn='#1aaa3a',tx='#607060',bf='#0d160f',bb='#2a4030',cx=130;
+  ctx.strokeStyle=wire;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(cx,10);ctx.lineTo(cx,70);ctx.stroke();
+  ctx.fillStyle=bf;ctx.strokeStyle=bb;ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(cx-35,70,70,30,5);ctx.fill();ctx.stroke();
+  ctx.fillStyle=tx;ctx.font='11px monospace';ctx.textAlign='center';ctx.fillText('Vcc 5V',cx,90);
+  ctx.strokeStyle=sw1?wireOn:wire;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(cx,100);ctx.lineTo(cx,140);ctx.stroke();
+  ctx.fillStyle=bf;ctx.strokeStyle=sw1?wireOn:bb;ctx.lineWidth=1.5;ctx.beginPath();ctx.roundRect(cx-36,140,72,52,7);ctx.fill();ctx.stroke();
+  ctx.fillStyle=sw1?'#44ff77':tx;ctx.font='bold 12px monospace';ctx.textAlign='center';ctx.fillText('NPN',cx,162);
+  ctx.fillStyle=tx;ctx.font='10px monospace';ctx.fillText('Transistor',cx,177);
+  ctx.strokeStyle=sw1?wireOn:wire;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(cx,192);ctx.lineTo(cx,230);ctx.stroke();
+  ctx.fillStyle=bf;ctx.strokeStyle=bb;ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(cx-25,230,50,28,5);ctx.fill();ctx.stroke();
+  ctx.fillStyle=tx;ctx.font='11px monospace';ctx.textAlign='center';ctx.fillText('GND',cx,249);
+  ctx.strokeStyle='#185FA5';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(cx-36,166);ctx.lineTo(cx-75,166);ctx.stroke();
+  ctx.fillStyle='#0d160f';ctx.strokeStyle='#185FA5';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(cx-128,150,50,30,5);ctx.fill();ctx.stroke();
+  ctx.fillStyle='#85B7EB';ctx.font='10px monospace';ctx.textAlign='center';ctx.fillText('Base',cx-103,163);ctx.fillText(sw1?'0.7V':'0V',cx-103,176);
+  if(sw1){ctx.strokeStyle=wireOn;ctx.lineWidth=2;ctx.setLineDash([5,4]);ctx.beginPath();ctx.moveTo(cx-4,100);ctx.lineTo(cx-4,140);ctx.stroke();ctx.beginPath();ctx.moveTo(cx-4,192);ctx.lineTo(cx-4,230);ctx.stroke();ctx.setLineDash([]);}
+  particles1=particles1.filter(function(p){return p.y<230});
+  particles1.forEach(function(p){p.y+=p.speed;p.alpha=Math.max(0,1-(p.y-60)/170);ctx.beginPath();ctx.arc(cx+7,p.y,3,0,Math.PI*2);ctx.fillStyle='rgba(26,170,58,'+p.alpha+')';ctx.fill();});
+  ctx.fillStyle='#2a4030';ctx.font='10px monospace';ctx.textAlign='left';ctx.fillText('Colector',cx+44,145);ctx.fillText('Emisor',cx+44,198);
+  requestAnimationFrame(drawC1);
+}
+drawC1();
+
+/* ===== F2: AMPLIFICADOR ===== */
+var amp2=30,gain2=100,ph2=0;
+function updateAmp(v){amp2=parseInt(v);document.getElementById('ampLbl').textContent=v;document.getElementById('mIn2').textContent=v+' mV';document.getElementById('mOut2').textContent=(amp2*gain2/1000).toFixed(1)+' V';}
+function updateGain(v){gain2=parseInt(v);document.getElementById('gainLbl').textContent=v;document.getElementById('mGain2').textContent='× '+v;document.getElementById('mOut2').textContent=(amp2*gain2/1000).toFixed(1)+' V';}
+function drawWave2(cvId,amplitude,color,label){
+  var cv=document.getElementById(cvId),ctx=cv.getContext('2d'),W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#0a1510';ctx.beginPath();ctx.roundRect(2,2,W-4,H-4,6);ctx.fill();
+  ctx.strokeStyle='#1c2e1e';ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(4,H/2);ctx.lineTo(W-4,H/2);ctx.stroke();
+  var maxA=Math.min(amplitude,H/2-10);
+  ctx.strokeStyle=color;ctx.lineWidth=2;ctx.beginPath();
+  for(var x=0;x<W-8;x++){var y=H/2-maxA*Math.sin((x/38)+ph2);if(x===0)ctx.moveTo(x+4,y);else ctx.lineTo(x+4,y);}
+  ctx.stroke();
+  ctx.fillStyle='#607060';ctx.font='10px monospace';ctx.textAlign='left';ctx.fillText(label,10,15);
+}
+function loop2(){drawWave2('c2in',amp2*0.4,'#d4920e','Entrada (base)');drawWave2('c2out',Math.min(amp2*gain2/1000*12,54),'#378ADD','Salida (colector)');ph2+=0.04;requestAnimationFrame(loop2);}
+loop2();
+
+/* ===== F3: OSCILADOR — transistores reales ===== */
+var freq3=2.4,running3=false,ph3=0,oscPhase=0;
+var apps3={1:'Radio AM / FM ~100 MHz',4:'Banda de 400 MHz',10:'Microondas 1 GHz',24:'WiFi 2.4 GHz',50:'WiFi 5 GHz',60:'Bluetooth / 6 GHz'};
+function updateFreq3(v){freq3=parseFloat(v)/10;document.getElementById('freqLbl3').textContent=freq3.toFixed(1);document.getElementById('mFreq3').textContent=freq3.toFixed(1)+' GHz';document.getElementById('mLam3').textContent=(30/freq3).toFixed(1)+' cm';var cl=Object.keys(apps3).reduce(function(a,b){return Math.abs(b-v)<Math.abs(a-v)?b:a});document.getElementById('appLbl3').textContent=apps3[cl];}
+function toggleOsc(){running3=!running3;var btn=document.getElementById('oscBtn');btn.textContent=running3?'Apagar oscilador':'Encender oscilador';btn.className=running3?'on':'';}
+function drawOsc3(){
+  var cv=document.getElementById('c3'),ctx=cv.getContext('2d'),W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  var wire='#2a4030',wireOn='#1aaa3a',tx='#607060',bf='#0d160f',bb='#2a4030';
+  var cx=130;
+
+  /* --- título --- */
+  ctx.fillStyle=tx;ctx.font='10px monospace';ctx.textAlign='center';
+  ctx.fillText('Circuito oscilador LC con transistor NPN',W/2,14);
+
+  /* --- Vcc --- */
+  ctx.fillStyle=bf;ctx.strokeStyle=bb;ctx.lineWidth=1;
+  ctx.beginPath();ctx.roundRect(cx-28,22,56,20,4);ctx.fill();ctx.stroke();
+  ctx.fillStyle=tx;ctx.font='10px monospace';ctx.textAlign='center';ctx.fillText('Vcc 5V',cx,35);
+
+  /* --- hilo Vcc → transistor --- */
+  ctx.strokeStyle=running3?wireOn:wire;ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(cx,42);ctx.lineTo(cx,70);ctx.stroke();
+
+  /* --- TRANSISTOR NPN (cuerpo central) --- */
+  var ty=70;
+  var tcolor=running3?(bf):(bf);
+  var tborder=running3?wireOn:bb;
+  ctx.fillStyle=tcolor;ctx.strokeStyle=tborder;ctx.lineWidth=running3?2:1;
+  ctx.beginPath();ctx.roundRect(cx-32,ty,64,56,8);ctx.fill();ctx.stroke();
+  ctx.fillStyle=running3?'#44ff77':'#607060';ctx.font='bold 12px monospace';ctx.textAlign='center';
+  ctx.fillText('NPN',cx,ty+22);
+  ctx.fillStyle=tx;ctx.font='9px monospace';
+  ctx.fillText('Transistor',cx,ty+34);
+  ctx.fillText(running3?'ON — oscilando':'OFF — quieto',cx,ty+47);
+
+  /* --- colector (arriba) y emisor (abajo) --- */
+  ctx.fillStyle='#2a4030';ctx.font='9px monospace';ctx.textAlign='left';
+  ctx.fillText('Colector',cx+36,ty+18);
+  ctx.fillText('Emisor',cx+36,ty+48);
+
+  /* --- hilo emisor → GND --- */
+  ctx.strokeStyle=running3?wireOn:wire;ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(cx,ty+56);ctx.lineTo(cx,148);ctx.stroke();
+
+  /* --- GND --- */
+  ctx.fillStyle=bf;ctx.strokeStyle=bb;ctx.lineWidth=1;
+  ctx.beginPath();ctx.roundRect(cx-22,148,44,20,4);ctx.fill();ctx.stroke();
+  ctx.fillStyle=tx;ctx.font='10px monospace';ctx.textAlign='center';ctx.fillText('GND',cx,161);
+
+  /* --- Base → bobina L (izquierda) --- */
+  ctx.strokeStyle=running3?'#d4920e':wire;ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(cx-32,ty+28);ctx.lineTo(38,ty+28);ctx.stroke();
+
+  /* --- BOBINA L --- */
+  ctx.fillStyle=bf;ctx.strokeStyle=running3?'#d4920e':bb;ctx.lineWidth=1.2;
+  ctx.beginPath();ctx.roundRect(4,ty+14,34,28,5);ctx.fill();ctx.stroke();
+  ctx.fillStyle=running3?'#f0b830':tx;ctx.font='bold 9px monospace';ctx.textAlign='center';
+  ctx.fillText('L',21,ty+26);ctx.font='8px monospace';ctx.fillText('bobina',21,ty+36);
+
+  /* --- hilo bobina → condensador --- */
+  ctx.strokeStyle=running3?'#d4920e':wire;ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(21,ty+14);ctx.lineTo(21,42);ctx.stroke();
+
+  /* --- CONDENSADOR C --- */
+  ctx.fillStyle=bf;ctx.strokeStyle=running3?'#d4920e':bb;ctx.lineWidth=1.2;
+  ctx.beginPath();ctx.roundRect(4,22,34,22,5);ctx.fill();ctx.stroke();
+  ctx.fillStyle=running3?'#f0b830':tx;ctx.font='bold 9px monospace';ctx.textAlign='center';
+  ctx.fillText('C',21,32);ctx.font='8px monospace';ctx.fillText('cond.',21,40);
+
+  /* --- hilo condensador → Vcc (retroalimentación) --- */
+  ctx.strokeStyle=running3?wireOn:wire;ctx.lineWidth=1.5;ctx.setLineDash([3,3]);
+  ctx.beginPath();ctx.moveTo(21,22);ctx.lineTo(21,10);ctx.lineTo(cx,10);ctx.lineTo(cx,22);ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle=tx;ctx.font='8px monospace';ctx.textAlign='center';
+  ctx.fillText('retroalimentación',60,9);
+
+  /* --- ONDA DE SALIDA --- */
+  var waveY=200,waveH=50;
+  ctx.fillStyle='#0a1510';ctx.beginPath();ctx.roundRect(8,waveY-waveH-10,W-16,waveH*2+20,6);ctx.fill();
+  ctx.strokeStyle='#1c2e1e';ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(12,waveY);ctx.lineTo(W-12,waveY);ctx.stroke();
+
+  var wc=running3?'#d4920e':'#2a4030';
+  ctx.strokeStyle=wc;ctx.lineWidth=running3?2:1;ctx.beginPath();
+  var speed3=freq3*0.7;
+  for(var x=0;x<W-20;x++){
+    var a3=running3?waveH-6:5;
+    var y=waveY-a3*Math.sin((x/13)*speed3+oscPhase);
+    if(x===0)ctx.moveTo(x+12,y);else ctx.lineTo(x+12,y);
+  }
+  ctx.stroke();
+
+  if(running3){
+    oscPhase+=0.06*freq3;
+    ctx.strokeStyle='rgba(212,146,14,0.25)';ctx.lineWidth=1;ctx.beginPath();
+    for(var x2=0;x2<W-20;x2++){var y2=waveY-(waveH-18)*Math.sin((x2/13)*speed3+oscPhase+0.5);if(x2===0)ctx.moveTo(x2+12,y2);else ctx.lineTo(x2+12,y2);}
+    ctx.stroke();
+  }
+
+  ctx.fillStyle=tx;ctx.font='10px monospace';ctx.textAlign='center';
+  ctx.fillText(running3?'Onda generada — '+freq3.toFixed(1)+' GHz':'Oscilador apagado — sin señal',W/2,waveY+waveH+14);
+
+  /* --- flecha salida --- */
+  ctx.strokeStyle=running3?wireOn:wire;ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(14,waveY+waveH+22);ctx.lineTo(W-14,waveY+waveH+22);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(W-14,waveY+waveH+22);ctx.lineTo(W-21,waveY+waveH+17);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(W-14,waveY+waveH+22);ctx.lineTo(W-21,waveY+waveH+27);ctx.stroke();
+  ctx.fillStyle=tx;ctx.font='9px monospace';ctx.textAlign='center';
+  ctx.fillText('señal de salida (portadora)',W/2,waveY+waveH+36);
+
+  requestAnimationFrame(drawOsc3);
+}
+drawOsc3();
+
+/* ===== F4: AND vs NAND ===== */
+var aA=0,aB=0,nA=0,nB=0,ph4=0;
+var andMsg={'00':'Ningún transistor conduce. La corriente no puede pasar. Salida = 0.','01':'El transistor de B conduce, pero el de A no. En serie necesitan los dos. Salida = 0.','10':'El transistor de A conduce, pero el de B no. Falta uno. Salida = 0.','11':'Los DOS transistores conducen a la vez. La corriente pasa por los dos en serie. Salida = 1.'};
+var nandMsg={'00':'Ningún transistor corta la corriente. El inversor da 1. Salida = 1.','01':'El transistor de A no conduce, no corta nada. Inversor da 1. Salida = 1.','10':'El transistor de B no conduce. Inversor da 1. Salida = 1.','11':'Los dos conducen y cortan la corriente. Inversor da 0. Salida = 0. Opuesto a AND.'};
+
+function sAA(v){aA=v;document.getElementById('aa0').className='ibtn'+(v===0?' off':'');document.getElementById('aa1').className='ibtn'+(v===1?' on':'');updA();}
+function sAB(v){aB=v;document.getElementById('ab0').className='ibtn'+(v===0?' off':'');document.getElementById('ab1').className='ibtn'+(v===1?' on':'');updA();}
+function sNA(v){nA=v;document.getElementById('na0').className='ibtn'+(v===0?' off':'');document.getElementById('na1').className='ibtn'+(v===1?' on':'');updN();}
+function sNB(v){nB=v;document.getElementById('nb0').className='ibtn'+(v===0?' off':'');document.getElementById('nb1').className='ibtn'+(v===1?' on':'');updN();}
+
+function updA(){
+  var out=aA&&aB?1:0;
+  var el=document.getElementById('aout');el.textContent=out;el.style.color=out?'#44ff77':'#ff6666';
+  var v=document.getElementById('averd');v.className=out?'verdict vyes':'verdict vno';v.textContent=andMsg[''+aA+aB];
+  ['r00','r01','r10','r11'].forEach(function(id){document.getElementById(id).className='';});
+  document.getElementById('r'+aA+aB).className='act';
+}
+function updN(){
+  var out=nA&&nB?0:1;var andOut=nA&&nB?1:0;
+  var el=document.getElementById('nout');el.textContent=out;el.style.color=out?'#44ff77':'#ff6666';
+  document.getElementById('ninv').textContent='AND sería '+andOut+' → '+out;
+  var v=document.getElementById('nverd');v.className=out?'verdict vwarn':'verdict vno';v.textContent=nandMsg[''+nA+nB];
+}
+updA();updN();
+
+function drawGate(ctx,W,H,inA,inB,isNand){
+  var out=isNand?(inA&&inB?0:1):(inA&&inB?1:0);
+  var t1on=inA===1,t2on=inB===1;
+  var flow=isNand?!(inA&&inB):(inA&&inB);
+  var tx='#607060',bg='#0a1510',bf='#0d160f',bb='#2a4030',wireOff='#2a4030',wireOn='#1aaa3a';
+  ctx.fillStyle=bg;ctx.beginPath();ctx.roundRect(2,2,W-4,H-4,8);ctx.fill();
+  ctx.fillStyle=tx;ctx.font='500 10px monospace';ctx.textAlign='center';
+  ctx.fillText(isNand?'NAND — transistores + inversor':'AND — transistores en serie',W/2,15);
+  var cx=115,vcc=28,gnd=H-26;
+  ctx.strokeStyle=flow?wireOn:wireOff;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(cx,vcc+4);ctx.lineTo(cx,vcc+18);ctx.stroke();
+  ctx.fillStyle=bf;ctx.strokeStyle=bb;ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(cx-22,vcc-10,44,18,3);ctx.fill();ctx.stroke();
+  ctx.fillStyle=tx;ctx.font='9px monospace';ctx.textAlign='center';ctx.fillText('Vcc 5V',cx,vcc+1);
+  var t1y=vcc+22,t2y=t1y+66;
+  function npn(ty,isOn,lbl,entVal){
+    ctx.fillStyle=isOn?'#0d1f0d':bf;ctx.strokeStyle=isOn?wireOn:bb;ctx.lineWidth=isOn?1.5:1;
+    ctx.beginPath();ctx.roundRect(cx-26,ty,52,44,6);ctx.fill();ctx.stroke();
+    ctx.fillStyle=isOn?'#44ff77':'#607060';ctx.font='bold 10px monospace';ctx.textAlign='center';ctx.fillText('NPN',cx,ty+14);
+    ctx.fillStyle=tx;ctx.font='9px monospace';ctx.fillText(lbl,cx,ty+26);
+    ctx.fillStyle=isOn?wireOn:'#3a3a3a';ctx.fillText(isOn?'ON':'OFF',cx,ty+38);
+    ctx.strokeStyle=entVal?'#378ADD':wireOff;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(cx-26,ty+18);ctx.lineTo(cx-56,ty+18);ctx.stroke();
+    ctx.fillStyle=entVal?'#85B7EB':tx;ctx.font='9px monospace';ctx.textAlign='right';ctx.fillText('Base='+entVal,cx-58,ty+22);
+  }
+  var w1=flow||t1on?wireOn:wireOff;
+  var w2=flow||(t1on&&t2on)?wireOn:wireOff;
+  ctx.strokeStyle=w1;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(cx,vcc+22);ctx.lineTo(cx,t1y);ctx.stroke();
+  npn(t1y,t1on,'transistor A',inA);
+  ctx.strokeStyle=w2;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(cx,t1y+44);ctx.lineTo(cx,t2y);ctx.stroke();
+  npn(t2y,t2on,'transistor B',inB);
+  ctx.strokeStyle=flow?wireOn:wireOff;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(cx,t2y+44);ctx.lineTo(cx,gnd+4);ctx.stroke();
+  ctx.fillStyle=bf;ctx.strokeStyle=bb;ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(cx-18,gnd+4,36,16,3);ctx.fill();ctx.stroke();
+  ctx.fillStyle=tx;ctx.font='9px monospace';ctx.textAlign='center';ctx.fillText('GND',cx,gnd+15);
+  if(isNand){
+    var ix=cx+52,iy=t1y+10;
+    ctx.fillStyle=bf;ctx.strokeStyle=out?wireOn:bb;ctx.lineWidth=1.2;ctx.beginPath();ctx.roundRect(ix,iy,46,28,5);ctx.fill();ctx.stroke();
+    ctx.fillStyle=tx;ctx.font='bold 9px monospace';ctx.textAlign='center';ctx.fillText('inversor',ix+23,iy+12);ctx.font='9px monospace';ctx.fillText('voltea 0↔1',ix+23,iy+23);
+    ctx.strokeStyle=bb;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(cx+26,t1y+18);ctx.lineTo(ix,iy+14);ctx.stroke();
+    ctx.strokeStyle=out?wireOn:wireOff;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(ix+46,iy+14);ctx.lineTo(W-18,iy+14);ctx.stroke();
+    ctx.fillStyle=out?'#1aaa3a':'#cc2222';ctx.beginPath();ctx.arc(W-14,iy+14,8,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#ffffff';ctx.font='bold 11px monospace';ctx.textAlign='center';ctx.fillText(out,W-14,iy+18);
+  } else {
+    var ox=cx+40,oy=t1y+18;
+    ctx.strokeStyle=bb;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(cx+26,oy);ctx.lineTo(ox,oy);ctx.stroke();
+    ctx.fillStyle=out?'#1aaa3a':'#cc2222';ctx.beginPath();ctx.arc(W-14,oy,8,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle=out?wireOn:wireOff;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(W-22,oy);ctx.stroke();
+    ctx.fillStyle='#ffffff';ctx.font='bold 11px monospace';ctx.textAlign='center';ctx.fillText(out,W-14,oy+4);
+  }
+  if(flow){
+    ph4+=0.07;
+    for(var i=0;i<3;i++){var py=t1y+((ph4*45+i*40)%((t2y+44)-t1y));ctx.beginPath();ctx.arc(cx,py,3.5,0,Math.PI*2);ctx.fillStyle='rgba(26,170,58,'+(1-i*0.28)+')';ctx.fill();}
+  }
+  ctx.fillStyle='#3a3a3a';ctx.font='9px monospace';ctx.textAlign='center';
+  ctx.fillText(isNand?'NAND = AND invertida: 0→1 y 1→0':'Los 2 transistores en serie: los dos deben conducir',W/2,H-6);
+}
+
+function loopF4(){
+  var c1=document.getElementById('cAnd').getContext('2d');c1.clearRect(0,0,280,224);drawGate(c1,280,224,aA,aB,false);
+  var c2=document.getElementById('cNand').getContext('2d');c2.clearRect(0,0,280,224);drawGate(c2,280,224,nA,nB,true);
+  ph4+=0.06;requestAnimationFrame(loopF4);
+}
+loopF4();
+</script>
+</body>
+</html>

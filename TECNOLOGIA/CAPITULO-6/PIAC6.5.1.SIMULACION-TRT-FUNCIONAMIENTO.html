@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>1.2 SIMULACION Como Funciona un Transistor</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Syne:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#060d14;--panel:#0a1520;--panel2:#0e1e2e;
+  --border:#1a2f40;--border2:#243a50;
+  --cyan:#00d4ff;--cyan2:rgba(0,212,255,0.12);
+  --green:#00e060;--yellow:#ffdd00;
+  --red:#ff3355;--orange:#ff8c00;
+  --text:#c8e8f0;--text2:#507090;--white:#e8f8ff;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monospace;min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:999;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.05) 2px,rgba(0,0,0,0.05) 3px);}
+.page{max-width:980px;margin:0 auto;padding:20px 14px 60px;position:relative;z-index:1;}
+header{text-align:center;margin-bottom:20px;}
+.htag{font-size:11px;color:var(--cyan);letter-spacing:3px;text-transform:uppercase;margin-bottom:8px;}
+h1{font-family:'Syne',sans-serif;font-size:clamp(20px,4vw,30px);font-weight:900;color:var(--white);margin-bottom:6px;}
+h1 span{color:var(--cyan);}
+.hsub{font-size:13px;color:var(--text2);}
+.instr{background:var(--panel);border:1px solid var(--cyan);border-radius:10px;
+  padding:11px 16px;margin-bottom:18px;font-size:13px;line-height:1.6;}
+.instr strong{color:var(--cyan);}
+.layout{display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:start;}
+@media(max-width:680px){.layout{grid-template-columns:1fr;}}
+.canvas-wrap{background:var(--panel);border:1px solid var(--border2);border-radius:12px;padding:14px;}
+.clabel{font-size:10px;color:var(--cyan);letter-spacing:3px;text-transform:uppercase;margin-bottom:8px;}
+canvas{display:block;width:100%;border-radius:6px;background:#03090f;}
+.side{display:flex;flex-direction:column;gap:12px;}
+.card{background:var(--panel);border:1px solid var(--border2);border-radius:10px;padding:14px;}
+.ctitle{font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:var(--white);margin-bottom:10px;}
+.srow{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.srow:last-child{border-bottom:none;}
+.slbl{color:var(--text2);}
+.sval{font-family:'Syne',sans-serif;font-size:13px;font-weight:800;}
+.slider-g{margin-bottom:10px;}
+.slider-top{display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:5px;}
+.slider-top strong{color:var(--cyan);}
+input[type=range]{width:100%;-webkit-appearance:none;height:5px;border-radius:3px;background:var(--border2);outline:none;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--cyan);cursor:pointer;border:2px solid var(--bg);}
+.mode-btns{display:flex;gap:6px;margin-bottom:10px;}
+.mbtn{flex:1;padding:8px 6px;border-radius:6px;border:1.5px solid var(--border2);background:var(--panel2);
+  color:var(--text2);font-family:'Share Tech Mono',monospace;font-size:11px;cursor:pointer;transition:all 0.2s;text-align:center;}
+.mbtn:hover{border-color:var(--cyan);color:var(--cyan);}
+.mbtn.on{border-color:var(--cyan);background:var(--cyan2);color:var(--cyan);}
+.region-box{border-radius:8px;padding:10px 12px;margin-top:8px;text-align:center;transition:all 0.3s;}
+.r-corte{background:rgba(255,51,85,0.1);border:2px solid var(--red);}
+.r-activa{background:rgba(0,224,96,0.08);border:2px solid var(--green);}
+.r-satur{background:rgba(255,221,0,0.08);border:2px solid var(--yellow);}
+.rname{font-family:'Syne',sans-serif;font-size:14px;font-weight:900;margin-bottom:3px;}
+.rdesc{font-size:10px;line-height:1.5;opacity:0.85;}
+.exp{background:var(--panel);border:1px solid var(--border2);border-radius:10px;padding:12px 14px;}
+.etitle{font-size:10px;color:var(--cyan);letter-spacing:2px;margin-bottom:7px;}
+.etxt{font-size:12px;line-height:1.8;color:var(--text);}
+.etxt strong{color:var(--yellow);}
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div class="htag">// CURSO ROBÓTICA · CAPÍTULO 1 · CLASE 1.2</div>
+    <h1>Cómo Funciona un <span>Transistor NPN</span></h1>
+    <p class="hsub">Simulación interactiva del transistor como interruptor y amplificador de corriente</p>
+  </header>
+  <div class="instr">
+    <strong>📋 Instrucciones:</strong> Mueve el slider de <strong>Corriente de Base (IB)</strong> para controlar el transistor. Las partículas de colores muestran cómo fluye la corriente. Observa las tres regiones de funcionamiento y cambia la carga para ver el efecto.
+  </div>
+  <div class="layout">
+    <div class="canvas-wrap">
+      <div class="clabel">▸ Circuito animado en tiempo real</div>
+      <canvas id="cv" width="580" height="460"></canvas>
+    </div>
+    <div class="side">
+      <div class="card">
+        <div class="ctitle">⚡ Control</div>
+        <div class="slider-g">
+          <div class="slider-top"><span>Corriente de Base (IB)</span><strong id="ibv">0 µA</strong></div>
+          <input type="range" id="ibS" min="0" max="100" value="0" oninput="upd()">
+        </div>
+        <div class="slider-g">
+          <div class="slider-top"><span>Alimentación (VCC)</span><strong id="vccv">9 V</strong></div>
+          <input type="range" id="vccS" min="3" max="12" value="9" step="1" oninput="upd()">
+        </div>
+      </div>
+      <div class="card">
+        <div class="ctitle">🔧 Carga conectada</div>
+        <div class="mode-btns">
+          <button class="mbtn on" id="bM" onclick="setM('motor')">Motor DC</button>
+          <button class="mbtn" id="bL" onclick="setM('led')">LED</button>
+          <button class="mbtn" id="bR" onclick="setM('relay')">Relé</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ctitle">📊 Mediciones</div>
+        <div class="srow"><span class="slbl">IB (corriente base)</span><span class="sval" style="color:var(--cyan)" id="dIB">0 µA</span></div>
+        <div class="srow"><span class="slbl">IC (corriente colector)</span><span class="sval" style="color:var(--green)" id="dIC">0 mA</span></div>
+        <div class="srow"><span class="slbl">VCE (tensión C-E)</span><span class="sval" style="color:var(--yellow)" id="dVCE">9.0 V</span></div>
+        <div class="srow"><span class="slbl">Factor β (IC / IB)</span><span class="sval" style="color:var(--cyan)" id="dB">—</span></div>
+        <div class="srow"><span class="slbl">Potencia disipada</span><span class="sval" style="color:var(--red)" id="dP">0 mW</span></div>
+        <div class="region-box r-corte" id="rbox">
+          <div class="rname" id="rname" style="color:var(--red)">REGIÓN DE CORTE</div>
+          <div class="rdesc" id="rdesc">Transistor apagado. Sin corriente de colector.</div>
+        </div>
+      </div>
+      <div class="exp">
+        <div class="etitle">💡 EXPLICACIÓN</div>
+        <div class="etxt" id="etxt">Mueve el slider hacia arriba para abrir el transistor. La corriente de base es la <strong>señal de control</strong> que actúa como llave del circuito principal.</div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+var cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+var W=580,H=460,mode='motor',raf=null,frame=0;
+var st={ib:0,ic:0,vce:9,vcc:9,region:'corte'};
+
+// Coordenadas del circuito
+var TX=290,TY=240,BR=36;
+// Puntos exactos donde las patillas salen del cuerpo NPN:
+//   Base:     (TX-12-BR-8, TY)  = (234, 240)
+//   Colector: (TX+19, TY-49)    = (309, 191)
+//   Emisor:   (TX+19, TY+49)    = (309, 289)
+var BX=TX-85,BY=TY;          // destino final del cable de base (resistencia)
+var CX=TX+55,CY=TY-65;       // destino final del cable de colector (carga/VCC)
+var EX=TX+55,EY=TY+65;       // destino final del cable de emisor (GND)
+// Puntos de salida reales de las patillas del NPN
+var BpinX=TX-BR-8, BpinY=TY;        // 246, 240  — fin real de la patilla de base en drawNPN
+var CpinX=TX+19,       CpinY=TY-49; // 309, 191
+var EpinX=TX+19,       EpinY=TY+49; // 309, 289
+var VY=55,GY=H-40;
+var SX=BX-80,SY=BY;
+
+var pC=[],pB=[];
+
+function setM(m){
+  mode=m;
+  ['motor','led','relay'].forEach(function(n){
+    document.getElementById('b'+n[0].toUpperCase()).className='mbtn'+(n===m?' on':'');
+  });
+  upd();
+}
+
+function upd(){
+  var ib=+document.getElementById('ibS').value;
+  var vcc=+document.getElementById('vccS').value;
+  st.vcc=vcc; st.ib=ib;
+  var B=100, icMax=(vcc-0.2)/10*1000;
+  var icCalc=B*ib/1000;
+  var sat=icCalc>=icMax*0.95;
+  st.ic=Math.min(icCalc,icMax);
+  st.vce=sat?0.2:vcc-st.ic*10/1000;
+  st.region=ib<2?'corte':sat?'saturacion':'activa';
+
+  document.getElementById('ibv').textContent=ib+' µA';
+  document.getElementById('vccv').textContent=vcc+' V';
+  document.getElementById('dIB').textContent=ib+' µA';
+  document.getElementById('dIC').textContent=st.ic.toFixed(1)+' mA';
+  document.getElementById('dVCE').textContent=st.vce.toFixed(1)+' V';
+  document.getElementById('dB').textContent=ib>0?'100':'—';
+  document.getElementById('dP').textContent=(st.ic*st.vce).toFixed(1)+' mW';
+
+  var rb=document.getElementById('rbox');
+  var rn=document.getElementById('rname');
+  var rd=document.getElementById('rdesc');
+  var et=document.getElementById('etxt');
+
+  if(st.region==='corte'){
+    rb.className='region-box r-corte'; rn.style.color='var(--red)';
+    rn.textContent='REGIÓN DE CORTE';
+    rd.textContent='Transistor APAGADO. Sin corriente de colector. La carga no funciona.';
+    et.innerHTML='El transistor está en <strong>corte</strong>: la unión base-emisor no supera los 0,6V mínimos. Actúa como un <strong>circuito abierto</strong>. El motor/LED está completamente apagado.';
+  } else if(st.region==='activa'){
+    rb.className='region-box r-activa'; rn.style.color='var(--green)';
+    rn.textContent='REGIÓN ACTIVA';
+    rd.textContent='Amplificación lineal. IC = β × IB = '+Math.round(st.ic)+' mA';
+    et.innerHTML='El transistor <strong>amplifica</strong>: cada <strong>'+ib+' µA</strong> de base controla <strong>'+st.ic.toFixed(1)+' mA</strong> de colector. Factor β=100. En esta zona funciona como <strong>amplificador lineal</strong>.';
+  } else {
+    rb.className='region-box r-satur'; rn.style.color='var(--yellow)';
+    rn.textContent='REGIÓN DE SATURACIÓN';
+    rd.textContent='Transistor COMPLETAMENTE ABIERTO. Máxima corriente. VCE ≈ 0,2V.';
+    et.innerHTML='El transistor está <strong>saturado</strong>: actúa como <strong>interruptor cerrado</strong>. VCE cae a ~0,2V. La carga recibe potencia máxima. Esta es la región ideal para el <strong>control digital</strong> (ON/OFF).';
+  }
+}
+
+function spawnP(t){
+  if(t==='C') pC.push({t:0,a:1});
+  else pB.push({t:0,a:1});
+}
+
+function ptC(t){
+  // Tramo 1: baja por CX desde VY hasta CY (0→0.25)
+  // Tramo 2: va diagonal de (CX,CY) a (CpinX,CpinY) — entra al transistor (0.25→0.55)
+  // Tramo 3: curva interna del transistor de CpinX,CpinY a EpinX,EpinY (0.55→0.80)
+  // Tramo 4: sale por EX desde EpinY hasta GY (0.80→1)
+  if(t<0.25){var tt=t/0.25;return{x:CX,y:VY+(CY-VY)*tt};}
+  else if(t<0.55){var tt=(t-0.25)/0.30;return{x:CX+(CpinX-CX)*tt,y:CY+(CpinY-CY)*tt};}
+  else if(t<0.80){var tt=(t-0.55)/0.25;
+    var mx=TX,my=TY;
+    return{x:(1-tt)*(1-tt)*CpinX+2*(1-tt)*tt*mx+tt*tt*EpinX,
+           y:(1-tt)*(1-tt)*CpinY+2*(1-tt)*tt*my+tt*tt*EpinY};}
+  else{var tt=(t-0.80)/0.20;return{x:EX,y:EpinY+(EY-EpinY)*tt+(EY+(GY-EY))*tt*0.5};}
+}
+function ptB(t){
+  // Va de SX,SY hasta BpinX,BpinY siguiendo el cable real
+  return{x:SX+(BpinX-SX)*t, y:SY+(BpinY-SY)*t};
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  // Grid
+  ctx.strokeStyle='rgba(26,47,64,0.35)';ctx.lineWidth=0.5;
+  for(var gx=0;gx<W;gx+=28){ctx.beginPath();ctx.moveTo(gx,0);ctx.lineTo(gx,H);ctx.stroke();}
+  for(var gy=0;gy<H;gy+=28){ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(W,gy);ctx.stroke();}
+
+  var on=st.region!=='corte';
+  var cc=on?'#00e060':'#1a2f40';
+  var cb=st.ib>0?'#00d4ff':'#1a2f40';
+  var lw=on?2.5:1.5;
+
+  // Cable Colector: VCC → CX,CY → patilla colector del NPN (CpinX,CpinY)
+  ctx.strokeStyle=cc;ctx.lineWidth=lw;
+  ctx.beginPath();ctx.moveTo(CX,VY+2);ctx.lineTo(CX,CY);ctx.lineTo(CpinX,CpinY);ctx.stroke();
+  // Cable Emisor: patilla emisor del NPN (EpinX,EpinY) → EX,EY → GND
+  ctx.beginPath();ctx.moveTo(EpinX,EpinY);ctx.lineTo(EX,EY);ctx.lineTo(EX,GY);ctx.stroke();
+  // GND símbolo
+  ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(EX-20,GY);ctx.lineTo(EX+20,GY);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(EX-13,GY+6);ctx.lineTo(EX+13,GY+6);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(EX-6,GY+12);ctx.lineTo(EX+6,GY+12);ctx.stroke();
+
+  // Cable base: desde fuente CTRL hasta la patilla base del NPN (BpinX,BpinY)
+  ctx.strokeStyle=cb;ctx.lineWidth=1.8;
+  ctx.beginPath();ctx.moveTo(SX,SY);ctx.lineTo(BpinX,BpinY);ctx.stroke();
+
+  // Resistencia RB — centrada entre SX y BpinX
+  var rbMidX = Math.round(SX + (BpinX - SX) * 0.55);
+  drawRes(ctx,rbMidX,SY,cb,'RB 47kΩ');
+
+  // Fuente de control
+  drawSrc(ctx,SX-16,SY,st.ib);
+
+  // VCC label
+  ctx.save();ctx.fillStyle='#ffdd00';ctx.font='bold 12px Share Tech Mono';ctx.textAlign='center';
+  ctx.fillText('VCC +'+st.vcc+'V',CX,VY-10);ctx.restore();
+
+  // Carga — entre VCC y el nodo CX,CY que conecta con la patilla colector
+  drawLoad(ctx,CX,VY+4,CX,CY,cc,on);
+
+  // Transistor
+  drawNPN(ctx,TX,TY,on,st.region);
+
+  // Etiquetas terminales — junto a las patillas reales
+  ctx.save();ctx.font='11px Share Tech Mono';
+  ctx.fillStyle='#00d4ff';ctx.textAlign='right';ctx.fillText('B',BpinX-6,BpinY+4);
+  ctx.fillStyle='#00e060';ctx.textAlign='left';ctx.fillText('C',CpinX+7,CpinY+4);
+  ctx.fillStyle='#ff8c00';ctx.textAlign='left';ctx.fillText('E',EpinX+7,EpinY+4);
+  ctx.restore();
+
+  // Valores flotantes
+  if(on){
+    floatVal(ctx,CX+40,(VY+CY)/2,'IC='+st.ic.toFixed(1)+'mA','#00e060');
+    floatVal(ctx,TX+90,TY+15,'VCE='+st.vce.toFixed(1)+'V','#ffdd00');
+  }
+  floatVal(ctx,SX-10,SY-18,'IB='+st.ib+'µA','#00d4ff');
+}
+
+function drawNPN(ctx,cx,cy,on,reg){
+  ctx.save();
+  var gc=ctx.createRadialGradient(cx,cy,4,cx,cy,BR);
+  gc.addColorStop(0,on?'#0a2a1a':'#0a1520');
+  gc.addColorStop(1,on?'#060f0a':'#060d14');
+  ctx.beginPath();ctx.arc(cx,cy,BR,0,Math.PI*2);
+  ctx.fillStyle=gc;ctx.fill();
+  ctx.strokeStyle=on?'#00e060':'#243a50';ctx.lineWidth=on?2.5:1.5;
+  if(on){ctx.shadowBlur=14;ctx.shadowColor='#00e060';}
+  ctx.stroke();ctx.shadowBlur=0;
+
+  // Línea vertical base
+  ctx.strokeStyle=on?'#00d4ff':'#243a50';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(cx-12,cy-22);ctx.lineTo(cx-12,cy+22);ctx.stroke();
+  // Línea base horizontal
+  ctx.beginPath();ctx.moveTo(cx-12,cy);ctx.lineTo(cx-BR-8,cy);ctx.stroke();
+  // Líneas C y E
+  ctx.strokeStyle=on?'#00e060':'#243a50';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(cx-12,cy-15);ctx.lineTo(cx+19,cy-49);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx-12,cy+15);ctx.lineTo(cx+19,cy+49);ctx.stroke();
+  // Flecha emisor
+  var ang=Math.atan2(34,31);
+  var ax=cx+19,ay=cy+49;
+  ctx.fillStyle=on?'#00e060':'#243a50';
+  ctx.beginPath();ctx.moveTo(ax,ay);
+  ctx.lineTo(ax-9*Math.cos(ang-0.5),ay-9*Math.sin(ang-0.5));
+  ctx.lineTo(ax-9*Math.cos(ang+0.5),ay-9*Math.sin(ang+0.5));
+  ctx.closePath();ctx.fill();
+  // Label
+  ctx.fillStyle=on?'#00e060':'#507090';ctx.font='bold 10px Share Tech Mono';
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('NPN',cx+8,cy+6);
+  ctx.restore();
+}
+
+function drawRes(ctx,mx,my,color,lbl){
+  ctx.save();ctx.strokeStyle=color;ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(mx-18,my);
+  for(var i=0;i<4;i++)ctx.lineTo(mx-10+(i%2===0?8:-8),my-14+i*9);
+  ctx.lineTo(mx+18,my);ctx.stroke();
+  ctx.fillStyle=color;ctx.font='9px Share Tech Mono';ctx.textAlign='center';
+  ctx.fillText(lbl,mx,my-20);ctx.restore();
+}
+
+function drawSrc(ctx,cx,cy,ib){
+  ctx.save();
+  var on=ib>0;
+  ctx.strokeStyle=on?'#00d4ff':'#243a50';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.arc(cx,cy,16,0,Math.PI*2);ctx.stroke();
+  if(on){ctx.shadowBlur=8;ctx.shadowColor='#00d4ff';ctx.stroke();ctx.shadowBlur=0;}
+  ctx.fillStyle=on?'#00d4ff':'#507090';ctx.font=(on?'bold ':'')+13+'px Share Tech Mono';
+  ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(on?'~':'·',cx,cy);
+  ctx.font='8px Share Tech Mono';ctx.fillStyle='#507090';
+  ctx.textBaseline='top';ctx.fillText('CTRL',cx,cy+18);ctx.restore();
+}
+
+function drawLoad(ctx,x,y1,x2,y2,color,on){
+  var my=(y1+y2)/2;
+  ctx.save();
+  if(mode==='motor'){
+    ctx.strokeStyle=on?'#ff8c00':'#243a50';ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(x,my,20,0,Math.PI*2);
+    if(on){ctx.shadowBlur=10;ctx.shadowColor='#ff8c00';}
+    ctx.stroke();ctx.shadowBlur=0;
+    ctx.fillStyle=on?'#ff8c00':'#507090';ctx.font='bold 12px Share Tech Mono';
+    ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('M',x,my);
+    if(on){
+      ctx.strokeStyle='#ff8c00';ctx.lineWidth=1.2;
+      ctx.beginPath();ctx.arc(x,my,13,-Math.PI*0.7,Math.PI*0.7);ctx.stroke();
+      ctx.fillStyle='#ff8c00';
+      ctx.beginPath();ctx.moveTo(x+12,my-4);ctx.lineTo(x+16,my+1);ctx.lineTo(x+8,my+1);ctx.fill();
+      ctx.fillStyle='#ff8c00';ctx.font='9px Share Tech Mono';ctx.textBaseline='top';
+      ctx.fillText(Math.round(st.ic/5*100)+'%',x+24,my-4);
+    }
+    ctx.strokeStyle=color;ctx.lineWidth=2;ctx.shadowBlur=0;
+    ctx.beginPath();ctx.moveTo(x,y1+2);ctx.lineTo(x,my-20);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x,my+20);ctx.lineTo(x,y2);ctx.stroke();
+  } else if(mode==='led'){
+    var lc=on?'#ff3355':'#243a50';
+    ctx.strokeStyle=lc;ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(x,my-14);ctx.lineTo(x-11,my+8);ctx.lineTo(x+11,my+8);ctx.closePath();
+    if(on){ctx.fillStyle='rgba(255,51,85,0.15)';ctx.fill();ctx.shadowBlur=10;ctx.shadowColor='#ff3355';}
+    ctx.stroke();ctx.shadowBlur=0;
+    ctx.beginPath();ctx.moveTo(x-11,my-14);ctx.lineTo(x+11,my-14);ctx.stroke();
+    if(on){
+      ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(x+15,my-16);ctx.lineTo(x+20,my-24);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(x+18,my-8);ctx.lineTo(x+23,my-16);ctx.stroke();
+    }
+    ctx.strokeStyle=color;ctx.lineWidth=2;ctx.shadowBlur=0;
+    ctx.beginPath();ctx.moveTo(x,y1+2);ctx.lineTo(x,my-14);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x,my+8);ctx.lineTo(x,y2);ctx.stroke();
+  } else {
+    var rc=on?'#aa44ff':'#243a50';
+    ctx.strokeStyle=rc;ctx.lineWidth=2;
+    if(on){ctx.shadowBlur=8;ctx.shadowColor='#aa44ff';}
+    ctx.strokeRect(x-14,my-12,28,24);ctx.shadowBlur=0;
+    ctx.fillStyle=rc;ctx.font='8px Share Tech Mono';
+    ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('RELÉ',x,my);
+    ctx.strokeStyle=color;ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(x,y1+2);ctx.lineTo(x,my-12);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x,my+12);ctx.lineTo(x,y2);ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function floatVal(ctx,x,y,t,c){
+  ctx.save();ctx.font='10px Share Tech Mono';ctx.textAlign='center';
+  ctx.fillStyle=c+'bb';ctx.fillText(t,x,y);ctx.restore();
+}
+
+function loop(){
+  frame++;
+  // Spawn partículas
+  if(st.region!=='corte'){
+    var rate=Math.max(2,Math.round(10-st.ic*0.8));
+    if(frame%rate===0) spawnP('C');
+  }
+  if(st.ib>0 && frame%14===0) spawnP('B');
+
+  var spd=0.015+st.ic*0.0012;
+  pC=pC.filter(function(p){p.t+=spd;p.a=p.t<0.8?1:(1-p.t)/0.2;return p.t<1;});
+  pB=pB.filter(function(p){p.t+=0.022;p.a=p.t<0.8?1:(1-p.t)/0.2;return p.t<1;});
+
+  draw();
+
+  pC.forEach(function(p){
+    var pos=ptC(p.t);
+    ctx.save();ctx.beginPath();ctx.arc(pos.x,pos.y,3.5,0,Math.PI*2);
+    ctx.fillStyle='rgba(0,224,96,'+p.a+')';
+    ctx.shadowBlur=7;ctx.shadowColor='#00e060';ctx.fill();ctx.restore();
+  });
+  pB.forEach(function(p){
+    var pos=ptB(p.t);
+    ctx.save();ctx.beginPath();ctx.arc(pos.x,pos.y,2.5,0,Math.PI*2);
+    ctx.fillStyle='rgba(0,212,255,'+p.a+')';
+    ctx.shadowBlur=5;ctx.shadowColor='#00d4ff';ctx.fill();ctx.restore();
+  });
+
+  raf=requestAnimationFrame(loop);
+}
+
+upd();
+if(raf)cancelAnimationFrame(raf);
+raf=requestAnimationFrame(loop);
+</script>
+</body>
+</html>
