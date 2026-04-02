@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>1.4 SIMULACION Biestable SR — NAND con Transistores NPN</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Syne:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#111;display:flex;justify-content:center;padding:24px 12px 48px;min-height:100vh}
+.wrap{background:#1c0f0f;border-radius:10px;overflow:hidden;width:100%;max-width:720px}
+.titlebar{background:#7a1818;padding:12px 16px;text-align:center;font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:#fff}
+canvas{display:block;width:100%;background:#1c0f0f}
+.btns{display:flex;gap:12px;justify-content:center;padding:12px 0 4px;background:#1c0f0f}
+button{padding:10px 28px;border-radius:7px;font-family:'Share Tech Mono',monospace;font-size:13px;font-weight:500;cursor:pointer;border:2px solid;transition:all .18s}
+.bset{background:rgba(0,180,255,.1);border-color:#00b4ff;color:#00b4ff}
+.bset.on,.bset:hover{background:rgba(0,180,255,.3)}
+.brst{background:rgba(255,70,70,.1);border-color:#ff4646;color:#ff4646}
+.brst.on,.brst:hover{background:rgba(255,70,70,.28)}
+.foot{background:#1c0f0f;text-align:center;padding:8px 16px 16px;font-family:'Share Tech Mono',monospace;font-size:11px;color:#a08080;line-height:1.7;border-top:1px solid #2a1515}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="titlebar">SET y RESET — Biestable SR con Transistores NPN</div>
+  <canvas id="cv" width="680" height="400"></canvas>
+  <div class="btns">
+    <button class="bset" id="bS" onclick="doSet()">SET — guardar 1</button>
+    <button class="brst" id="bR" onclick="doReset()">RESET — guardar 0</button>
+  </div>
+  <div class="foot">
+    Siempre conduce un par: T1+T2 cuando Q=1 &nbsp;·&nbsp; T3+T4 cuando Q=0<br>
+    La corriente activa realimenta las bases del par contrario manteniéndolo en corte.
+  </div>
+</div>
+<script>
+var Q = 0;
+var cv = document.getElementById('cv');
+var ctx = cv.getContext('2d');
+var W = 680, H = 400;
+
+function doSet() {
+  Q = 1;
+  document.getElementById('bS').className = 'bset on';
+  document.getElementById('bR').className = 'brst';
+  setTimeout(function(){ document.getElementById('bS').className = 'bset'; }, 500);
+  draw();
+}
+function doReset() {
+  Q = 0;
+  document.getElementById('bS').className = 'bset';
+  document.getElementById('bR').className = 'brst on';
+  setTimeout(function(){ document.getElementById('bR').className = 'brst'; }, 500);
+  draw();
+}
+
+var T1cx=230, T1cy=110;
+var T2cx=230, T2cy=185;
+var T3cx=230, T3cy=255;
+var T4cx=230, T4cy=330;
+var VY=32, GY=376, snX=275;
+var nLy=147, nRy=292;
+var xL=316, xR=432;
+var setX=55, setY=nLy;
+var rstX=55, rstY=nRy;
+
+function npn(cx, cy, isOn) {
+  var R=20, wc=isOn?'#00e060':'#3a2530';
+  ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2);
+  ctx.fillStyle = isOn?'#0a2010':'#180e14'; ctx.fill();
+  ctx.strokeStyle = isOn?'#00e060':'#2e1e28'; ctx.lineWidth = isOn?2:1; ctx.stroke();
+  ctx.strokeStyle = wc; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(cx-8,cy-15); ctx.lineTo(cx-8,cy+15); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx-8,cy-10); ctx.lineTo(cx+14,cy-25); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx-8,cy+10); ctx.lineTo(cx+14,cy+25); ctx.stroke();
+  var ex=cx+14, ey=cy+25, a=Math.atan2(15,22);
+  ctx.fillStyle = wc; ctx.beginPath();
+  ctx.moveTo(ex,ey);
+  ctx.lineTo(ex-8*Math.cos(a-.5), ey-8*Math.sin(a-.5));
+  ctx.lineTo(ex-8*Math.cos(a+.5), ey-8*Math.sin(a+.5));
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = wc; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(cx-R,cy); ctx.lineTo(cx-8,cy); ctx.stroke();
+  ctx.fillStyle = isOn?'#44ff88':'#5a3a48';
+  ctx.font = 'bold 9px Share Tech Mono'; ctx.textAlign = 'center';
+  ctx.fillText(isOn?'ON':'OFF', cx+3, cy+5);
+  return { b:{x:cx-R,y:cy}, c:{x:cx+14,y:cy-25}, e:{x:cx+14,y:cy+25} };
+}
+
+function ln(x1,y1,x2,y2,col,w) {
+  ctx.strokeStyle=col; ctx.lineWidth=w||2;
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+}
+function dot(x,y,col) {
+  ctx.fillStyle=col; ctx.beginPath(); ctx.arc(x,y,4,0,Math.PI*2); ctx.fill();
+}
+
+function draw() {
+  ctx.clearRect(0,0,W,H);
+
+  var wON='#00e060', wOFF='#2e1e28';
+  var wFB1='#f0a820', wFB2='#00aacc';
+  var wSET='#00b4ff', wRST='#ff4646', wVCC='#cc9900';
+  var t1=(Q===1), t3=(Q===0);
+  var wL=t1?wON:wOFF, wR=t3?wON:wOFF;
+
+  function vcc(x,y) {
+    ctx.fillStyle='#1a1500'; ctx.strokeStyle='#554400'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.roundRect(x-24,y-14,48,14,3); ctx.fill(); ctx.stroke();
+    ctx.fillStyle='#aa8800'; ctx.font='9px Share Tech Mono'; ctx.textAlign='center';
+    ctx.fillText('+5V',x,y-3);
+  }
+  vcc(T1cx,VY); vcc(T3cx,VY);
+
+  var p1=npn(T1cx,T1cy,t1), p2=npn(T2cx,T2cy,t1);
+  var p3=npn(T3cx,T3cy,t3), p4=npn(T4cx,T4cy,t3);
+
+  ln(T1cx,VY,p1.c.x,p1.c.y,wVCC,1.8);
+  ln(T3cx,VY,p3.c.x,p3.c.y,wVCC,1.8);
+
+  // Serie T1→T2: línea directa entre emisor T1 y colector T2, luego al nodo snX
+  ctx.strokeStyle=wL; ctx.lineWidth=2; ctx.beginPath();
+  ctx.moveTo(p1.e.x,p1.e.y); ctx.lineTo(p1.e.x,p2.c.y); ctx.stroke();
+  // ramal horizontal del nodo de serie hacia snX
+  ctx.beginPath(); ctx.moveTo(p1.e.x,nLy); ctx.lineTo(snX,nLy); ctx.stroke();
+  dot(snX,nLy,wL); dot(p1.e.x,nLy,wL);
+
+  // Serie T3→T4: igual
+  ctx.strokeStyle=wR; ctx.lineWidth=2; ctx.beginPath();
+  ctx.moveTo(p3.e.x,p3.e.y); ctx.lineTo(p3.e.x,p4.c.y); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(p3.e.x,nRy); ctx.lineTo(snX,nRy); ctx.stroke();
+  dot(snX,nRy,wR); dot(p3.e.x,nRy,wR);
+
+  ctx.strokeStyle=wL; ctx.lineWidth=2; ctx.beginPath();
+  ctx.moveTo(p2.e.x,p2.e.y); ctx.lineTo(p2.e.x,GY); ctx.stroke();
+  ctx.strokeStyle=wR; ctx.lineWidth=2; ctx.beginPath();
+  ctx.moveTo(p4.e.x,p4.e.y); ctx.lineTo(p4.e.x,GY); ctx.stroke();
+  ctx.strokeStyle='#3a2530'; ctx.lineWidth=1.5;
+  [[16,0],[10,6],[5,11]].forEach(function(r){
+    ctx.beginPath(); ctx.moveTo(p2.e.x-r[0],GY+r[1]); ctx.lineTo(p2.e.x+r[0],GY+r[1]); ctx.stroke();
+  });
+
+  ln(snX,nLy,xL,nLy,wL,2);
+  ln(snX,nRy,xL,nRy,wR,2);
+
+  var cx2=(xL+xR)/2, cy2=(nLy+nRy)/2, gap=8;
+  var angA=Math.atan2(nRy-nLy,xR-xL);
+  ctx.strokeStyle=wFB1; ctx.lineWidth=2.5;
+  ctx.beginPath(); ctx.moveTo(xL,nLy); ctx.lineTo(cx2-gap*Math.cos(angA),cy2-gap*Math.sin(angA)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx2+gap*Math.cos(angA),cy2+gap*Math.sin(angA)); ctx.lineTo(xR,nRy); ctx.stroke();
+  ctx.strokeStyle=wFB2; ctx.lineWidth=2.5;
+  ctx.beginPath(); ctx.moveTo(xL,nRy); ctx.lineTo(xR,nLy); ctx.stroke();
+
+  dot(xL,nLy,wFB1); dot(xL,nRy,wFB2); dot(xR,nRy,wFB1); dot(xR,nLy,wFB2);
+
+  var jX=xR+22;
+  ln(xR,nRy,jX,nRy,wFB1,2); ln(jX,nRy,jX,T3cy,wFB1,2);
+  ln(jX,T3cy,p3.b.x,T3cy,wFB1,2); ln(jX,T3cy,jX,T4cy,wFB1,2); ln(jX,T4cy,p4.b.x,T4cy,wFB1,2);
+  dot(jX,T3cy,wFB1); dot(jX,T4cy,wFB1);
+
+  ln(xR,nLy,jX,nLy,wFB2,2); ln(jX,nLy,jX,T1cy,wFB2,2);
+  ln(jX,T1cy,p1.b.x,T1cy,wFB2,2); ln(jX,T1cy,jX,T2cy,wFB2,2); ln(jX,T2cy,p2.b.x,T2cy,wFB2,2);
+  dot(jX,T1cy,wFB2); dot(jX,T2cy,wFB2);
+
+  var sJX=T1cx-20-16, rJX=T3cx-20-16;
+  ln(setX+26,setY,sJX,setY,wSET,2);
+  ln(sJX,T1cy,sJX,T2cy,wSET,2); ln(sJX,T1cy,p1.b.x,T1cy,wSET,2); ln(sJX,T2cy,p2.b.x,T2cy,wSET,2);
+  dot(sJX,T1cy,wSET); dot(sJX,T2cy,wSET);
+  ln(rstX+26,rstY,rJX,rstY,wRST,2);
+  ln(rJX,T3cy,rJX,T4cy,wRST,2); ln(rJX,T3cy,p3.b.x,T3cy,wRST,2); ln(rJX,T4cy,p4.b.x,T4cy,wRST,2);
+  dot(rJX,T3cy,wRST); dot(rJX,T4cy,wRST);
+
+  function inputBtn(x,y,lbl,col,active) {
+    ctx.fillStyle = active?'rgba(255,255,255,.08)':'rgba(255,255,255,.03)';
+    ctx.strokeStyle = col; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.roundRect(x-26,y-18,52,36,6); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = col; ctx.font = 'bold 11px Share Tech Mono'; ctx.textAlign = 'center';
+    ctx.fillText(lbl,x,y+5);
+    ctx.strokeStyle = active?col:'rgba(255,255,255,.15)'; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(x-16,y-26); ctx.lineTo(x-16,y-20); ctx.lineTo(x-8,y-20);
+    ctx.lineTo(x-8,y-26); ctx.lineTo(x-2,y-26); ctx.stroke();
+  }
+  inputBtn(setX,setY,'SET',wSET,Q===1);
+  inputBtn(rstX,rstY,'RST',wRST,Q===0);
+
+  var cubeX=530, cubeY=nRy-24, cubeS=46, cubeCol=Q?'#f0a820':'#664400';
+  ln(jX,nRy,cubeX,nRy,Q?wON:wOFF,2);
+  ctx.fillStyle=cubeCol; ctx.strokeStyle='#cc8800'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.roundRect(cubeX,cubeY,cubeS,cubeS,6); ctx.fill(); ctx.stroke();
+  ctx.fillStyle='#fff'; ctx.font='bold 22px Share Tech Mono'; ctx.textAlign='center';
+  ctx.fillText(Q,cubeX+cubeS/2,cubeY+cubeS*.7);
+  ctx.fillStyle=cubeCol; ctx.font='bold 10px Share Tech Mono'; ctx.textAlign='left';
+  ctx.fillText('Q = '+Q,cubeX+cubeS+8,cubeY+cubeS/2+4);
+
+  ctx.fillStyle='rgba(0,180,255,.5)'; ctx.font='bold 10px Share Tech Mono'; ctx.textAlign='center';
+  ctx.fillText('NAND 1',T1cx+18,T1cy-44);
+  ctx.fillStyle='rgba(240,168,32,.5)';
+  ctx.fillText('NAND 2',T3cx+18,T3cy-44);
+
+  ctx.font='9px Share Tech Mono';
+  ctx.fillStyle=wFB1; ctx.textAlign='left'; ctx.fillText('Q\u0305='+(Q?0:1),snX+6,nLy-6);
+  ctx.fillStyle=wFB2; ctx.textAlign='left'; ctx.fillText('Q='+Q,snX+6,nRy+14);
+
+  ctx.fillStyle='#6a5060'; ctx.font='8px Share Tech Mono'; ctx.textAlign='right';
+  ctx.fillText('T1',T1cx-22,T1cy-28); ctx.fillText('T2',T2cx-22,T2cy-28);
+  ctx.fillText('T3',T3cx-22,T3cy-28); ctx.fillText('T4',T4cx-22,T4cy-28);
+  ctx.fillStyle='#5a4050'; ctx.font='8px Share Tech Mono';
+  [p1,p2,p3,p4].forEach(function(p){
+    ctx.textAlign='left'; ctx.fillText('C',p.c.x+2,p.c.y+3); ctx.fillText('E',p.e.x+2,p.e.y+3);
+    ctx.textAlign='right'; ctx.fillText('B',p.b.x-2,p.b.y+3);
+  });
+}
+
+draw();
+</script>
+</body>
+</html>
