@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Transmisión Digital + Osciloscopio</title>
+    <style>
+        :root {
+            --arduino-teal: #00979d;
+            --arduino-dark: #006468;
+            --scope-bg: #1a1c1a;
+            --scope-grid: #2a302a;
+            --scope-trace: #00ff00;
+            --lcd-bg: #1a1a1a;
+            --lcd-text: #33ccff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: var(--arduino-teal);
+            color: white;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        .main-container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+
+        /* --- ESTILOS DEL SIMULADOR --- */
+        .simulator-card {
+            background: #2d3436;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            margin-bottom: 40px;
+        }
+
+        .hardware-flex {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+
+        .lcd-unit {
+            flex: 1;
+            min-width: 280px;
+            text-align: center;
+        }
+
+        .lcd-screen {
+            background: var(--lcd-bg);
+            border: 5px solid #444;
+            border-radius: 5px;
+            height: 70px;
+            padding: 10px;
+            font-family: 'Courier New', Courier, monospace;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+        }
+
+        .lcd-label {
+            color: #aaa;
+            font-size: 0.7rem;
+            margin-bottom: 5px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .lcd-line {
+            height: 25px;
+            color: var(--lcd-text);
+            font-size: 1.1rem;
+            white-space: pre;
+            text-shadow: 0 0 5px rgba(51, 204, 255, 0.5);
+        }
+
+        /* Osciloscopio */
+        .scope-unit {
+            width: 100%;
+            max-width: 500px;
+            background: #222;
+            border: 10px solid #333;
+            border-radius: 10px;
+            position: relative;
+        }
+
+        canvas {
+            width: 100%;
+            height: 150px;
+            background: var(--scope-bg);
+            display: block;
+        }
+
+        /* Monitor Serie */
+        .serial-interface {
+            background: #1e1e1e;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .serial-input {
+            display: flex;
+            gap: 10px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            background: #000;
+            border: 1px solid #444;
+            color: #00ff00;
+            padding: 10px;
+            font-family: 'Consolas', monospace;
+        }
+
+        button {
+            background: var(--arduino-teal);
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        button:hover { background: var(--arduino-dark); }
+
+        .serial-log {
+            color: #00ff00;
+            font-family: 'Consolas', monospace;
+            font-size: 0.85rem;
+            margin-top: 10px;
+            height: 40px;
+            overflow-y: auto;
+        }
+
+        /* --- DOCUMENTACIÓN --- */
+        .docs {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        h2 { color: var(--arduino-teal); border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        h3 { color: var(--arduino-dark); margin-top: 25px; }
+        
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-left: 5px solid var(--arduino-teal);
+            overflow-x: auto;
+            font-size: 0.9rem;
+        }
+
+        .tag-orange { color: #d35400; font-weight: bold; }
+        .tag-blue { color: #2980b9; }
+
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background: #f4f4f4; color: var(--arduino-dark); }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Simulador de Transmisión Digital con Osciloscopio</h1>
+    <p>Arduino UNO + 3 LCD I2C + Salida de Señal Real (Pin 12)</p>
+</header>
+
+<div class="main-container">
+    
+    <!-- ÁREA DE SIMULACIÓN -->
+    <section class="simulator-card">
+        <div class="hardware-flex">
+            <!-- RECEPTOR -->
+            <div class="lcd-unit">
+                <div class="lcd-label">LCD 3: RECEPTOR (0x25)</div>
+                <div class="lcd-screen">
+                    <div id="r-l1" class="lcd-line">RECEPTOR</div>
+                    <div id="r-l2" class="lcd-line"></div>
+                </div>
+            </div>
+            <!-- CANAL -->
+            <div class="lcd-unit">
+                <div class="lcd-label">LCD 2: CANAL (0x26)</div>
+                <div class="lcd-screen">
+                    <div id="c-l1" class="lcd-line" style="position:relative">CANAL (ESPERA)</div>
+                    <div id="c-l2" class="lcd-line" style="position:relative"></div>
+                </div>
+            </div>
+            <!-- EMISOR -->
+            <div class="lcd-unit">
+                <div class="lcd-label">LCD 1: EMISOR (0x27)</div>
+                <div class="lcd-screen">
+                    <div id="e-l1" class="lcd-line">EMISOR (LISTO)</div>
+                    <div id="e-l2" class="lcd-line"></div>
+                </div>
+            </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 20px;">
+            <div class="scope-unit">
+                <div class="lcd-label" style="position:absolute; top:-20px; left:0; color:#fff">Osciloscopio Virtual (Pin 12)</div>
+                <canvas id="scopeCanvas"></canvas>
+            </div>
+
+            <div class="serial-interface">
+                <div class="serial-input">
+                    <input type="text" id="serialInput" placeholder="Ingresa texto o un número (0-9)...">
+                    <button onclick="processSerial()">Enviar</button>
+                </div>
+                <div id="serialLog" class="serial-log">> Arduino encendido. Listo para recibir datos.</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- DOCUMENTACIÓN TÉCNICA -->
+    <div class="docs">
+        <h2>FUNCIONAMIENTO QUE SE PRETENDE</h2>
+        <p>Este sistema simula una transmisión digital completa, discriminando entre datos ASCII y valores numéricos puros, mientras genera una señal de pulso real para ser visualizada en un osciloscopio.</p>
+        
+        <h3>1. Diferenciación de Datos</h3>
+        <ul>
+            <li><strong>Modo ASCII:</strong> Si escribes "H", se transmite su código binario 01001000.</li>
+            <li><strong>Modo Numérico:</strong> Si escribes solo un número (ej: "5"), se transmite su valor binario 00000101 (el número 5 real).</li>
+        </ul>
+
+        <h2>HARDWARE</h2>
+        <table>
+            <tr><th>Componente</th><th>Conexión Arduino</th></tr>
+            <tr><td>3x LCD 16x2 con I2C</td><td>SDA -> A4, SCL -> A5</td></tr>
+            <tr><td>Pin Osciloscopio</td><td>Pin Digital 12</td></tr>
+            <tr><td>Alimentación</td><td>5V y GND compartidos</td></tr>
+        </table>
+
+        <h2>EXPLICACIÓN DEL CÓDIGO (Lógica Osciloscopio)</h2>
+        <pre>
+<span class="tag-blue">for</span> (<span class="tag-blue">int</span> i = 0; i < binario.length(); i++) {
+    <span class="tag-blue">if</span> (binario.charAt(i) == '0') {
+      <span class="tag-orange">digitalWrite</span>(OSC_PIN, LOW); <span class="code-comment">// 0 Voltios</span>
+      lcdReceptor.write((byte)0);   <span class="code-comment">// Onda baja en LCD</span>
+    } <span class="tag-blue">else</span> {
+      <span class="tag-orange">digitalWrite</span>(OSC_PIN, HIGH);<span class="code-comment">// 5 Voltios</span>
+      lcdReceptor.write((byte)1);   <span class="code-comment">// Onda alta en LCD</span>
+    }
+    <span class="tag-orange">delay</span>(15); <span class="code-comment">// Duración de cada bit</span>
+}</pre>
+
+        <h2>AJUSTES EN EL OSCILOSCOPIO</h2>
+        <p>Para ver la señal de 8 bits correctamente en Tinkercad o la realidad:</p>
+        <ul>
+            <li><strong>Time/Div:</strong> 50ms para ver la ráfaga completa.</li>
+            <li><strong>Trigger:</strong> Flanco de subida para estabilizar.</li>
+        </ul>
+    </div>
+</div>
+
+<script>
+    // Configuración del Simulador
+    let frase = "";
+    let reconstruida = "";
+    let transmitiendo = false;
+    let modoNumerico = false;
+    
+    // Configuración del Osciloscopio Virtual
+    const canvas = document.getElementById('scopeCanvas');
+    const ctx = canvas.getContext('2d');
+    let scopeData = new Array(100).fill(0); // Datos de la señal
+    let currentSignal = 0;
+
+    function drawScope() {
+        ctx.fillStyle = '#1a1c1a';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Dibujar cuadrícula
+        ctx.strokeStyle = '#2a302a';
+        ctx.lineWidth = 1;
+        for(let i=0; i<canvas.width; i+=40) {
+            ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,canvas.height); ctx.stroke();
+        }
+        for(let j=0; j<canvas.height; j+=40) {
+            ctx.beginPath(); ctx.moveTo(0,j); ctx.lineTo(canvas.width,j); ctx.stroke();
+        }
+
+        // Dibujar traza
+        ctx.strokeStyle = '#00ff00';
+        ctx.lineWidth = 2;
+        ctx.shadowBlur = 5;
+        ctx.shadowColor = "#00ff00";
+        ctx.beginPath();
+        let xStep = canvas.width / scopeData.length;
+        ctx.moveTo(0, canvas.height - 20 - (scopeData[0] * 100));
+        
+        for(let i=1; i<scopeData.length; i++) {
+            ctx.lineTo(i * xStep, canvas.height - 20 - (scopeData[i] * 100));
+        }
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        // Actualizar datos (desplazamiento continuo)
+        if(!transmitiendo) {
+            scopeData.push(0);
+        } else {
+            scopeData.push(currentSignal);
+        }
+        scopeData.shift();
+        
+        requestAnimationFrame(drawScope);
+    }
+    drawScope();
+
+    // Lógica Serial y Transmisión
+    async function processSerial() {
+        if(transmitiendo) return;
+        
+        const input = document.getElementById('serialInput');
+        const log = document.getElementById('serialLog');
+        const val = input.value.trim();
+        input.value = "";
+
+        if(val.toLowerCase() === 'enviar') {
+            if(frase) iniciarTransmision();
+        } else if(val.toLowerCase() === 'borrar') {
+            borrarTodo();
+        } else if(val !== "") {
+            frase = val;
+            modoNumerico = (frase.length === 1 && !isNaN(frase));
+            document.getElementById('e-l1').innerText = frase;
+            log.innerText = `> ${modoNumerico ? 'MODO NUMÉRICO' : 'MODO ASCII'} cargado: "${frase}"`;
+        }
+    }
+
+    async function iniciarTransmision() {
+        transmitiendo = true;
+        reconstruida = "";
+        const log = document.getElementById('serialLog');
+        log.innerText = "> Transmitiendo datos...";
+        
+        document.getElementById('r-l1').innerText = "Recibiendo...";
+        
+        for(let i=0; i<frase.length; i++) {
+            let char = frase[i];
+            let binario = "";
+            
+            if(modoNumerico) {
+                binario = parseInt(char).toString(2).padStart(8, '0');
+            } else {
+                binario = char.charCodeAt(0).toString(2).padStart(8, '0');
+            }
+
+            // Animación Canal
+            const cL1 = document.getElementById('c-l1');
+            const cL2 = document.getElementById('c-l2');
+            cL1.innerText = " ".repeat(16) + char;
+            cL2.innerText = " ".repeat(16) + binario;
+            
+            for(let s=0; s<=24; s++) {
+                cL1.style.left = `-${s*10}px`;
+                cL2.style.left = `-${s*10}px`;
+                await new Promise(r => setTimeout(r, 40));
+            }
+
+            // Actualizar Receptor y Osciloscopio
+            reconstruida += char;
+            document.getElementById('r-l1').innerText = reconstruida;
+            
+            let waveHTML = "";
+            for(let bit of binario) {
+                currentSignal = parseInt(bit);
+                waveHTML += (bit === '1' ? '¯' : '_'); // Simulación visual simple
+                document.getElementById('r-l2').innerText = waveHTML;
+                await new Promise(r => setTimeout(r, 100)); // Simula delay(15) pero visible
+            }
+            currentSignal = 0;
+            await new Promise(r => setTimeout(r, 300));
+        }
+
+        log.innerText = "> Transmisión finalizada.";
+        await new Promise(r => setTimeout(r, 2000));
+        document.getElementById('c-l1').innerText = "CANAL (LIBRE)";
+        document.getElementById('c-l1').style.left = "0";
+        document.getElementById('c-l2').innerText = "";
+        document.getElementById('r-l2').innerText = "";
+        transmitiendo = false;
+    }
+
+    function borrarTodo() {
+        frase = "";
+        reconstruida = "";
+        transmitiendo = false;
+        document.getElementById('e-l1').innerText = "EMISOR (LISTO)";
+        document.getElementById('c-l1').innerText = "CANAL (ESPERA)";
+        document.getElementById('c-l1').style.left = "0";
+        document.getElementById('c-l2').innerText = "";
+        document.getElementById('r-l1').innerText = "RECEPTOR";
+        document.getElementById('r-l2').innerText = "";
+        document.getElementById('serialLog').innerText = "> Sistema reiniciado.";
+        currentSignal = 0;
+    }
+</script>
+
+</body>
+</html>

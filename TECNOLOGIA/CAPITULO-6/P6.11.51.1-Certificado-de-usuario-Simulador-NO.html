@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador Protocolo mTLS - Autenticación Mutua</title>
+    <style>
+        :root {
+            --arduino-teal: #00979d;
+            --arduino-dark: #006468;
+            --lcd-blue: #0033cc;
+            --lcd-text: #ffffff;
+            --hex-color: #f1c40f;
+            --bg-body: #f0f2f5;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-body);
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+
+        header {
+            background-color: var(--arduino-teal);
+            color: white;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .main-container {
+            max-width: 1250px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+
+        /* --- ESTILOS DE LOS LCD --- */
+        .handshake-step-indicator {
+            text-align: center;
+            font-weight: bold;
+            color: var(--arduino-dark);
+            margin-bottom: 15px;
+            height: 30px;
+            font-size: 1.2rem;
+        }
+
+        .lcd-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .lcd-module {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .lcd-screen {
+            background-color: var(--lcd-blue);
+            width: 100%;
+            height: 85px;
+            border: 6px solid #333;
+            border-radius: 6px;
+            padding: 10px;
+            box-sizing: border-box;
+            font-family: 'Courier New', Courier, monospace;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .lcd-line {
+            height: 30px;
+            font-size: 0.95rem;
+            color: var(--lcd-text);
+            white-space: pre;
+            display: flex;
+            align-items: center;
+            text-shadow: 0 0 5px rgba(255,255,255,0.5);
+        }
+
+        .lcd-label {
+            font-size: 0.7rem;
+            font-weight: bold;
+            margin-top: 10px;
+            color: #555;
+            text-transform: uppercase;
+        }
+
+        /* Colores bordes */
+        #p3-screen { border-color: #c0392b; } /* Canal mTLS */
+        #p2-screen, #p4-screen { border-color: #f39c12; } /* Gestión de Claves */
+
+        /* --- MONITOR SERIE --- */
+        .serial-console {
+            background-color: #1e1e1e;
+            border-radius: 8px;
+            padding: 15px;
+            color: #00ff00;
+            font-family: 'Consolas', monospace;
+            margin-bottom: 40px;
+        }
+
+        .serial-input-area {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            background: #000;
+            border: 1px solid #444;
+            color: #00ff00;
+            padding: 8px;
+            border-radius: 4px;
+        }
+
+        .serial-log {
+            height: 180px;
+            overflow-y: auto;
+            border-top: 1px solid #444;
+            padding-top: 10px;
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+
+        /* --- DOCUMENTACIÓN --- */
+        .docs-section {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .docs-full { grid-column: 1 / span 2; }
+
+        h2 { color: var(--arduino-teal); border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 0; }
+        pre { background: #f8f8f8; padding: 12px; border-radius: 5px; overflow-x: auto; font-size: 0.8rem; border-left: 5px solid var(--arduino-teal); }
+        
+        .key-tag {
+            display: inline-block;
+            padding: 2px 5px;
+            background: #e1e1e1;
+            border-radius: 3px;
+            font-weight: bold;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Simulador Protocolo mTLS (Mutual TLS)</h1>
+    <p>Autenticación Mutua con 5 Pantallas LCD I2C y Firma Digital</p>
+</header>
+
+<div class="main-container">
+    
+    <div id="step-info" class="handshake-step-indicator">Escribe 'Enviar' para iniciar Handshake</div>
+
+    <!-- PANTALLAS LCD -->
+    <div class="lcd-row">
+        <!-- P5 SERVIDOR -->
+        <div class="lcd-module">
+            <div class="lcd-screen" id="p5-screen">
+                <div class="lcd-line" id="p5-l1">P5 SERVIDOR</div>
+                <div class="lcd-line" id="p5-l2"></div>
+            </div>
+            <div class="lcd-label">P5: Servidor</div>
+        </div>
+
+        <!-- P4 CLAVES SERVIDOR -->
+        <div class="lcd-module">
+            <div class="lcd-screen" id="p4-screen">
+                <div class="lcd-line" id="p4-l1">P4 CLAVES SRV.</div>
+                <div class="lcd-line" id="p4-l2"></div>
+            </div>
+            <div class="lcd-label">P4: Claves Srv</div>
+        </div>
+
+        <!-- P3 CANAL -->
+        <div class="lcd-module">
+            <div class="lcd-screen" id="p3-screen">
+                <div class="lcd-line" id="p3-l1">P3 CANAL mTLS</div>
+                <div class="lcd-line" id="p3-l2"></div>
+            </div>
+            <div class="lcd-label">P3: Internet</div>
+        </div>
+
+        <!-- P2 CLAVES CLIENTE -->
+        <div class="lcd-module">
+            <div class="lcd-screen" id="p2-screen">
+                <div class="lcd-line" id="p2-l1">P2 CLAVES CLI.</div>
+                <div class="lcd-line" id="p2-l2"></div>
+            </div>
+            <div class="lcd-label">P2: Claves Cli</div>
+        </div>
+
+        <!-- P1 NAVEGADOR -->
+        <div class="lcd-module">
+            <div class="lcd-screen" id="p1-screen">
+                <div class="lcd-line" id="p1-l1">NAVEGADOR</div>
+                <div class="lcd-line" id="p1-l2">dime la hora que</div>
+            </div>
+            <div class="lcd-label">P1: Navegador</div>
+        </div>
+    </div>
+
+    <!-- MONITOR SERIE -->
+    <div class="serial-console">
+        <div class="serial-input-area">
+            <span>></span>
+            <input type="text" id="serialInput" placeholder="Enviar / Borrar...">
+            <button onclick="processInput()">Ejecutar</button>
+        </div>
+        <div class="serial-log" id="serialLog">
+            [SISTEMA] Arduino mTLS inicializado.<br>
+            [SISTEMA] P1 Cargado: "dime la hora que es"<br>
+            [INFO] Esperando inicio de negociación mutua...
+        </div>
+    </div>
+
+    <!-- DOCUMENTACIÓN -->
+    <div class="docs-section">
+        <div>
+            <h2>CLAVES DEL CLIENTE</h2>
+            <p>El cliente posee su propia identidad criptográfica:</p>
+            <ul>
+                <li>Pública: <span class="key-tag">0x3A</span> (Para verificar firma)</li>
+                <li>Privada: <span class="key-tag">0xC5</span> (Para firmar)</li>
+            </ul>
+        </div>
+        <div>
+            <h2>CLAVES DEL SERVIDOR</h2>
+            <p>El servidor garantiza su identidad al navegador:</p>
+            <ul>
+                <li>Pública: <span class="key-tag">0x5A</span> (Para cifrar AES)</li>
+                <li>Privada: <span class="key-tag">0xA5</span> (Para descifrar AES)</li>
+            </ul>
+        </div>
+        <div class="docs-full">
+            <h2>DIFERENCIA CLAVE mTLS</h2>
+            <p>En mTLS, se añade el <strong>Paso 5: Firma Digital</strong>. El cliente firma un Hash con su clave privada. El servidor usa la pública del cliente para verificarlo. 
+            Si la firma es válida, el servidor tiene la certeza de que el cliente es quien dice ser.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Configuración de la simulación
+    const keys = {
+        pubCli: 0x3A, privCli: 0xC5,
+        pubSrv: 0x5A, privSrv: 0xA5,
+        aes: 0x3C, hash: 0x7F
+    };
+    const pregunta = "dime la hora que es";
+    let isRunning = false;
+
+    // Referencias DOM
+    const log = document.getElementById('serialLog');
+    const input = document.getElementById('serialInput');
+    const stepLabel = document.getElementById('step-info');
+
+    // LCD Lines
+    const p1_1 = document.getElementById('p1-l1'), p1_2 = document.getElementById('p1-l2');
+    const p2_1 = document.getElementById('p2-l1'), p2_2 = document.getElementById('p2-l2');
+    const p3_1 = document.getElementById('p3-l1'), p3_2 = document.getElementById('p3-l2');
+    const p4_1 = document.getElementById('p4-l1'), p4_2 = document.getElementById('p4-l2');
+    const p5_1 = document.getElementById('p5-l1'), p5_2 = document.getElementById('p5-l2');
+
+    input.addEventListener("keypress", (e) => { if (e.key === "Enter") processInput(); });
+
+    function addLog(msg, color = "#00ff00") {
+        log.innerHTML += `<span style="color:${color}">${msg}</span><br>`;
+        log.scrollTop = log.scrollHeight;
+    }
+
+    const delay = (ms) => new Promise(res => setTimeout(res, ms));
+
+    function xorToHex(text, key) {
+        return text.split('').map(c => (c.charCodeAt(0) ^ key).toString(16).toUpperCase().padStart(2, '0')).join(' ');
+    }
+
+    async function deslizar(l1, l2) {
+        p3_1.innerText = " ".repeat(16) + l1;
+        p3_2.innerText = " ".repeat(16) + l2;
+        for (let i = 0; i < 26; i++) {
+            p3_1.style.transform = `translateX(-${i * 10}px)`;
+            p3_2.style.transform = `translateX(-${i * 10}px)`;
+            await delay(80);
+        }
+        p3_1.style.transform = `translateX(0)`;
+        p3_2.style.transform = `translateX(0)`;
+        p3_1.innerText = "P3 CANAL mTLS";
+        p3_2.innerText = "";
+    }
+
+    function processInput() {
+        const val = input.value.trim().toLowerCase();
+        input.value = "";
+        if (val === "enviar" && !isRunning) runMTLS();
+        else if (val === "borrar") location.reload();
+    }
+
+    async function runMTLS() {
+        isRunning = true;
+        addLog(">>> INICIANDO HANDSHAKE mTLS (MUTUAL) <<<", "#3498db");
+
+        // PASO 1: CERT SERVIDOR
+        stepLabel.innerText = "PASO 1: CERTIFICADO DEL SERVIDOR";
+        p5_2.innerText = "Envio CERT SRV";
+        p4_2.innerText = "PUB: 0x5A >>>";
+        addLog("P4/P5: Enviando certificado del servidor (PubKey: 0x5A)");
+        await deslizar("CERT.SRV >>>", "PUB:0x5A HTTPS");
+        p2_2.innerText = "PUB SRV:0x5A";
+        addLog("P1/P2: Certificado de servidor verificado.");
+        await delay(1500);
+
+        // PASO 2: REQUEST CLIENT CERT
+        stepLabel.innerText = "PASO 2: SOLICITUD DE CERTIFICADO CLIENTE";
+        p5_2.innerText = "CLIENTE >>>?";
+        p4_2.innerText = "Cliente id? >>>";
+        addLog("P5: El servidor solicita identificación al cliente.");
+        await deslizar("CERT.REQUEST>", "Quien eres?>>>");
+        await delay(1000);
+
+        // PASO 3: CERT CLIENTE
+        stepLabel.innerText = "PASO 3: CERTIFICADO DEL CLIENTE";
+        p1_2.innerText = "PUB:0x3A";
+        p2_2.innerText = "PUB: 0x3A <<<";
+        addLog("P1/P2: Enviando certificado del cliente (PubKey: 0x3A)");
+        await deslizar("<<< CERT.CLI", "PUB:0x3A mTLS");
+        p4_2.innerText = "PUB CLI:0x3A";
+        addLog("P4/P5: Certificado de cliente verificado.");
+        await delay(1500);
+
+        // PASO 4: CLAVE AES
+        stepLabel.innerText = "PASO 4: INTERCAMBIO CLAVE AES";
+        p1_2.innerText = "AES: 0x3C";
+        p2_2.innerText = "0x3C^0x5A=0x66";
+        addLog("P2: Cifrando clave de sesión AES (0x3C) con PubKey Servidor.");
+        await deslizar("CLAVE AES >>>", "0x66 cifrada");
+        p4_2.innerText = "0x66^0xA5=0x3C";
+        p5_2.innerText = "Sesion: 0x3C";
+        addLog("P4: Descifrando AES con PrivKey Servidor.");
+        await delay(1500);
+
+        // PASO 5: FIRMA DIGITAL (Diferencia mTLS)
+        stepLabel.innerText = "PASO 5: FIRMA DIGITAL DEL CLIENTE";
+        p1_2.innerText = "hash^PRV=0xBA";
+        p2_2.innerText = "0x7F^0xC5=0xBA";
+        addLog("P2: Firmando sesión con PrivKey Cliente (0xC5). Firma: 0xBA");
+        await deslizar("<<< FIRMA DIG.", "0xBA firmado");
+        p4_1.innerText = "VERIF.FIRMA OK";
+        p4_2.innerText = "c/PUB CLI:0x3A";
+        p5_1.innerText = "IDENTIDAD CLI";
+        p5_2.innerText = "CONFIRMADA OK";
+        addLog("P4: Firma verificada con PubKey Cliente. IDENTIDAD MUTUA CONFIRMADA.", "#f1c40f");
+        await delay(2000);
+
+        // SESIÓN ESTABLECIDA
+        p2_1.innerText = "SESION AES OK"; p2_2.innerText = "Clave: 0x3C";
+        p4_1.innerText = "SESION AES OK"; p4_2.innerText = "Clave: 0x3C";
+        addLog("CANAL mTLS ESTABLECIDO. Clave AES activa: 0x3C", "#3498db");
+        await delay(1500);
+
+        // TRANSMISIÓN DE DATOS
+        stepLabel.innerText = "SESIÓN SEGURA: TRANSMISIÓN";
+        p1_1.innerText = "PREGUNTA:"; p1_2.innerText = pregunta.substring(0, 16);
+        addLog("P1: Enviando pregunta...");
+        const pregHex = xorToHex(pregunta, keys.aes);
+        await deslizar("CIFRADO AES >>>", pregHex.substring(0, 16));
+        p5_1.innerText = "PREGUNTA:"; p5_2.innerText = pregunta.substring(0, 16);
+        addLog("P5: Pregunta recibida en claro.");
+        await delay(3000);
+
+        // RESPUESTA
+        const horaStr = new Date().toLocaleTimeString();
+        const respuesta = "son las " + horaStr;
+        p5_1.innerText = "RESPUESTA:"; p5_2.innerText = respuesta;
+        addLog("P5: Generando respuesta con hora real.");
+        await delay(1500);
+        const respHex = xorToHex(respuesta, keys.aes);
+        await deslizar("<<< AES CIFRADO", respHex.substring(0, 16));
+        p1_1.innerText = "RESPUESTA:"; p1_2.innerText = respuesta;
+        addLog("P1: Respuesta recibida: " + respuesta, "#3498db");
+
+        stepLabel.innerText = "FIN DEL CICLO mTLS";
+        isRunning = false;
+    }
+
+</script>
+
+</body>
+</html>

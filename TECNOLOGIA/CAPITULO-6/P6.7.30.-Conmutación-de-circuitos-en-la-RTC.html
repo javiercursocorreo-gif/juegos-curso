@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador RTC - Red Telefónica Conmutada (Corregido)</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-color: #1e293b;
+            --text-color: #f8fafc;
+            --led-off: #334155;
+            --led-on: #22c55e;
+            --led-glow: rgba(34, 197, 94, 0.5);
+            --wire-color: #475569;
+            --wire-active: #22c55e;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 20px;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        .circuit-panel {
+            background: var(--panel-color);
+            padding: 20px;
+            border-radius: 15px;
+            position: relative;
+            height: 600px;
+            border: 2px solid #334155;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+
+        .node {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 2;
+        }
+
+        .led {
+            width: 22px;
+            height: 22px;
+            background-color: var(--led-off);
+            border-radius: 50%;
+            margin-bottom: 5px;
+            transition: all 0.2s;
+            border: 2px solid #0f172a;
+        }
+
+        .led.active {
+            background-color: var(--led-on);
+            box-shadow: 0 0 15px var(--led-glow);
+        }
+
+        .label {
+            font-size: 10px;
+            font-weight: bold;
+            color: #94a3b8;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .serial-panel {
+            background: #000;
+            color: #22c55e;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Consolas', monospace;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #334155;
+        }
+
+        #serial-output {
+            height: 480px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            font-size: 13px;
+        }
+
+        .serial-input-area {
+            display: flex;
+            gap: 8px;
+        }
+
+        input[type="text"] {
+            flex-grow: 1;
+            background: #111;
+            border: 1px solid #22c55e;
+            color: #22c55e;
+            padding: 8px;
+            outline: none;
+            border-radius: 4px;
+        }
+
+        button {
+            background: #22c55e;
+            color: #000;
+            border: none;
+            padding: 8px 15px;
+            cursor: pointer;
+            font-weight: bold;
+            border-radius: 4px;
+        }
+
+        svg.connections {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        line {
+            stroke: var(--wire-color);
+            stroke-width: 2;
+            transition: stroke 0.2s;
+        }
+
+        line.active {
+            stroke: var(--wire-active);
+            stroke-width: 3;
+        }
+    </style>
+</head>
+<body>
+
+    <h1 style="color: #38bdf8; margin-bottom: 10px;">Simulador RTC (Red Telefónica Jerárquica)</h1>
+    <p style="color: #94a3b8; margin-top: 0;">Lógica de enrutamiento basada en Arduino</p>
+
+    <div class="container">
+        <div class="circuit-panel" id="circuit">
+            <svg class="connections" id="svg-conn"></svg>
+            
+            <!-- CI -->
+            <div class="node" id="node-CIE" style="top: 40px; left: 35%;"><div class="led" id="led-CIE"></div><div class="label">CI ESPAÑA</div></div>
+            <div class="node" id="node-CIF" style="top: 40px; left: 65%;"><div class="led" id="led-CIF"></div><div class="label">CI FRANCIA</div></div>
+
+            <!-- CR -->
+            <div class="node" id="node-CRE1" style="top: 160px; left: 20%;"><div class="led" id="led-CRE1"></div><div class="label">CR ESP 1</div></div>
+            <div class="node" id="node-CRE2" style="top: 160px; left: 50%;"><div class="led" id="led-CRE2"></div><div class="label">CR ESP 2</div></div>
+            <div class="node" id="node-CRF1" style="top: 160px; left: 80%;"><div class="led" id="led-CRF1"></div><div class="label">CR FRA 1</div></div>
+
+            <!-- CL -->
+            <div class="node" id="node-CLE1_1" style="top: 300px; left: 10%;"><div class="led" id="led-CLE1_1"></div><div class="label">CLE 1.1</div></div>
+            <div class="node" id="node-CLE1_2" style="top: 300px; left: 30%;"><div class="led" id="led-CLE1_2"></div><div class="label">CLE 1.2</div></div>
+            <div class="node" id="node-CLE2_1" style="top: 300px; left: 50%;"><div class="led" id="led-CLE2_1"></div><div class="label">CLE 2.1</div></div>
+            <div class="node" id="node-CLF1_1" style="top: 300px; left: 70%;"><div class="led" id="led-CLF1_1"></div><div class="label">CLF 1.1</div></div>
+            <div class="node" id="node-CLF1_2" style="top: 300px; left: 90%;"><div class="led" id="led-CLF1_2"></div><div class="label">CLF 1.2</div></div>
+
+            <!-- Abonados -->
+            <div class="node" id="node-A1" style="top: 480px; left: 5%;"><div class="led" id="led-A1"></div><div class="label">A1</div></div>
+            <div class="node" id="node-A2" style="top: 480px; left: 15%;"><div class="led" id="led-A2"></div><div class="label">A2</div></div>
+            <div class="node" id="node-A3" style="top: 480px; left: 30%;"><div class="led" id="led-A3"></div><div class="label">A3</div></div>
+            <div class="node" id="node-A4" style="top: 480px; left: 50%;"><div class="led" id="led-A4"></div><div class="label">A4</div></div>
+            <div class="node" id="node-A5" style="top: 480px; left: 70%;"><div class="led" id="led-A5"></div><div class="label">A5</div></div>
+            <div class="node" id="node-A6" style="top: 480px; left: 90%;"><div class="led" id="led-A6"></div><div class="label">A6</div></div>
+        </div>
+
+        <div class="serial-panel">
+            <div id="serial-output"></div>
+            <div class="serial-input-area">
+                <input type="text" id="serial-input" placeholder="Ej: A1 A5">
+                <button onclick="processInput()">Enviar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const serialOutput = document.getElementById('serial-output');
+        const serialInput = document.getElementById('serial-input');
+        const svgConn = document.getElementById('svg-conn');
+
+        // Definición de todas las líneas físicas de la red
+        const physicalWires = [
+            ['CIE', 'CIF'], ['CIE', 'CRE1'], ['CIE', 'CRE2'], ['CIF', 'CRF1'],
+            ['CRE1', 'CLE1_1'], ['CRE1', 'CLE1_2'], ['CRE2', 'CLE2_1'],
+            ['CRF1', 'CLF1_1'], ['CRF1', 'CLF1_2'], ['CLE1_1', 'A1'],
+            ['CLE1_1', 'A2'], ['CLE1_2', 'A3'], ['CLE2_1', 'A4'],
+            ['CLF1_1', 'A5'], ['CLF1_2', 'A6']
+        ];
+
+        function logToSerial(msg, isUser = false) {
+            const line = document.createElement('div');
+            line.textContent = (isUser ? "> " : "") + msg;
+            serialOutput.appendChild(line);
+            serialOutput.scrollTop = serialOutput.scrollHeight;
+        }
+
+        function drawWires() {
+            svgConn.innerHTML = '';
+            physicalWires.forEach(([s, e]) => {
+                const start = document.getElementById('node-' + s).getBoundingClientRect();
+                const end = document.getElementById('node-' + e).getBoundingClientRect();
+                const container = document.getElementById('circuit').getBoundingClientRect();
+                const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                line.setAttribute("x1", start.left - container.left + start.width/2);
+                line.setAttribute("y1", start.top - container.top + 10);
+                line.setAttribute("x2", end.left - container.left + end.width/2);
+                line.setAttribute("y2", end.top - container.top + 10);
+                line.setAttribute("id", `wire-${s}-${e}`);
+                svgConn.appendChild(line);
+            });
+        }
+
+        function apagarTodo() {
+            document.querySelectorAll('.led').forEach(led => led.classList.remove('active'));
+            document.querySelectorAll('line').forEach(line => line.classList.remove('active'));
+        }
+
+        function encenderRuta(nodos) {
+            nodos.forEach(id => {
+                const led = document.getElementById('led-' + id);
+                if (led) led.classList.add('active');
+            });
+            // Encender cables si ambos extremos están activos en la ruta
+            physicalWires.forEach(([s, e]) => {
+                if (nodos.includes(s) && nodos.includes(e)) {
+                    const wire = document.getElementById(`wire-${s}-${e}`);
+                    if (wire) wire.classList.add('active');
+                }
+            });
+        }
+
+        function processInput() {
+            const input = serialInput.value.trim().toUpperCase();
+            if (!input) return;
+            logToSerial(input, true);
+            serialInput.value = '';
+
+            if (input === "COLGAR") {
+                apagarTodo();
+                logToSerial("Llamada finalizada.");
+                logToSerial("Marque un abonado (Ej: A1 A5)");
+                return;
+            }
+
+            const abonados = input.replace(' ', ',');
+            apagarTodo();
+            logToSerial("Estableciendo ruta para: " + abonados);
+
+            // LOGICA EXACTA DEL CODIGO ARDUINO
+            if (abonados == "A1,A2" || abonados == "A2,A1") {
+                encenderRuta(["A1", "CLE1_1", "A2"]);
+            } else if (abonados == "A5,A6" || abonados == "A6,A5") {
+                encenderRuta(["A5", "CLF1_1", "CRF1", "CLF1_2", "A6"]);
+            } else if (abonados == "A1,A3" || abonados == "A3,A1") {
+                encenderRuta(["A1", "CLE1_1", "CRE1", "CLE1_2", "A3"]);
+            } else if (abonados == "A2,A3" || abonados == "A3,A2") {
+                encenderRuta(["A2", "CLE1_1", "CRE1", "CLE1_2", "A3"]);
+            } else if (abonados == "A1,A4" || abonados == "A4,A1") {
+                encenderRuta(["A1", "CLE1_1", "CRE1", "CIE", "CRE2", "CLE2_1", "A4"]);
+            } else if (abonados == "A2,A4" || abonados == "A4,A2") {
+                encenderRuta(["A2", "CLE1_1", "CRE1", "CIE", "CRE2", "CLE2_1", "A4"]);
+            } else if (abonados == "A3,A4" || abonados == "A4,A3") {
+                encenderRuta(["A3", "CLE1_2", "CRE1", "CIE", "CRE2", "CLE2_1", "A4"]);
+            } else if (abonados == "A1,A5" || abonados == "A5,A1") {
+                encenderRuta(["A1", "CLE1_1", "CRE1", "CIE", "CIF", "CRF1", "CLF1_1", "A5"]);
+            } else if (abonados == "A1,A6" || abonados == "A6,A1") {
+                encenderRuta(["A1", "CLE1_1", "CRE1", "CIE", "CIF", "CRF1", "CLF1_2", "A6"]);
+            } else if (abonados == "A2,A5" || abonados == "A5,A2") {
+                encenderRuta(["A2", "CLE1_1", "CRE1", "CIE", "CIF", "CRF1", "CLF1_1", "A5"]);
+            } else if (abonados == "A2,A6" || abonados == "A6,A2") {
+                encenderRuta(["A2", "CLE1_1", "CRE1", "CIE", "CIF", "CRF1", "CLF1_2", "A6"]);
+            } else if (abonados == "A3,A5" || abonados == "A5,A3") {
+                encenderRuta(["A3", "CLE1_2", "CRE1", "CIE", "CIF", "CRF1", "CLF1_1", "A5"]);
+            } else if (abonados == "A3,A6" || abonados == "A6,A3") {
+                encenderRuta(["A3", "CLE1_2", "CRE1", "CIE", "CIF", "CRF1", "CLF1_2", "A6"]);
+            } else if (abonados == "A4,A5" || abonados == "A5,A4") {
+                encenderRuta(["A4", "CLE2_1", "CRE2", "CIE", "CIF", "CRF1", "CLF1_1", "A5"]);
+            } else if (abonados == "A4,A6" || abonados == "A6,A4") {
+                encenderRuta(["A4", "CLE2_1", "CRE2", "CIE", "CIF", "CRF1", "CLF1_2", "A6"]);
+            } else {
+                logToSerial("Ruta no definida o abonado incorrecto.");
+            }
+
+            logToSerial("Marque un abonado (Ej: A1 A5)");
+        }
+
+        window.onload = () => {
+            drawWires();
+            logToSerial("Marque un abonado (Ej: A1 A5)");
+        };
+
+        window.onresize = drawWires;
+
+        serialInput.addEventListener("keyup", (e) => { if(e.key === "Enter") processInput(); });
+    </script>
+</body>
+</html>

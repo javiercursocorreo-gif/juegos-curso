@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Transmisión Digital - Arduino & LCD I2C</title>
+    <style>
+        :root {
+            --arduino-teal: #00979d;
+            --arduino-orange: #f39c12;
+            --lcd-blue: #0033cc;
+            --lcd-light-blue: #3366ff;
+            --text-color: #333;
+            --bg-color: #f4f4f9;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: var(--arduino-teal);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        nav {
+            background: #fff;
+            padding: 1rem;
+            position: sticky;
+            top: 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            z-index: 100;
+        }
+
+        nav a {
+            margin: 0 15px;
+            text-decoration: none;
+            color: var(--arduino-teal);
+            font-weight: bold;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 20px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.05);
+        }
+
+        /* --- Estilos del Simulador Visual --- */
+        .simulator-box {
+            background: #2c3e50;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .lcd-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .lcd {
+            background: var(--lcd-blue);
+            border: 4px solid #555;
+            height: 100px;
+            border-radius: 5px;
+            padding: 10px;
+            font-family: 'Courier New', Courier, monospace;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .lcd-label {
+            text-align: center;
+            font-size: 0.8rem;
+            margin-bottom: 5px;
+            color: #bdc3c7;
+            text-transform: uppercase;
+        }
+
+        .lcd-line {
+            height: 40px;
+            font-size: 1.4rem;
+            white-space: pre;
+            color: #fff;
+            text-shadow: 0 0 5px rgba(255,255,255,0.5);
+        }
+
+        .lcd-bin {
+            font-size: 0.9rem;
+            color: #aeb6bf;
+        }
+
+        .serial-monitor {
+            background: #1e1e1e;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #444;
+        }
+
+        .serial-monitor input {
+            background: #333;
+            border: 1px solid var(--arduino-teal);
+            color: #00ff00;
+            padding: 8px;
+            width: 70%;
+            font-family: monospace;
+        }
+
+        .serial-monitor button {
+            background: var(--arduino-teal);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        /* --- Estilos de Documentación --- */
+        pre {
+            background: #f8f8f8;
+            border-left: 5px solid var(--arduino-teal);
+            padding: 15px;
+            overflow-x: auto;
+            font-size: 0.9rem;
+        }
+
+        .hardware-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        .hardware-table th, .hardware-table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        .hardware-table th {
+            background-color: var(--arduino-teal);
+            color: white;
+        }
+
+        .tag {
+            background: #eee;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+
+        .highlight {
+            color: #d35400;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Simulador de Transmisión Digital</h1>
+    <p>Arduino UNO + 3 LCD I2C (Emisor, Canal, Receptor)</p>
+</header>
+
+<nav>
+    <a href="#funcionamiento">Funcionamiento</a>
+    <a href="#hardware">Hardware</a>
+    <a href="#codigo">Código</a>
+    <a href="#teoria">Teoría I2C</a>
+</nav>
+
+<div class="container">
+    
+    <!-- SIMULADOR INTERACTIVO JS -->
+    <section class="simulator-box">
+        <h3>Simulación Interactiva en Tiempo Real</h3>
+        <div class="lcd-container">
+            <div>
+                <div class="lcd-label">LCD 3: Receptor (0x25)</div>
+                <div class="lcd" id="lcd3">
+                    <div class="lcd-line" id="lcd3-l1">RECEPTOR</div>
+                    <div class="lcd-line"></div>
+                </div>
+            </div>
+            <div>
+                <div class="lcd-label">LCD 2: Canal (0x26)</div>
+                <div class="lcd" id="lcd2">
+                    <div class="lcd-line" id="lcd2-l1" style="position:relative; left: 0;">CANAL (ESPERA)</div>
+                    <div class="lcd-line lcd-bin" id="lcd2-l2"></div>
+                </div>
+            </div>
+            <div>
+                <div class="lcd-label">LCD 1: Emisor (0x27)</div>
+                <div class="lcd" id="lcd1">
+                    <div class="lcd-line" id="lcd1-l1">EMISOR (LISTO)</div>
+                    <div class="lcd-line"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="serial-monitor">
+            <small style="color: #888;">Monitor Serie del IDE de Arduino:</small><br>
+            <input type="text" id="serialInput" placeholder="Escribe un mensaje o 'Enviar' / 'Borrar'...">
+            <button onclick="processSerial()">Enviar al Arduino</button>
+            <p id="serialOutput" style="color: #00ff00; font-family: monospace; font-size: 0.8rem; margin-top: 10px;">> Sistema listo.</p>
+        </div>
+    </section>
+
+    <!-- CONTENIDO TÉCNICO -->
+    <section id="funcionamiento">
+        <h2>FUNCIONAMIENTO QUE SE PRETENDE</h2>
+        <p>Este proyecto simula un sistema de comunicación digital básico dividido en tres etapas:</p>
+        <ol>
+            <li><strong>LCD 1 (Emisor - Derecha):</strong> Punto de origen. Muestra la frase introducida por el usuario de forma fija.</li>
+            <li><strong>LCD 2 (Canal - Centro):</strong> Simula el medio físico. Las letras se desplazan de derecha a izquierda sincronizadas con su código <strong>binario</strong> (8 bits).</li>
+            <li><strong>LCD 3 (Receptor - Izquierda):</strong> Punto de destino. Las letras aparecen una a una y se van acumulando hasta reconstruir el mensaje original.</li>
+        </ol>
+    </section>
+
+    <section id="hardware">
+        <h2>HARDWARE</h2>
+        <table class="hardware-table">
+            <tr>
+                <th>Componente</th>
+                <th>Descripción</th>
+                <th>Conexión Arduino</th>
+            </tr>
+            <tr>
+                <td>Arduino UNO R3</td>
+                <td>Cerebro del sistema</td>
+                <td>-</td>
+            </tr>
+            <tr>
+                <td>3x LCD 16x2 I2C</td>
+                <td>Módulos de visualización</td>
+                <td>SDA (A4), SCL (A5)</td>
+            </tr>
+            <tr>
+                <td>Direcciones I2C</td>
+                <td>Configurables por hardware</td>
+                <td>0x27, 0x26, 0x25</td>
+            </tr>
+        </table>
+    </section>
+
+    <section id="codigo">
+        <h2>CÓDIGO FUENTE (Arduino)</h2>
+        <pre>
+#include &lt;Wire.h&gt;
+#include &lt;LiquidCrystal_I2C.h&gt;
+
+//--- CONFIGURACIÓN DE HARDWARE ---
+#define DIR_LCD_EMISOR   0x27 // LCD 1 (Derecha)
+#define DIR_LCD_CANAL    0x26 // LCD 2 (Centro)
+#define DIR_LCD_RECEPTOR 0x25 // LCD 3 (Izquierda)
+
+LiquidCrystal_I2C lcdEmisor(DIR_LCD_EMISOR, 16, 2);
+LiquidCrystal_I2C lcdCanal(DIR_LCD_CANAL, 16, 2);
+LiquidCrystal_I2C lcdReceptor(DIR_LCD_RECEPTOR, 16, 2);
+
+String fraseCompleta = "";
+String fraseReconstruida = "";
+bool transmitiendo = false;
+int indiceCaracter = 0;
+
+void setup() {
+  Serial.begin(9600);
+  lcdEmisor.init(); lcdCanal.init(); lcdReceptor.init();
+  lcdEmisor.backlight(); lcdCanal.backlight(); lcdReceptor.backlight();
+  mostrarMensajesIniciales();
+}
+
+void loop() {
+  if (Serial.available() > 0) {
+    String entrada = Serial.readStringUntil('\n');
+    entrada.trim();
+
+    if (entrada.equalsIgnoreCase("Enviar")) {
+      if (fraseCompleta.length() > 0 && !transmitiendo) iniciarTransmision();
+    } else if (entrada.equalsIgnoreCase("Borrar")) {
+      borrarTodo();
+    } else {
+      fraseCompleta = entrada;
+      lcdEmisor.clear();
+      lcdEmisor.print(fraseCompleta);
+    }
+  }
+
+  if (transmitiendo) {
+    if (indiceCaracter < fraseCompleta.length()) {
+      transmitirSiguienteCaracter();
+      indiceCaracter++;
+    } else {
+      finalizarTransmision();
+    }
+  }
+}
+
+void transmitirSiguienteCaracter() {
+  char c = fraseCompleta.charAt(indiceCaracter);
+  String binario = charABinario(c);
+
+  lcdCanal.clear();
+  lcdCanal.setCursor(16, 0); lcdCanal.print(c);
+  lcdCanal.setCursor(16, 1); lcdCanal.print(binario);
+
+  for (int i = 0; i < 24; i++) {
+    lcdCanal.scrollDisplayLeft();
+    delay(100);
+  }
+
+  fraseReconstruida += c;
+  lcdReceptor.clear();
+  lcdReceptor.print(fraseReconstruida);
+}
+
+String charABinario(char c) {
+  String resultado = "";
+  for (int i = 7; i >= 0; i--) {
+    resultado += ((c >> i) & 1) ? "1" : "0";
+  }
+  return resultado;
+}
+        </pre>
+    </section>
+
+    <section id="teoria">
+        <h2>DESCRIPCIÓN DEL LCD I2C</h2>
+        <p>Un LCD I2C utiliza un expansor de pines <span class="tag">PCF8574</span> que permite controlar la pantalla usando solo 2 cables de datos:</p>
+        <ul>
+            <li><strong>SDA (Serial Data):</strong> Envía los datos.</li>
+            <li><strong>SCL (Serial Clock):</strong> Sincroniza la velocidad de envío.</li>
+        </ul>
+        <p>Gracias al <strong>direccionamiento</strong>, podemos conectar hasta 127 dispositivos al mismo par de cables, siempre que cada uno tenga una dirección (ID) distinta.</p>
+    </section>
+</div>
+
+<script>
+    let frase = "";
+    let reconstruida = "";
+    let transmitiendo = false;
+
+    function charToBin(char) {
+        return char.charCodeAt(0).toString(2).padStart(8, '0');
+    }
+
+    async function processSerial() {
+        const input = document.getElementById('serialInput');
+        const output = document.getElementById('serialOutput');
+        const val = input.value.trim();
+        
+        if(val.toLowerCase() === 'enviar') {
+            if(frase && !transmitiendo) {
+                output.innerText = "> Iniciando transmisión...";
+                await iniciarTransmision();
+            }
+        } else if(val.toLowerCase() === 'borrar') {
+            borrarTodo();
+            output.innerText = "> Sistema reiniciado.";
+        } else {
+            frase = val;
+            document.getElementById('lcd1-l1').innerText = frase;
+            output.innerText = `> Frase cargada: '${frase}'`;
+        }
+        input.value = "";
+    }
+
+    async function iniciarTransmision() {
+        transmitiendo = true;
+        reconstruida = "";
+        document.getElementById('lcd3-l1').innerText = "Recibiendo...";
+        
+        for(let i=0; i < frase.length; i++) {
+            let char = frase[i];
+            let bin = charToBin(char);
+            
+            // Animación Canal (LCD 2)
+            const canalL1 = document.getElementById('lcd2-l1');
+            const canalL2 = document.getElementById('lcd2-l2');
+            
+            canalL1.innerText = " ".repeat(16) + char;
+            canalL2.innerText = " ".repeat(16) + bin;
+            
+            // Simular scrollDisplayLeft
+            for(let s=0; s <= 24; s++) {
+                canalL1.style.left = `-${s * 10}px`;
+                canalL2.style.left = `-${s * 10}px`; // No es exacto a LCD pero simula el flujo
+                await new Promise(r => setTimeout(r, 50));
+            }
+            
+            reconstruida += char;
+            document.getElementById('lcd3-l1').innerText = reconstruida;
+        }
+        
+        document.getElementById('lcd2-l1').innerText = "CANAL (LIBRE)";
+        document.getElementById('lcd2-l1').style.left = "0";
+        document.getElementById('lcd2-l2').innerText = "";
+        document.getElementById('serialOutput').innerText = "> Transmisión finalizada.";
+        transmitiendo = false;
+    }
+
+    function borrarTodo() {
+        frase = "";
+        reconstruida = "";
+        transmitiendo = false;
+        document.getElementById('lcd1-l1').innerText = "EMISOR (LISTO)";
+        document.getElementById('lcd2-l1').innerText = "CANAL (ESPERA)";
+        document.getElementById('lcd2-l1').style.left = "0";
+        document.getElementById('lcd2-l2').innerText = "";
+        document.getElementById('lcd3-l1').innerText = "RECEPTOR";
+    }
+</script>
+
+</body>
+</html>

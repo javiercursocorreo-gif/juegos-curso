@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador: Astable con Transistores NPN</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent: #38bdf8;
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --red-led: #ef4444;
+            --green-led: #22c55e;
+            --wire: #64748b;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .header h1 { color: var(--accent); margin: 0; font-size: 1.8rem; }
+        .header p { color: var(--text-dim); margin: 5px 0; }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        .panel {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            border: 1px solid #334155;
+        }
+
+        /* Simulación del Circuito SVG */
+        .circuit-svg {
+            width: 100%;
+            height: auto;
+            background: #ffffff05;
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        .component-label { font-size: 12px; fill: var(--text-dim); font-family: monospace; }
+        .wire { stroke: var(--wire); stroke-width: 2; fill: none; }
+        .node { fill: var(--wire); }
+        
+        /* Transistores y LEDs */
+        .transistor { transition: fill 0.2s; }
+        .led-bulb { transition: filter 0.1s, fill 0.1s; }
+        .glow { filter: drop-shadow(0 0 8px currentColor); }
+
+        /* Osciloscopio */
+        .scope-container {
+            background: #000;
+            border: 3px solid #334155;
+            border-radius: 8px;
+            height: 220px;
+            position: relative;
+            overflow: hidden;
+        }
+        canvas { width: 100%; height: 100%; }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .control-group {
+            background: #0f172a;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer; }
+
+        /* Tabla Comparativa */
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            margin-top: 20px;
+        }
+        .comparison-table th, .comparison-table td {
+            border: 1px solid #334155;
+            padding: 8px;
+            text-align: left;
+        }
+        .comparison-table th { background: #0f172a; color: var(--accent); }
+
+        .phase-indicator {
+            text-align: center;
+            font-weight: bold;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            transition: 0.3s;
+        }
+
+        @media (max-width: 900px) {
+            .main-layout { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>Multivibrador Astable con Transistores</h1>
+        <p>Práctica P6.5.28 · El "555" con las tripas al descubierto</p>
+    </div>
+
+    <div class="main-layout">
+        <!-- Lado Izquierdo: Circuito Dinámico -->
+        <div class="panel">
+            <div id="phase-box" class="phase-indicator">FASE DE OSCILACIÓN</div>
+            
+            <svg class="circuit-svg" viewBox="0 0 400 300">
+                <!-- Líneas de Alimentación -->
+                <line x1="20" y1="30" x2="380" y2="30" class="wire" style="stroke:#ef4444;" />
+                <text x="340" y="25" class="component-label" style="fill:#ef4444;">+5V (VCC)</text>
+                <line x1="20" y1="270" x2="380" y2="270" class="wire" />
+                <text x="340" y="285" class="component-label">GND</text>
+
+                <!-- Transistor Q1 (Izquierda) -->
+                <g id="q1-group">
+                    <circle cx="100" cy="220" r="15" fill="#334155" class="transistor" id="q1-body" />
+                    <text x="85" y="245" class="component-label">Q1 (NPN)</text>
+                    <!-- Conexiones Q1 -->
+                    <line x1="100" y1="270" x2="100" y2="235" class="wire" /> <!-- Emisor -->
+                    <line x1="100" y1="205" x2="100" y2="120" class="wire" /> <!-- Colector -->
+                </g>
+
+                <!-- Transistor Q2 (Derecha) -->
+                <g id="q2-group">
+                    <circle cx="300" cy="220" r="15" fill="#334155" class="transistor" id="q2-body" />
+                    <text x="285" y="245" class="component-label">Q2 (NPN)</text>
+                    <!-- Conexiones Q2 -->
+                    <line x1="300" y1="270" x2="300" y2="235" class="wire" /> <!-- Emisor -->
+                    <line x1="300" y1="205" x2="300" y2="120" class="wire" /> <!-- Colector -->
+                </g>
+
+                <!-- LEDs -->
+                <g id="led-red-group">
+                    <rect x="90" y="80" width="20" height="30" fill="#440000" id="led-r" class="led-bulb" />
+                    <text x="60" y="100" class="component-label">LED R</text>
+                    <line x1="100" y1="30" x2="100" y2="80" class="wire" /> <!-- Resistencia Rc1 -->
+                </g>
+
+                <g id="led-green-group">
+                    <rect x="290" y="80" width="20" height="30" fill="#004400" id="led-g" class="led-bulb" />
+                    <text x="320" y="100" class="component-label">LED G</text>
+                    <line x1="300" y1="30" x2="300" y2="80" class="wire" /> <!-- Resistencia Rc2 -->
+                </g>
+
+                <!-- Condensadores de Acoplamiento (Cruze) -->
+                <path d="M 100 150 L 285 220" class="wire" style="stroke-dasharray: 4;" id="path-c1" />
+                <rect x="180" y="165" width="10" height="20" fill="#475569" />
+                <text x="175" y="160" class="component-label">C1</text>
+
+                <path d="M 300 150 L 115 220" class="wire" style="stroke-dasharray: 4;" id="path-c2" />
+                <rect x="210" y="165" width="10" height="20" fill="#475569" />
+                <text x="210" y="160" class="component-label">C2</text>
+
+                <!-- Resistencias de Base -->
+                <line x1="115" y1="220" x2="150" y2="30" class="wire" stroke="#f1c40f" />
+                <text x="135" y="50" class="component-label" style="fill:#f1c40f;">Rb1</text>
+                
+                <line x1="285" y1="220" x2="250" y2="30" class="wire" stroke="#f1c40f" />
+                <text x="245" y="50" class="component-label" style="fill:#f1c40f;">Rb2</text>
+            </svg>
+
+            <div class="controls">
+                <div class="control-group">
+                    <label>Resistencia Base (Rb): <span id="rb-val">47k</span></label>
+                    <input type="range" id="rb-slider" min="10" max="100" value="47">
+                </div>
+                <div class="control-group">
+                    <label>Condensador (C): <span id="c-val">10µF</span></label>
+                    <input type="range" id="c-slider" min="1" max="47" value="10">
+                </div>
+            </div>
+        </div>
+
+        <!-- Lado Derecho: Osciloscopio y Datos -->
+        <div class="panel">
+            <h2>Osciloscopio (Colector Q1)</h2>
+            <div class="scope-container">
+                <canvas id="scopeCanvas"></canvas>
+            </div>
+            
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Aspecto</th>
+                        <th>Astable con 555</th>
+                        <th>Astable con Transistor</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Control</strong></td>
+                        <td>Caja negra interna</td>
+                        <td>2x NPN 2N2222</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Temporización</strong></td>
+                        <td>R1, R2 y C</td>
+                        <td>Rb y C (Cruzados)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Frecuencia</strong></td>
+                        <td>f ≈ 1.5 Hz</td>
+                        <td>f ≈ 1 / (1.4 * Rb * C)</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div style="margin-top: 15px; background: #0f172a; padding: 15px; border-radius: 8px; font-size: 0.9rem;">
+                <strong>Explicación:</strong> 
+                <span id="explanation">Q1 está saturado (conduce), lo que mantiene el Colector en 0V. El LED Rojo brilla. Mientras tanto, C1 se carga hasta que Q2 se dispare.</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('scopeCanvas');
+        const ctx = canvas.getContext('2d');
+        const rbSlider = document.getElementById('rb-slider');
+        const cSlider = document.getElementById('c-slider');
+        
+        // Elementos del circuito
+        const q1Body = document.getElementById('q1-body');
+        const q2Body = document.getElementById('q2-body');
+        const ledR = document.getElementById('led-r');
+        const ledG = document.getElementById('led-g');
+        const phaseBox = document.getElementById('phase-box');
+        const explanationTxt = document.getElementById('explanation');
+
+        let rb = 47000;
+        let c = 0.00001;
+        let time = 0;
+        let points = [];
+
+        rbSlider.oninput = function() {
+            rb = this.value * 1000;
+            document.getElementById('rb-val').innerText = this.value + "k";
+        }
+        cSlider.oninput = function() {
+            c = this.value * 0.000001;
+            document.getElementById('c-val').innerText = this.value + "µF";
+        }
+
+        function drawGrid(w, h) {
+            ctx.strokeStyle = "#1e293b";
+            ctx.lineWidth = 1;
+            for(let i=0; i<w; i+=w/10) {
+                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, h); ctx.stroke();
+            }
+            for(let i=0; i<h; i+=h/5) {
+                ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(w, i); ctx.stroke();
+            }
+        }
+
+        function animate() {
+            const w = canvas.width = canvas.offsetWidth;
+            const h = canvas.height = canvas.offsetHeight;
+            
+            // Cálculo de frecuencia
+            // T = 0.7 * Rb * C (por cada lado)
+            const halfPeriod = 0.7 * rb * c;
+            const totalPeriod = 2 * halfPeriod;
+            
+            const cyclePos = (time % totalPeriod);
+            const state = cyclePos < halfPeriod; // true = Q1 ON, false = Q2 ON
+
+            // Actualizar Visualización Circuito
+            if (state) {
+                q1Body.setAttribute('fill', '#22c55e');
+                q2Body.setAttribute('fill', '#334155');
+                ledR.setAttribute('fill', '#ef4444');
+                ledR.style.filter = 'drop-shadow(0 0 10px #ef4444)';
+                ledG.setAttribute('fill', '#004400');
+                ledG.style.filter = 'none';
+                phaseBox.innerText = "FASE 1: Q1 SATURADO / Q2 CORTE";
+                phaseBox.style.backgroundColor = "#ef444433";
+                phaseBox.style.color = "#ef4444";
+                explanationTxt.innerText = "Q1 conduce: su colector cae a 0V. C1 se descarga lentamente hacia la base de Q2.";
+            } else {
+                q1Body.setAttribute('fill', '#334155');
+                q2Body.setAttribute('fill', '#22c55e');
+                ledR.setAttribute('fill', '#440000');
+                ledR.style.filter = 'none';
+                ledG.setAttribute('fill', '#22c55e');
+                ledG.style.filter = 'drop-shadow(0 0 10px #22c55e)';
+                phaseBox.innerText = "FASE 2: Q2 SATURADO / Q1 CORTE";
+                phaseBox.style.backgroundColor = "#22c55e33";
+                phaseBox.style.color = "#22c55e";
+                explanationTxt.innerText = "Q2 conduce: su colector cae a 0V. C2 se descarga hacia la base de Q1 para reiniciar el ciclo.";
+            }
+
+            // Actualizar Osciloscopio
+            ctx.clearRect(0,0,w,h);
+            drawGrid(w, h);
+            
+            // Simular voltaje Colector Q1 (Invertido para el canvas: 0V arriba, 5V abajo)
+            // Cuando Q1 está ON (state=true), Voltaje = 0V. Cuando OFF, Voltaje = 5V.
+            const currentVolt = state ? 0.2 : 4.8;
+            points.push(currentVolt);
+            if (points.length > 200) points.shift();
+
+            ctx.beginPath();
+            ctx.strokeStyle = varColor('--accent');
+            ctx.lineWidth = 3;
+            ctx.lineJoin = 'round';
+            
+            points.forEach((p, i) => {
+                const x = (w / 200) * i;
+                const y = h - (p / 5 * h);
+                if(i === 0) ctx.moveTo(x, y);
+                else {
+                    // Dibujar flancos rectos
+                    if(points[i] !== points[i-1]) {
+                        ctx.lineTo(x, h - (points[i-1] / 5 * h));
+                    }
+                    ctx.lineTo(x, y);
+                }
+            });
+            ctx.stroke();
+
+            time += 0.016; // aprox 60fps
+            requestAnimationFrame(animate);
+        }
+
+        function varColor(name) {
+            return getComputedStyle(document.documentElement).getPropertyValue(name);
+        }
+
+        animate();
+    </script>
+</body>
+</html>

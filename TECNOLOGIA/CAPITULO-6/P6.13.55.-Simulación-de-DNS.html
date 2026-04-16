@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Protocolo DNS Real - Simulador Arduino</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #1a1a1a; color: white; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        
+        .escenario { display: flex; gap: 20px; margin-bottom: 40px; align-items: flex-start; }
+
+        .modulo { display: flex; flex-direction: column; align-items: center; width: 260px; }
+        
+        /* Estética LCD */
+        .lcd {
+            width: 100%;
+            height: 90px;
+            background: #082d08;
+            border: 8px solid #3c3c3c;
+            border-radius: 6px;
+            padding: 10px;
+            box-sizing: border-box;
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .linea {
+            font-family: 'Courier New', monospace;
+            font-size: 1.1rem;
+            color: #55ff55;
+            height: 1.3rem;
+            white-space: pre;
+            text-shadow: 0 0 5px rgba(85, 255, 85, 0.5);
+        }
+
+        .label { font-size: 0.75rem; color: #00979d; margin-top: 10px; font-weight: bold; text-transform: uppercase; }
+
+        /* Monitor Serie */
+        .console {
+            width: 600px;
+            background: #f4f4f4;
+            color: #333;
+            border-radius: 4px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+        }
+
+        .console-header { background: #ddd; padding: 10px; font-size: 0.8rem; font-weight: bold; border-bottom: 1px solid #ccc; color: #666; }
+        
+        #log { height: 180px; padding: 15px; overflow-y: auto; font-family: 'Consolas', monospace; font-size: 0.9rem; line-height: 1.4; }
+        
+        .input-area { display: flex; border-top: 1px solid #ccc; padding: 10px; background: #fff; }
+        
+        input { flex-grow: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px; outline: none; }
+        
+        button { padding: 10px 20px; background: #00979d; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px; font-weight: bold; }
+        button:hover { background: #006468; }
+
+        /* Indicador de flujo */
+        .flecha { font-size: 2rem; color: #444; margin-top: 30px; transition: color 0.3s; }
+        .flecha.activa { color: #00ff00; text-shadow: 0 0 10px #00ff00; }
+
+        .highlight { color: #d35400; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h2>Simulador de Ciclo Completo DNS</h2>
+    <p style="color: #aaa; margin-bottom: 30px;">Protocolo: Solicitud → Resolución → Retorno de IP → Conexión Directa</p>
+
+    <div class="escenario">
+        <!-- LCD RECEPTOR -->
+        <div class="modulo">
+            <div class="lcd" id="box-0x25">
+                <div class="linea" id="r1">RECEPTOR</div>
+                <div class="linea" id="r2">ESPERANDO IP...</div>
+            </div>
+            <span class="label">Servidor Web (0x25)</span>
+        </div>
+
+        <div class="flecha" id="f-back">←</div>
+
+        <!-- LCD DNS -->
+        <div class="modulo">
+            <div class="lcd" id="box-0x26">
+                <div class="linea" id="d1">DNS SERVER</div>
+                <div class="linea" id="d2">READY</div>
+            </div>
+            <span class="label">Resolver DNS (0x26)</span>
+        </div>
+
+        <div class="flecha" id="f-go">←</div>
+
+        <!-- LCD EMISOR -->
+        <div class="modulo">
+            <div class="lcd" id="box-0x27">
+                <div class="linea" id="e1">EMISOR</div>
+                <div class="linea" id="e2">INTRODUZCA URL</div>
+            </div>
+            <span class="label">Navegador (0x27)</span>
+        </div>
+    </div>
+
+    <div class="console">
+        <div class="console-header">MONITOR SERIE - ARDUINO UNO R3</div>
+        <div id="log">SISTEMA INICIADO.<br>Esperando entrada (Ej: Google.es, Amazon.com, Zara.es)...</div>
+        <div class="input-area">
+            <input type="text" id="inputSerie" placeholder="Escriba aquí..." autofocus>
+            <button onclick="ejecutarSimulacion()">ENVIAR</button>
+        </div>
+    </div>
+
+    <script>
+        const dnsTable = {
+            "google.es": "8.8.8.8",
+            "amazon.com": "52.94.236.248",
+            "zara.es": "35.71.185.153"
+        };
+
+        const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+        function setLCD(prefijo, l1, l2 = "") {
+            document.getElementById(prefijo + '1').innerText = l1;
+            document.getElementById(prefijo + '2').innerText = l2;
+        }
+
+        function addLog(msg, highlight = false) {
+            const log = document.getElementById('log');
+            const span = highlight ? `<span class="highlight">${msg}</span>` : msg;
+            log.innerHTML += `<div>> ${span}</div>`;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        async function ejecutarSimulacion() {
+            const input = document.getElementById('inputSerie');
+            const url = input.value.trim().toLowerCase();
+            input.value = "";
+
+            if (url === "borrar") {
+                location.reload();
+                return;
+            }
+
+            if (!dnsTable[url]) {
+                addLog("ERROR: URL no encontrada en tabla DNS.");
+                return;
+            }
+
+            const ip = dnsTable[url];
+
+            // 1. EL NAVEGADOR PIDE LA URL AL DNS
+            addLog(`CLIENTE: Consultando IP para ${url.toUpperCase()}...`);
+            setLCD('e', "BUSCANDO IP...", url.toUpperCase());
+            document.getElementById('f-go').classList.add('activa');
+            document.getElementById('f-go').innerText = "←"; // Hacia el DNS
+            
+            await wait(1500);
+
+            // 2. EL DNS PROCESA Y MUESTRA LA IP
+            addLog(`DNS: Buscando en base de datos...`);
+            setLCD('d', "RESOLVIENDO...", url.toUpperCase());
+            await wait(1000);
+            setLCD('d', "IP ENCONTRADA:", ip);
+            addLog(`DNS: URL traducida a ${ip}. Enviando respuesta...`);
+            
+            await wait(1500);
+
+            // 3. EL DNS DEVUELVE LA IP AL NAVEGADOR (Cambio de sentido de flecha)
+            document.getElementById('f-go').innerText = "→"; // De vuelta al emisor
+            setLCD('e', "IP RECIBIDA:", ip);
+            addLog(`CLIENTE: IP ${ip} recibida con éxito.`);
+            
+            await wait(1500);
+
+            // 4. EL NAVEGADOR LANZA LA LLAMADA AL RECEPTOR USANDO LA IP
+            document.getElementById('f-go').classList.remove('activa');
+            document.getElementById('f-back').classList.add('activa'); // Hacia el Receptor
+            addLog(`CLIENTE: Conectando a servidor web en ${ip}...`, true);
+            setLCD('e', "CONECTANDO...", ip);
+            
+            await wait(1500);
+
+            // 5. EL RECEPTOR DA LA BIENVENIDA
+            setLCD('r', "BIENVENIDO A", url.toUpperCase());
+            setLCD('r2', "IP: " + ip);
+            addLog("SERVIDOR: Petición HTTP aceptada. Página cargada.");
+            document.getElementById('f-back').classList.remove('activa');
+        }
+
+        // Enter key support
+        document.getElementById('inputSerie').addEventListener("keyup", (e) => {
+            if (e.key === "Enter") ejecutarSimulacion();
+        });
+    </script>
+</body>
+</html>

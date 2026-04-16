@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulación: El Condensador como Almacén</title>
+    <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --panel-color: #ffffff;
+            --primary: #2563eb;
+            --led-off: #440000;
+            --led-on: #ff0000;
+            --wire: #333;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--panel-color);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        h1 { color: #1e293b; text-align: center; margin-bottom: 30px; }
+        h2 { font-size: 1.2rem; margin-top: 0; color: var(--primary); }
+
+        /* Estilo del Circuito Visual */
+        .circuit-viz {
+            height: 300px;
+            position: relative;
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .component {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: absolute;
+        }
+
+        /* LED */
+        #led {
+            width: 40px;
+            height: 40px;
+            background-color: var(--led-off);
+            border-radius: 50% 50% 5px 5px;
+            transition: background-color 0.1s, box-shadow 0.1s;
+            position: relative;
+        }
+
+        .led-glow {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border-radius: 50%;
+            opacity: 0;
+            box-shadow: 0 0 40px var(--led-on);
+        }
+
+        /* Condensador */
+        .capacitor {
+            width: 50px;
+            height: 70px;
+            background: #27272a;
+            border-radius: 5px;
+            position: relative;
+            color: white;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        .cap-level {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            background: #3b82f6;
+            transition: height 0.1s;
+            border-radius: 0 0 5px 5px;
+        }
+
+        /* Pulsador */
+        #btn-push {
+            width: 60px;
+            height: 60px;
+            background: #ef4444;
+            border: 4px solid #991b1b;
+            border-radius: 50%;
+            cursor: pointer;
+            touch-action: manipulation;
+            transition: transform 0.1s;
+        }
+        #btn-push:active { transform: scale(0.9); background: #dc2626; }
+
+        /* Gráfico */
+        canvas {
+            width: 100%;
+            height: 150px;
+            background: #000;
+            border-radius: 4px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            margin-top: 10px;
+        }
+        .charging { background: #dcfce7; color: #166534; }
+        .discharging { background: #fef9c3; color: #854d0e; }
+        .idle { background: #f1f5f9; color: #475569; }
+
+        .info-text { font-size: 0.9rem; line-height: 1.5; color: #475569; }
+
+        @media (max-width: 768px) {
+            .container { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Simulación: Carga y Descarga de un Condensador</h1>
+
+    <div class="container">
+        <!-- Visualización del Circuito -->
+        <div class="card">
+            <h2>Circuito en Tiempo Real</h2>
+            <div class="circuit-viz">
+                <!-- Batería Virtual -->
+                <div style="left: 20px; top: 120px;" class="component">
+                    <div style="width:40px; height:60px; background:#fbbf24; border-radius:4px; display:flex; align-items:center; justify-content:center; font-weight:bold;">9V</div>
+                    <span>Pila</span>
+                </div>
+
+                <!-- Pulsador -->
+                <div style="left: 120px; top: 110px;" class="component">
+                    <div id="btn-push"></div>
+                    <span>Pulsador</span>
+                </div>
+
+                <!-- Condensador -->
+                <div style="right: 120px; top: 110px;" class="component">
+                    <div class="capacitor">
+                        <div id="cap-fill" class="cap-level" style="height: 0%;"></div>
+                        <div style="z-index:1">1000µF</div>
+                    </div>
+                    <span>Condensador</span>
+                </div>
+
+                <!-- LED -->
+                <div style="right: 30px; top: 125px;" class="component">
+                    <div id="led"><div id="led-glow" class="led-glow"></div></div>
+                    <span>LED</span>
+                </div>
+            </div>
+            
+            <div style="text-align: center;">
+                <div id="status" class="status-badge idle">Circuito Abierto</div>
+                <p class="info-text">Mantén presionado el botón rojo para cargar el sistema.</p>
+            </div>
+        </div>
+
+        <!-- Monitor y Datos -->
+        <div class="card">
+            <h2>Monitor de Voltaje (Osciloscopio)</h2>
+            <canvas id="graph"></canvas>
+            
+            <div style="margin-top: 20px;">
+                <h2>¿Qué está pasando?</h2>
+                <div id="explanation" class="info-text">
+                    El circuito está en reposo. El condensador está vacío y no hay flujo de corriente.
+                </div>
+            </div>
+
+            <div style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 10px;">
+                <small style="color: #94a3b8;">
+                    <strong>Hardware:</strong> 9V, 1000µF, 220Ω Resistor.<br>
+                    <strong>Constante de tiempo (τ):</strong> ~0.22s (descarga completa en ~1.1s).
+                </small>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const btn = document.getElementById('btn-push');
+        const capFill = document.getElementById('cap-fill');
+        const led = document.getElementById('led');
+        const ledGlow = document.getElementById('led-glow');
+        const statusBadge = document.getElementById('status');
+        const explanation = document.getElementById('explanation');
+        const canvas = document.getElementById('graph');
+        const ctx = canvas.getContext('2d');
+
+        let voltage = 0; // Voltaje actual en el condensador
+        let isPressed = false;
+        const maxVoltage = 9;
+        const timeConstant = 0.22; // R * C (220 * 0.001)
+        let dataPoints = new Array(100).fill(0);
+
+        // Eventos del ratón/toque
+        btn.addEventListener('mousedown', startCharging);
+        btn.addEventListener('touchstart', (e) => { e.preventDefault(); startCharging(); });
+        window.addEventListener('mouseup', stopCharging);
+        window.addEventListener('touchend', stopCharging);
+
+        function startCharging() {
+            isPressed = true;
+            statusBadge.className = 'status-badge charging';
+            statusBadge.innerText = 'Fase 1: CARGANDO';
+            explanation.innerText = 'Al presionar el pulsador, la pila carga el condensador casi instantáneamente y enciende el LED al máximo.';
+        }
+
+        function stopCharging() {
+            if (!isPressed) return;
+            isPressed = false;
+            statusBadge.className = 'status-badge discharging';
+            statusBadge.innerText = 'Fase 2: DESCARGANDO';
+            explanation.innerText = 'Al soltar el pulsador, la pila se desconecta. El condensador ahora libera su energía almacenada para mantener el LED encendido mientras se agota.';
+        }
+
+        function update() {
+            if (isPressed) {
+                // Carga rápida (limitada un poco para visualización)
+                voltage += (maxVoltage - voltage) * 0.4;
+            } else {
+                // Descarga RC: V = V0 * e^(-t/RC)
+                // En cada frame (1/60s), reducimos según la constante de tiempo
+                if (voltage > 0.01) {
+                    voltage -= (voltage / timeConstant) * (1/60);
+                } else {
+                    voltage = 0;
+                    if (!isPressed) {
+                        statusBadge.className = 'status-badge idle';
+                        statusBadge.innerText = 'Circuito Abierto (Vacío)';
+                    }
+                }
+            }
+
+            // Actualizar Visualización
+            const chargePercent = (voltage / maxVoltage) * 100;
+            capFill.style.height = chargePercent + '%';
+
+            // Actualizar LED (El LED suele encender a partir de 1.8V - 2V)
+            const brightness = Math.max(0, (voltage - 1.5) / (maxVoltage - 1.5));
+            if (voltage > 1.5) {
+                led.style.backgroundColor = `rgb(${150 + (brightness * 105)}, 0, 0)`;
+                ledGlow.style.opacity = brightness;
+            } else {
+                led.style.backgroundColor = '#440000';
+                ledGlow.style.opacity = 0;
+            }
+
+            // Actualizar Gráfico
+            dataPoints.push(voltage);
+            dataPoints.shift();
+            drawGraph();
+
+            requestAnimationFrame(update);
+        }
+
+        function drawGraph() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Dibujar rejilla
+            ctx.strokeStyle = '#222';
+            ctx.lineWidth = 1;
+            for(let i=0; i<5; i++) {
+                let y = canvas.height - (i * (canvas.height/4));
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+
+            // Dibujar línea de voltaje
+            ctx.strokeStyle = '#3b82f6';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            
+            for(let i=0; i<dataPoints.length; i++) {
+                const x = (canvas.width / (dataPoints.length - 1)) * i;
+                const y = canvas.height - (dataPoints[i] / maxVoltage * (canvas.height * 0.8) + 10);
+                
+                if(i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // Etiqueta de voltaje actual
+            ctx.fillStyle = '#fff';
+            ctx.font = '12px Arial';
+            ctx.fillText(voltage.toFixed(2) + " V", 10, 20);
+        }
+
+        // Ajustar tamaño del canvas
+        function resize() {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Iniciar bucle
+        update();
+    </script>
+</body>
+</html>

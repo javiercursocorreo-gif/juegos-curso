@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Cifrado tipo Enigma - Corregido</title>
+    <style>
+        :root {
+            --arduino-teal: #00979d;
+            --lcd-blue: #0033cc;
+            --lcd-text: #ffffff;
+            --bg-color: #f4f4f9;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0; padding: 0;
+        }
+
+        header {
+            background-color: var(--arduino-teal);
+            color: white;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 20px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+        }
+
+        /* --- SIMULADOR --- */
+        .simulator-section {
+            background: #2c3e50;
+            padding: 25px;
+            border-radius: 12px;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .lcd-container {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+
+        .lcd-box { flex: 1; min-width: 250px; text-align: center; }
+
+        .lcd-screen {
+            background: var(--lcd-blue);
+            border: 6px solid #555;
+            border-radius: 4px;
+            height: 80px;
+            padding: 10px;
+            font-family: 'Courier New', Courier, monospace;
+            text-align: left;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .lcd-line {
+            height: 30px;
+            font-size: 1.2rem;
+            white-space: pre;
+            color: var(--lcd-text);
+            text-shadow: 0 0 5px rgba(255,255,255,0.5);
+        }
+
+        .lcd-label { margin-top: 8px; font-size: 0.8rem; color: #bdc3c7; text-transform: uppercase; }
+
+        .controls {
+            background: #1e1e1e;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 5px solid var(--arduino-teal);
+        }
+
+        .serial-input-group { display: flex; gap: 10px; margin-top: 10px; }
+
+        input {
+            flex: 1;
+            padding: 10px;
+            background: #000;
+            border: 1px solid #444;
+            color: #00ff00;
+            font-family: 'Consolas', monospace;
+            outline: none;
+        }
+
+        button {
+            background: var(--arduino-teal);
+            color: white;
+            border: none;
+            padding: 0 20px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+
+        button:hover { background: #007a7e; }
+
+        .status-msg { color: #f1c40f; font-family: monospace; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Simulador de Cifrado tipo Enigma</h1>
+    <p>Visualización del flujo de datos y comandos del Monitor Serie</p>
+</header>
+
+<div class="container">
+
+    <section class="simulator-section">
+        <div class="lcd-container">
+            <!-- T3 -->
+            <div class="lcd-box">
+                <div class="lcd-screen">
+                    <div class="lcd-line" id="t3-l1"></div>
+                    <div class="lcd-line" id="t3-l2"></div>
+                </div>
+                <div class="lcd-label">T3: Receptor (0x25)</div>
+            </div>
+            <!-- T2 -->
+            <div class="lcd-box">
+                <div class="lcd-screen">
+                    <div class="lcd-line" id="t2-l1" style="position:relative; left:0"></div>
+                    <div class="lcd-line"></div>
+                </div>
+                <div class="lcd-label">T2: Canal (0x26)</div>
+            </div>
+            <!-- T1 -->
+            <div class="lcd-box">
+                <div class="lcd-screen">
+                    <div class="lcd-line" id="t1-l1"></div>
+                    <div class="lcd-line" id="t1-l2"></div>
+                </div>
+                <div class="lcd-label">T1: Emisor (0x27)</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="status-msg" id="prompt">Monitor Serie: TEXTO:</div>
+            <div class="serial-input-group">
+                <input type="text" id="serialInput" placeholder="Escribe comando o mensaje..." autofocus>
+                <button onclick="handleInput()">ENVIAR</button>
+            </div>
+            <div style="font-size: 0.75rem; color: #888; margin-top: 10px;">
+                Comandos: <b>enviar</b>, <b>reset</b>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <h2>Explicación del Comando "Reset"</h2>
+        <p>En este simulador, al escribir la palabra <span style="color:red; font-weight:bold">reset</span> en el monitor serie, ocurre lo siguiente:</p>
+        <ul>
+            <li>Se limpian todas las variables de memoria (texto original y cifrado).</li>
+            <li>Se ejecutan los comandos <code>lcd.clear()</code> en las tres pantallas.</li>
+            <li>El sistema vuelve al estado inicial esperando un nuevo <b>TEXTO</b>.</li>
+        </ul>
+    </section>
+</div>
+
+<script>
+    // Variables de estado global
+    let state = "WAIT_TEXT";
+    let plaintext = "";
+    let ciphertext = "";
+    let encKey = 0;
+
+    // Referencias a los elementos del DOM
+    const t1_l1 = document.getElementById('t1-l1'), t1_l2 = document.getElementById('t1-l2');
+    const t2_l1 = document.getElementById('t2-l1');
+    const t3_l1 = document.getElementById('t3-l1'), t3_l2 = document.getElementById('t3-l2');
+    const prompt = document.getElementById('prompt');
+    const input = document.getElementById('serialInput');
+
+    // Función de cifrado César
+    function cipherJS(text, key) {
+        return text.split('').map(char => {
+            if (char.match(/[a-z]/i)) {
+                let code = char.charCodeAt(0);
+                let base = (code >= 65 && code <= 90) ? 65 : 97;
+                return String.fromCharCode(((code - base + key + 26) % 26) + base);
+            }
+            return char;
+        }).join('');
+    }
+
+    // Función que limpia todo (RESET REAL)
+    function resetSystem() {
+        plaintext = "";
+        ciphertext = "";
+        encKey = 0;
+        state = "WAIT_TEXT";
+        
+        // Limpiar pantallas LCD
+        t1_l1.innerText = ""; t1_l2.innerText = "";
+        t2_l1.innerText = "";
+        t3_l1.innerText = ""; t3_l2.innerText = "";
+        
+        // Reset de consola
+        prompt.innerText = "Monitor Serie: TEXTO:";
+        console.log("Sistema reiniciado.");
+    }
+
+    async function handleInput() {
+        const val = input.value.trim();
+        input.value = "";
+
+        // COMANDO RESET GLOBAL: Funciona en cualquier momento
+        if (val.toLowerCase() === "reset") {
+            resetSystem();
+            return;
+        }
+
+        if (!val && state !== "WAIT_SEND") return;
+
+        switch(state) {
+            case "WAIT_TEXT":
+                plaintext = val;
+                t1_l1.innerText = plaintext;
+                state = "WAIT_KEY";
+                prompt.innerText = "Monitor Serie: CLAVE DE CIFRADO (1-9):";
+                break;
+
+            case "WAIT_KEY":
+                const k = parseInt(val);
+                if (k >= 1 && k <= 9) {
+                    encKey = k;
+                    ciphertext = cipherJS(plaintext, encKey);
+                    t1_l2.innerText = ciphertext;
+                    state = "WAIT_SEND";
+                    prompt.innerText = "Monitor Serie: Escriba 'enviar' para transmitir:";
+                } else {
+                    prompt.innerText = "Monitor Serie: ERROR. Introduzca número del 1 al 9:";
+                }
+                break;
+
+            case "WAIT_SEND":
+                if (val.toLowerCase() === "enviar") {
+                    state = "ANIMATING";
+                    prompt.innerText = "Monitor Serie: TRANSMITIENDO...";
+                    await animate();
+                    state = "WAIT_DECRYPT";
+                    prompt.innerText = "Monitor Serie: CLAVE DE DESCIFRADO:";
+                }
+                break;
+
+            case "WAIT_DECRYPT":
+                const dk = parseInt(val);
+                const attempt = cipherJS(ciphertext, -dk);
+                t3_l2.innerText = attempt;
+                
+                if (attempt === plaintext) {
+                    prompt.innerText = "Monitor Serie: ¡CORRECTO! Escriba 'reset' para empezar de nuevo.";
+                    state = "FINISHED";
+                } else {
+                    prompt.innerText = "Monitor Serie: Clave incorrectA. Intente de nuevo:";
+                }
+                break;
+        }
+    }
+
+    async function animate() {
+        // Animación LCD Centro (T2)
+        for (let i = 16; i > -ciphertext.length; i--) {
+            t2_l1.style.left = (i * 12) + "px";
+            t2_l1.innerText = ciphertext;
+            await new Promise(r => setTimeout(r, 80));
+        }
+        t2_l1.innerText = "";
+        
+        // Aparece en T3
+        t3_l1.innerText = ciphertext;
+    }
+
+    // Permitir usar la tecla Enter
+    input.addEventListener("keyup", (event) => {
+        if (event.key === "Enter") handleInput();
+    });
+</script>
+
+</body>
+</html>

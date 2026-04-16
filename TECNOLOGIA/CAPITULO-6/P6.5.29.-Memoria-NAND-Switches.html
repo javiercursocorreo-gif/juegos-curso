@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador Memoria 1 Bit - Puertas NAND</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent: #38bdf8;
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --red-led: #ef4444;
+            --green-led: #22c55e;
+            --wire-color: #475569;
+            --logic-high: #fbbf24;
+            --logic-low: #1e293b;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .header { text-align: center; margin-bottom: 20px; }
+        .header h1 { color: var(--accent); margin: 0; font-size: 1.8rem; }
+        .header p { color: var(--text-dim); margin: 5px 0; }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 20px;
+            max-width: 1100px;
+            width: 100%;
+        }
+
+        .panel {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            border: 1px solid #334155;
+        }
+
+        /* Representación del Chip 74HC00 */
+        .chip-viz {
+            position: relative;
+            background: #111;
+            width: 100%;
+            height: 250px;
+            border-radius: 8px;
+            margin: 20px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 2px solid #444;
+        }
+
+        .chip-label {
+            color: #555;
+            font-weight: bold;
+            font-family: monospace;
+            transform: rotate(-90deg);
+        }
+
+        .gate {
+            position: absolute;
+            width: 80px;
+            height: 60px;
+            border: 2px solid #666;
+            border-radius: 0 30px 30px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            background: #1a1a1a;
+        }
+
+        /* Interruptores */
+        .switches-container {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+        }
+
+        .switch-box {
+            text-align: center;
+            background: #0f172a;
+            padding: 10px;
+            border-radius: 8px;
+            width: 120px;
+        }
+
+        .slide-switch {
+            width: 50px;
+            height: 25px;
+            background: #334155;
+            border-radius: 15px;
+            position: relative;
+            cursor: pointer;
+            margin: 10px auto;
+            transition: 0.3s;
+        }
+
+        .slide-switch::before {
+            content: '';
+            position: absolute;
+            width: 21px;
+            height: 21px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: 0.3s;
+        }
+
+        .slide-switch.active { background: var(--accent); }
+        .slide-switch.active::before { left: 27px; }
+
+        /* LEDs */
+        .led-container {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-top: 20px;
+        }
+
+        .led {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #333;
+            transition: 0.2s;
+            position: relative;
+        }
+
+        .led-label { font-size: 0.8rem; margin-top: 8px; color: var(--text-dim); }
+
+        .led.green.on { background: var(--green-led); box-shadow: 0 0 20px var(--green-led); }
+        .led.red.on { background: var(--red-led); box-shadow: 0 0 20px var(--red-led); }
+
+        /* Tabla de Verdad */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            margin-top: 15px;
+        }
+        th, td { border: 1px solid #334155; padding: 8px; text-align: center; }
+        th { background: #0f172a; color: var(--accent); }
+        .current-row { background: #334155 !important; font-weight: bold; }
+
+        /* Indicadores de Capas */
+        .layer-info {
+            font-size: 0.85rem;
+            margin-top: 15px;
+        }
+        .layer-tag {
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            margin-right: 5px;
+        }
+
+        .logic-line {
+            height: 4px;
+            background: var(--wire-color);
+            position: absolute;
+            transition: background 0.3s;
+        }
+        .high { background: var(--logic-high) !important; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>Biestable SR con Puertas NAND</h1>
+        <p>Práctica P6.5.29 · Memoria Volátil (SRAM)</p>
+    </div>
+
+    <div class="main-layout">
+        <!-- Lado Izquierdo: Circuito Interactivo -->
+        <div class="panel">
+            <div class="switches-container">
+                <div class="switch-box">
+                    <label>S (SET)</label>
+                    <div id="sw-s" class="slide-switch" onclick="toggleSwitch('s')"></div>
+                    <span id="s-logic" style="font-family: monospace;">1</span>
+                </div>
+                <div class="switch-box">
+                    <label>R (RESET)</label>
+                    <div id="sw-r" class="slide-switch" onclick="toggleSwitch('r')"></div>
+                    <span id="r-logic" style="font-family: monospace;">1</span>
+                </div>
+            </div>
+
+            <div class="chip-viz">
+                <div class="chip-label">74HC00</div>
+                <!-- Puerta 1 -->
+                <div class="gate" style="top: 50px; left: 100px;">NAND 1</div>
+                <!-- Puerta 2 -->
+                <div class="gate" style="bottom: 50px; left: 100px;">NAND 2</div>
+                
+                <!-- Cables de Retroalimentación Cruzada -->
+                <svg width="100%" height="100%" style="position:absolute; pointer-events:none;">
+                    <!-- S input -->
+                    <line x1="20" y1="80" x2="100" y2="80" id="line-s" stroke="#475569" stroke-width="3"/>
+                    <!-- R input -->
+                    <line x1="20" y1="220" x2="100" y2="220" id="line-r" stroke="#475569" stroke-width="3"/>
+                    <!-- Cruce 1 (Q a Puerta 2) -->
+                    <path d="M 180 80 L 220 80 L 220 150 L 60 150 L 60 210 L 100 210" id="line-q-not" fill="none" stroke="#475569" stroke-width="2"/>
+                    <!-- Cruce 2 (Q-not a Puerta 1) -->
+                    <path d="M 180 220 L 220 220 L 220 150 L 60 150 L 60 90 L 100 90" id="line-q" fill="none" stroke="#475569" stroke-width="2"/>
+                </svg>
+            </div>
+
+            <div class="led-container">
+                <div style="text-align: center;">
+                    <div id="led-red" class="led red"></div>
+                    <div class="led-label">Q̄ (Rojo)</div>
+                </div>
+                <div style="text-align: center;">
+                    <div id="led-green" class="led green"></div>
+                    <div class="led-label">Q (Verde)</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lado Derecho: Información y Tabla -->
+        <div class="panel">
+            <h2>Tabla de Verdad (NAND)</h2>
+            <table>
+                <thead>
+                    <tr><th>S</th><th>R</th><th>Q</th><th>Q̄</th><th>Estado</th></tr>
+                </thead>
+                <tbody id="truth-table">
+                    <tr id="row-00"><td>0</td><td>0</td><td>1*</td><td>1*</td><td>PROHIBIDO</td></tr>
+                    <tr id="row-01"><td>0</td><td>1</td><td>1</td><td>0</td><td>SET</td></tr>
+                    <tr id="row-10"><td>1</td><td>0</td><td>0</td><td>1</td><td>RESET</td></tr>
+                    <tr id="row-11"><td>1</td><td>1</td><td>Q</td><td>Q̄</td><td>MEMORIA</td></tr>
+                </tbody>
+            </table>
+
+            <div class="layer-info">
+                <h3>Pasos de Construcción</h3>
+                <div><span class="layer-tag" style="background:#ef4444">CAPA 1</span> Alimentación (Pines 7 y 14).</div>
+                <div><span class="layer-tag" style="background:#3498db">CAPA 2</span> Retroalimentación cruzada.</div>
+                <div><span class="layer-tag" style="background:#e67e22">CAPA 3</span> Switches con Pull-up (10kΩ).</div>
+                <div><span class="layer-tag" style="background:#22c55e">CAPA 4</span> Indicadores LED de salida.</div>
+            </div>
+
+            <div style="margin-top: 20px; padding: 15px; background: #0f172a; border-radius: 8px;">
+                <strong>Estado Actual:</strong>
+                <p id="status-text" style="color: var(--accent); font-size: 0.9rem;">Esperando interacción...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Estado inicial: S=1, R=1 (Memoria), Q=0 por defecto al arrancar
+        let s = 1;
+        let r = 1;
+        let q = 0;
+        let q_not = 1;
+
+        function toggleSwitch(type) {
+            const sw = document.getElementById('sw-' + type);
+            if (type === 's') {
+                s = s === 1 ? 0 : 1;
+                sw.classList.toggle('active');
+                document.getElementById('s-logic').innerText = s;
+            } else {
+                r = r === 1 ? 0 : 1;
+                sw.classList.toggle('active');
+                document.getElementById('r-logic').innerText = r;
+            }
+            updateLogic();
+        }
+
+        function updateLogic() {
+            // Lógica NAND SR Latch
+            // S=0, R=1 -> Q=1, Q_not=0
+            // S=1, R=0 -> Q=0, Q_not=1
+            // S=1, R=1 -> Mantiene (No cambia q ni q_not)
+            // S=0, R=0 -> Q=1, Q_not=1 (Prohibido)
+
+            if (s === 0 && r === 1) {
+                q = 1; q_not = 0;
+            } else if (s === 1 && r === 0) {
+                q = 0; q_not = 1;
+            } else if (s === 0 && r === 0) {
+                q = 1; q_not = 1;
+            }
+            // Si S=1 y R=1, no hacemos nada (mantiene el valor previo de q y q_not)
+
+            updateUI();
+        }
+
+        function updateUI() {
+            // LEDs
+            document.getElementById('led-green').className = 'led green' + (q === 1 ? ' on' : '');
+            document.getElementById('led-red').className = 'led red' + (q_not === 1 ? ' on' : '');
+
+            // Wires (SVG)
+            updateWire('line-s', s === 1);
+            updateWire('line-r', r === 1);
+            updateWire('line-q', q === 1);
+            updateWire('line-q-not', q_not === 1);
+
+            // Tabla de verdad - resaltar fila
+            document.querySelectorAll('tr').forEach(tr => tr.classList.remove('current-row'));
+            const rowId = `row-${s}${r}`;
+            document.getElementById(rowId).classList.add('current-row');
+
+            // Texto de estado
+            const status = document.getElementById('status-text');
+            if (s === 0 && r === 0) {
+                status.innerText = "Estado Prohibido: Las dos salidas están en ALTO. Esto genera inestabilidad.";
+                status.style.color = "#ef4444";
+            } else if (s === 1 && r === 1) {
+                status.innerText = "Modo Memoria: Los interruptores están abiertos. El bit almacenado es " + q;
+                status.style.color = "#fbbf24";
+            } else if (s === 0) {
+                status.innerText = "SET Activo: Escribiendo un 1 en la memoria.";
+                status.style.color = "#22c55e";
+            } else {
+                status.innerText = "RESET Activo: Escribiendo un 0 en la memoria.";
+                status.style.color = "#38bdf8";
+            }
+        }
+
+        function updateWire(id, isHigh) {
+            const el = document.getElementById(id);
+            el.setAttribute('stroke', isHigh ? '#fbbf24' : '#475569');
+        }
+
+        // Inicializar
+        updateLogic();
+    </script>
+</body>
+</html>

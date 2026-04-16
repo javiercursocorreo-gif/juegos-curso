@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amplificador Transistor NPN - Simulador</title>
+    <style>
+        :root {
+            --bg: #121212;
+            --panel: #1e1e1e;
+            --accent: #00ff41; /* Verde Matrix/Osciloscopio */
+            --input-color: #00d4ff;
+            --output-color: #ff4d4d;
+            --text: #e0e0e0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 20px;
+            max-width: 1100px;
+            width: 100%;
+        }
+
+        .panel {
+            background: var(--panel);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border: 1px solid #333;
+        }
+
+        h1 { color: var(--accent); margin-top: 0; font-size: 1.5rem; text-transform: uppercase; letter-spacing: 2px; }
+        h2 { font-size: 1rem; color: #aaa; margin-bottom: 15px; }
+
+        /* Estilo del Osciloscopio */
+        .oscilloscope {
+            background: #050a05;
+            border: 4px solid #444;
+            border-radius: 8px;
+            position: relative;
+            height: 200px;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+
+        canvas { width: 100%; height: 100%; }
+
+        .scope-label {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-family: monospace;
+        }
+
+        /* Controles */
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .control-group {
+            background: #2a2a2a;
+            padding: 12px;
+            border-radius: 8px;
+        }
+
+        label { display: block; font-size: 0.85rem; margin-bottom: 8px; color: #ccc; }
+        
+        .scale-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 5px;
+        }
+
+        input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer; }
+
+        .btn-sync {
+            background: var(--accent);
+            color: black;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: 0.3s;
+        }
+
+        .btn-sync:hover { opacity: 0.8; }
+
+        /* Guía de Capas */
+        .layers-guide {
+            margin-top: 20px;
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+
+        .layer-item {
+            margin-bottom: 8px;
+            padding-left: 25px;
+            position: relative;
+        }
+
+        .layer-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 2px;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+        }
+
+        .l1::before { background: #ff4d4d; }
+        .l2::before { background: #4d94ff; }
+        .l3::before { background: #4dff88; }
+        .l4::before { background: #b366ff; }
+
+        .warning-box {
+            background: #443300;
+            border-left: 4px solid #ffcc00;
+            padding: 10px;
+            margin-top: 15px;
+            font-size: 0.8rem;
+            color: #ffcc00;
+        }
+
+        .value-tag { font-family: monospace; color: var(--accent); }
+
+    </style>
+</head>
+<body>
+
+    <div style="text-align: center; margin-bottom: 20px;">
+        <h1>Simulador de Amplificación NPN</h1>
+        <p style="color: #888;">Configuración Emisor Común - Comparativa de Escalas</p>
+    </div>
+
+    <div class="container">
+        <!-- Panel de Control y Hardware -->
+        <div class="panel">
+            <h2>Configuración de Hardware</h2>
+            
+            <div class="controls">
+                <div class="control-group">
+                    <label>Amplitud de Entrada (Gen. Funciones): <span class="value-tag" id="in-amp-val">1.00 V</span></label>
+                    <input type="range" id="in-amp" min="0.1" max="2" step="0.1" value="1">
+                </div>
+
+                <div class="control-group">
+                    <label>Ganancia del Transistor: <span class="value-tag" id="gain-val">5.0x</span></label>
+                    <input type="range" id="gain" min="2" max="10" step="0.5" value="5">
+                </div>
+
+                <div class="control-group">
+                    <label>Escala Osciloscopio SALIDA:</label>
+                    <input type="range" id="out-scale" min="1" max="20" step="1" value="10">
+                    <div class="scale-info">
+                        <span id="out-scale-val">10 V/div</span>
+                        <button class="btn-sync" onclick="syncScales()">Igualar Escalas (2V/div)</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="layers-guide">
+                <div class="layer-item l1"><strong>Capa 1:</strong> Alimentación DC 12V.</div>
+                <div class="layer-item l2"><strong>Capa 2:</strong> Polarización R1(1k), R2(2.2k), RE(1k).</div>
+                <div class="layer-item l3"><strong>Capa 3:</strong> Entrada AC acoplada por condensador.</div>
+                <div class="layer-item l4"><strong>Capa 4:</strong> Visualización y comparación de señales.</div>
+            </div>
+
+            <div class="warning-box">
+                ⚠️ <strong>Nota de Escala:</strong> Observa cómo al subir los V/div en la salida, la onda parece encogerse aunque su voltaje real esté aumentando.
+            </div>
+        </div>
+
+        <!-- Panel de Osciloscopios -->
+        <div class="panel">
+            <h2>Monitor de Señales</h2>
+            
+            <div class="oscilloscope">
+                <div class="scope-label" style="color: var(--input-color);">CANAL A: ENTRADA (Pre-Base) | 2 V/div</div>
+                <canvas id="scopeIn"></canvas>
+            </div>
+
+            <div class="oscilloscope">
+                <div class="scope-label" style="color: var(--output-color);">CANAL B: SALIDA (Colector) | <span id="current-out-div">10 V/div</span></div>
+                <canvas id="scopeOut"></canvas>
+            </div>
+
+            <div style="background: #000; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 0.85rem;">
+                <div style="color: var(--input-color);">V_entrada (pico): <span id="v-in-real">1.00 V</span></div>
+                <div style="color: var(--output-color);">V_salida (pico): <span id="v-out-real">5.00 V</span> (Invertida 180°)</div>
+                <div style="color: #aaa; margin-top: 5px;">Relación Real: <span id="rel-val">Salida es 5 veces mayor</span></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvasIn = document.getElementById('scopeIn');
+        const canvasOut = document.getElementById('scopeOut');
+        const ctxIn = canvasIn.getContext('2d');
+        const ctxOut = canvasOut.getContext('2d');
+
+        // Variables de estado
+        let inputAmp = 1.0;
+        let gain = 5.0;
+        let outputScaleDiv = 10;
+        const inputScaleDiv = 2; // Fijo a 2V/div para la comparación
+        let time = 0;
+
+        // Sliders
+        const inAmpSlider = document.getElementById('in-amp');
+        const gainSlider = document.getElementById('gain');
+        const outScaleSlider = document.getElementById('out-scale');
+
+        inAmpSlider.oninput = (e) => {
+            inputAmp = parseFloat(e.target.value);
+            document.getElementById('in-amp-val').innerText = inputAmp.toFixed(2) + " V";
+            updateInfo();
+        };
+
+        gainSlider.oninput = (e) => {
+            gain = parseFloat(e.target.value);
+            document.getElementById('gain-val').innerText = gain.toFixed(1) + "x";
+            updateInfo();
+        };
+
+        outScaleSlider.oninput = (e) => {
+            outputScaleDiv = parseFloat(e.target.value);
+            document.getElementById('out-scale-val').innerText = outputScaleDiv + " V/div";
+            document.getElementById('current-out-div').innerText = outputScaleDiv + " V/div";
+        };
+
+        function syncScales() {
+            outputScaleDiv = 2;
+            outScaleSlider.value = 2;
+            document.getElementById('out-scale-val').innerText = "2 V/div";
+            document.getElementById('current-out-div').innerText = "2 V/div";
+        }
+
+        function updateInfo() {
+            const vOut = inputAmp * gain;
+            document.getElementById('v-in-real').innerText = inputAmp.toFixed(2) + " V";
+            document.getElementById('v-out-real').innerText = vOut.toFixed(2) + " V";
+            document.getElementById('rel-val').innerText = `Salida es ${gain.toFixed(1)} veces mayor`;
+        }
+
+        function drawGrid(ctx, w, h) {
+            ctx.strokeStyle = "#1a331a";
+            ctx.lineWidth = 1;
+            // Vertical
+            for(let x=0; x<w; x+=w/10) {
+                ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke();
+            }
+            // Horizontal
+            for(let y=0; y<h; y+=h/8) {
+                ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke();
+            }
+            // Centro
+            ctx.strokeStyle = "#2e5c2e";
+            ctx.beginPath(); ctx.moveTo(0, h/2); ctx.lineTo(w, h/2); ctx.stroke();
+        }
+
+        function animate() {
+            const w = canvasIn.width = canvasIn.offsetWidth;
+            const h = canvasIn.height = canvasIn.offsetHeight;
+            canvasOut.width = w; canvasOut.height = h;
+
+            ctxIn.clearRect(0,0,w,h);
+            ctxOut.clearRect(0,0,w,h);
+            drawGrid(ctxIn, w, h);
+            drawGrid(ctxOut, w, h);
+
+            // Dibujar Entrada (Cian)
+            ctxIn.beginPath();
+            ctxIn.strokeStyle = "#00d4ff";
+            ctxIn.lineWidth = 3;
+            for(let x=0; x<w; x++) {
+                const angle = (x / w) * Math.PI * 4 + time;
+                // Amplitud visual = (Voltaje / Escala) * (píxeles por división)
+                // Suponemos que h/8 es una división
+                const y = (h/2) - (Math.sin(angle) * (inputAmp / inputScaleDiv) * (h/4));
+                if(x===0) ctxIn.moveTo(x,y); else ctxIn.lineTo(x,y);
+            }
+            ctxIn.stroke();
+
+            // Dibujar Salida (Roja - Invertida)
+            ctxOut.beginPath();
+            ctxOut.strokeStyle = "#ff4d4d";
+            ctxOut.lineWidth = 3;
+            const vOutReal = inputAmp * gain;
+            for(let x=0; x<w; x++) {
+                const angle = (x / w) * Math.PI * 4 + time;
+                // Notar el signo "-" antes del Math.sin para representar la inversión de 180°
+                const y = (h/2) - (-Math.sin(angle) * (vOutReal / outputScaleDiv) * (h/4));
+                if(x===0) ctxOut.moveTo(x,y); else ctxOut.lineTo(x,y);
+            }
+            ctxOut.stroke();
+
+            time += 0.05;
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+        updateInfo();
+    </script>
+</body>
+</html>

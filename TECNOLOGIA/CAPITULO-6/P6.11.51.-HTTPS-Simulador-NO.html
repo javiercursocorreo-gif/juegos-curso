@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador Protocolo HTTPS - Arduino 5 LCDs</title>
+    <style>
+        :root {
+            --arduino-teal: #00979d;
+            --arduino-dark: #006468;
+            --lcd-blue: #0033cc;
+            --lcd-text: #ffffff;
+            --hex-color: #f1c40f;
+            --bg-body: #f4f7f6;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-body);
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+
+        header {
+            background-color: var(--arduino-teal);
+            color: white;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .main-container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+
+        /* --- ESTILOS DE LOS LCD --- */
+        .handshake-status {
+            text-align: center;
+            font-weight: bold;
+            color: var(--arduino-dark);
+            margin-bottom: 10px;
+            height: 24px;
+        }
+
+        .lcd-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 30px;
+            perspective: 1000px;
+        }
+
+        .lcd-module {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .lcd-screen {
+            background-color: var(--lcd-blue);
+            width: 100%;
+            height: 80px;
+            border: 6px solid #333;
+            border-radius: 6px;
+            padding: 8px;
+            box-sizing: border-box;
+            font-family: 'Courier New', Courier, monospace;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .lcd-line {
+            height: 30px;
+            font-size: 1rem;
+            color: var(--lcd-text);
+            white-space: pre;
+            display: flex;
+            align-items: center;
+            text-shadow: 0 0 5px rgba(255,255,255,0.5);
+        }
+
+        .lcd-label {
+            font-size: 0.7rem;
+            font-weight: bold;
+            margin-top: 8px;
+            color: #555;
+            text-transform: uppercase;
+        }
+
+        /* Colores especiales para pantallas */
+        #p3-screen { border-color: #c0392b; } /* Canal */
+        #p2-screen, #p4-screen { border-color: #f39c12; } /* Claves */
+
+        /* --- MONITOR SERIE --- */
+        .serial-console {
+            background-color: #1e1e1e;
+            border-radius: 8px;
+            padding: 15px;
+            color: #00ff00;
+            font-family: 'Consolas', monospace;
+            margin-bottom: 40px;
+        }
+
+        .serial-input-area {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            background: #000;
+            border: 1px solid #444;
+            color: #00ff00;
+            padding: 8px;
+            border-radius: 4px;
+        }
+
+        .serial-log {
+            height: 150px;
+            overflow-y: auto;
+            border-top: 1px solid #444;
+            padding-top: 10px;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        /* --- DOCUMENTACIÓN --- */
+        .docs-section {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        h2 { color: var(--arduino-teal); border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        pre { background: #f8f8f8; padding: 15px; border-radius: 5px; overflow-x: auto; font-size: 0.85rem; border-left: 5px solid var(--arduino-teal); }
+
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background: #f4f4f4; color: var(--arduino-teal); }
+
+        .key-box {
+            display: inline-block;
+            padding: 2px 6px;
+            background: #eee;
+            border-radius: 4px;
+            font-family: monospace;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Simulador de Protocolo HTTPS (TLS 1.2)</h1>
+    <p>Visualización de 5 Pantallas LCD I2C y Handshake Criptográfico</p>
+</header>
+
+<div class="main-container">
+    
+    <div id="protocol-phase" class="handshake-status">Esperando comando 'Enviar'...</div>
+
+    <!-- PANTALLAS LCD -->
+    <div class="lcd-row">
+        <!-- P5 SERVIDOR -->
+        <div class="lcd-module">
+            <div class="lcd-screen" id="p5-screen">
+                <div class="lcd-line" id="p5-l1">P5 SERVIDOR</div>
+                <div class="lcd-line" id="p5-l2"></div>
+            </div>
+            <div class="lcd-label">P5: Servidor</div>
+        </div>
+
+        <!-- P4 CLAVES SERVIDOR -->
+        <div class="lcd-module">
+            <div class="lcd-screen" id="p4-screen">
+                <div class="lcd-line" id="p4-l1">P4 CLAVES SRV.</div>
+                <div class="lcd-line" id="p4-l2"></div>
+            </div>
+            <div class="lcd-label">P4: Gestión Claves</div>
+        </div>
+
+        <!-- P3 CANAL -->
+        <div class="lcd-module">
+            <div class="lcd-screen" id="p3-screen">
+                <div class="lcd-line" id="p3-l1">P3 CANAL</div>
+                <div class="lcd-line" id="p3-l2"></div>
+            </div>
+            <div class="lcd-label">P3: Internet (Cifrado)</div>
+        </div>
+
+        <!-- P2 CLAVES CLIENTE -->
+        <div class="lcd-module">
+            <div class="lcd-screen" id="p2-screen">
+                <div class="lcd-line" id="p2-l1">P2 CLAVES CLI.</div>
+                <div class="lcd-line" id="p2-l2"></div>
+            </div>
+            <div class="lcd-label">P2: Gestión Claves</div>
+        </div>
+
+        <!-- P1 NAVEGADOR -->
+        <div class="lcd-module">
+            <div class="lcd-screen" id="p1-screen">
+                <div class="lcd-line" id="p1-l1">NAVEGADOR</div>
+                <div class="lcd-line" id="p1-l2">dime la hora que</div>
+            </div>
+            <div class="lcd-label">P1: Navegador</div>
+        </div>
+    </div>
+
+    <!-- MONITOR SERIE -->
+    <div class="serial-console">
+        <div class="serial-input-area">
+            <span>></span>
+            <input type="text" id="serialInput" placeholder="Escribe 'Enviar' o 'Borrar' y pulsa Enter...">
+            <button onclick="processCommand()">Enviar al Arduino</button>
+        </div>
+        <div class="serial-log" id="serialLog">
+            [SISTEMA] Arduino UNO listo.<br>
+            [SISTEMA] Pregunta cargada en P1: "dime la hora que es"<br>
+            [INFO] Escriba 'Enviar' para iniciar Handshake TLS...
+        </div>
+    </div>
+
+    <!-- DOCUMENTACIÓN -->
+    <div class="docs-section">
+        <h2>CRIPTOGRAFÍA DEL PROYECTO</h2>
+        <p>Este simulador utiliza una combinación de criptografía asimétrica para el intercambio de llaves y simétrica para los datos.</p>
+        
+        <table>
+            <tr>
+                <th>Tipo</th>
+                <th>Clave</th>
+                <th>Valor</th>
+                <th>Uso</th>
+            </tr>
+            <tr>
+                <td>Pública (Asimétrica)</td>
+                <td><span class="key-box">0x5A</span></td>
+                <td>Servidor</td>
+                <td>El cliente la usa para cifrar la clave AES.</td>
+            </tr>
+            <tr>
+                <td>Privada (Asimétrica)</td>
+                <td><span class="key-box">0xA5</span></td>
+                <td>Servidor</td>
+                <td>El servidor la usa para descifrar la clave AES.</td>
+            </tr>
+            <tr>
+                <td>Sesión (Simétrica)</td>
+                <td><span class="key-box">0x3C</span></td>
+                <td>Compartida</td>
+                <td>Cifrado rápido de todos los datos (Pregunta/Respuesta).</td>
+            </tr>
+        </table>
+
+        <h2>EXPLICACIÓN DEL CÓDIGO</h2>
+        <p>El código implementa la función <code>cifrarXOR()</code> que transforma el texto en una cadena Hexadecimal:</p>
+        <pre>
+String cifrarXOR(String texto, byte clave) {
+  String resultado = "";
+  for (int i = 0; i < texto.length(); i++) {
+    char c = texto.charAt(i) ^ clave; // Operación XOR
+    resultado += String(c, HEX);      // Conversión a Hexadecimal
+  }
+  return resultado;
+}</pre>
+    </div>
+</div>
+
+<script>
+    // Variables de estado
+    const pregunta = "dime la hora que es";
+    const pubKey = 0x5A;
+    const privKey = 0xA5;
+    const aesKey = 0x3C;
+    let isRunning = false;
+
+    const log = document.getElementById('serialLog');
+    const input = document.getElementById('serialInput');
+    const phaseLabel = document.getElementById('protocol-phase');
+
+    // Elementos LCD
+    const l1_1 = document.getElementById('p1-l1'), l1_2 = document.getElementById('p1-l2');
+    const l2_1 = document.getElementById('p2-l1'), l2_2 = document.getElementById('p2-l2');
+    const l3_1 = document.getElementById('p3-l1'), l3_2 = document.getElementById('p3-l2');
+    const l4_1 = document.getElementById('p4-l1'), l4_2 = document.getElementById('p4-l2');
+    const l5_1 = document.getElementById('p5-l1'), l5_2 = document.getElementById('p5-l2');
+
+    // Procesar Monitor Serie
+    input.addEventListener("keypress", (e) => { if (e.key === "Enter") processCommand(); });
+
+    function addLog(msg, color = "#00ff00") {
+        log.innerHTML += `<span style="color:${color}">${msg}</span><br>`;
+        log.scrollTop = log.scrollHeight;
+    }
+
+    function processCommand() {
+        const cmd = input.value.trim().toLowerCase();
+        input.value = "";
+
+        if (cmd === "enviar" && !isRunning) {
+            runProtocol();
+        } else if (cmd === "borrar") {
+            resetSystem();
+        } else if (isRunning) {
+            addLog("[ERROR] Protocolo en curso...", "#e74c3c");
+        }
+    }
+
+    function resetSystem() {
+        isRunning = false;
+        location.reload();
+    }
+
+    // Función de ayuda para cifrado visual
+    function xorToHex(text, key) {
+        return text.split('').map(c => (c.charCodeAt(0) ^ key).toString(16).toUpperCase().padStart(2, '0')).join(' ');
+    }
+
+    // Simulación de delay() de Arduino
+    const delay = (ms) => new Promise(res => setTimeout(res, ms));
+
+    // Función de deslizamiento (P3)
+    async function deslizar(linea1, linea2, sentido = "izquierda") {
+        l3_1.innerText = " ".repeat(16) + linea1;
+        l3_2.innerText = " ".repeat(16) + linea2;
+        
+        for (let i = 0; i < 26; i++) {
+            let offset = " ".repeat(i);
+            // Simulación visual simple de scroll
+            l3_1.style.transform = `translateX(-${i * 10}px)`;
+            l3_2.style.transform = `translateX(-${i * 10}px)`;
+            await delay(70);
+        }
+        l3_1.style.transform = `translateX(0)`;
+        l3_2.style.transform = `translateX(0)`;
+        l3_1.innerText = "P3 CANAL";
+        l3_2.innerText = "";
+    }
+
+    async function runProtocol() {
+        isRunning = true;
+        addLog(">>> INICIANDO HTTPS PROTOCOL <<<", "#3498db");
+
+        // --- FASE 1: HANDSHAKE ---
+        phaseLabel.innerText = "FASE 1: HANDSHAKE TLS";
+        
+        // Paso A: Clave Pública
+        l5_2.innerText = "Enviando PUB...";
+        l4_2.innerText = "PUB SRV: 0x5A >>>";
+        addLog("P4/P5: Enviando Clave Pública del Servidor (0x5A)");
+        await deslizar("CLAVE PUB SRV>", "0x5A >>> HTTPS");
+
+        l2_2.innerText = "PUB SRV: 0x5A";
+        l1_2.innerText = "Servidor: 0x5A";
+        addLog("P1/P2: Clave Pública recibida.");
+        await delay(1500);
+
+        // Paso B: Generar AES y Cifrar
+        l1_1.innerText = "GENERA CLAVE";
+        l1_2.innerText = "AES: 0x3C";
+        l2_1.innerText = "CIFRA AES c/PUB";
+        l2_2.innerText = "0x3C^0x5A=0x66";
+        addLog("P2: Generando clave AES (0x3C) y cifrando con PubKey: Resultado 0x66");
+        await delay(2000);
+
+        await deslizar("<< CLAVE AES>>", "0x66 cifrada");
+
+        // Paso C: Servidor descifra AES
+        l4_1.innerText = "DESCIFRA c/PRIV";
+        l4_2.innerText = "0x66^0xA5=0x3C";
+        l5_1.innerText = "CLAVE AES OK";
+        l5_2.innerText = "Sesion: 0x3C";
+        addLog("P4: Descifrando con Clave Privada (0xA5): Clave AES 0x3C obtenida.");
+        await delay(2000);
+
+        l2_1.innerText = "SESION AES OK";
+        l2_2.innerText = "Clave: 0x3C";
+        l4_1.innerText = "SESION AES OK";
+        l4_2.innerText = "Clave: 0x3C";
+        addLog("SESIÓN ESTABLECIDA: Canal seguro cifrado con AES-0x3C.", "#f1c40f");
+        await delay(1500);
+
+        // --- FASE 2: PREGUNTA ---
+        phaseLabel.innerText = "FASE 2: ENVÍO DE DATOS CIFRADOS";
+        l1_1.innerText = "PREGUNTA:";
+        l1_2.innerText = pregunta.substring(0, 16);
+        addLog("P1 -> P2: Enviando pregunta en claro.");
+        await delay(1000);
+
+        l2_1.innerText = "CIFRA con AES";
+        const pregHex = xorToHex(pregunta, aesKey);
+        addLog("P2: Cifrando con AES: " + pregHex);
+        await deslizar("CIFRADO AES >>>", pregHex.substring(0, 16));
+
+        l4_1.innerText = "DESCIFRA AES";
+        addLog("P4: Descifrando paquete AES.");
+        await delay(1000);
+
+        l5_1.innerText = "PREGUNTA:";
+        l5_2.innerText = pregunta.substring(0, 16);
+        addLog("P5: Recibida pregunta: 'dime la hora que es'");
+        await delay(3000);
+
+        // --- FASE 3: RESPUESTA ---
+        phaseLabel.innerText = "FASE 3: RESPUESTA DEL SERVIDOR";
+        const ahora = new Date();
+        const horaStr = ahora.getHours().toString().padStart(2, '0') + ":" + ahora.getMinutes().toString().padStart(2, '0') + ":" + ahora.getSeconds().toString().padStart(2, '0');
+        const respuesta = "son las " + horaStr;
+
+        l5_1.innerText = "RESPUESTA:";
+        l5_2.innerText = respuesta;
+        addLog("P5: Generando respuesta: " + respuesta);
+        await delay(1500);
+
+        l4_1.innerText = "CIFRA con AES";
+        const respHex = xorToHex(respuesta, aesKey);
+        addLog("P4: Cifrando respuesta con AES.");
+        await deslizar("<<< AES CIFRADO", respHex.substring(0, 16));
+
+        l2_1.innerText = "DESCIFRA AES";
+        addLog("P2: Descifrando respuesta.");
+        await delay(1000);
+
+        l1_1.innerText = "RESPUESTA:";
+        l1_2.innerText = respuesta;
+        addLog("P1: Respuesta recibida en claro: " + respuesta, "#3498db");
+
+        phaseLabel.innerText = "=== PROTOCOLO FINALIZADO ===";
+        isRunning = false;
+        addLog("[SISTEMA] Ciclo HTTPS completado con éxito. Escriba 'Borrar' para repetir.");
+    }
+
+</script>
+
+</body>
+</html>

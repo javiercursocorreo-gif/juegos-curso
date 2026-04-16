@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador FM - VCO con 555</title>
+    <style>
+        :root {
+            --bg: #121212;
+            --panel: #1e1e1e;
+            --accent: #f1c40f; /* Amarillo para FM */
+            --text: #e0e0e0;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr;
+            gap: 20px;
+            max-width: 1100px;
+            width: 100%;
+        }
+
+        .panel {
+            background: var(--panel);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            border-top: 4px solid var(--accent);
+        }
+
+        h1 { color: var(--accent); margin-bottom: 20px; }
+        h2 { font-size: 1.2em; margin-top: 0; color: #fff; }
+
+        /* Osciloscopio */
+        .scope-box {
+            background: #0a0a0a;
+            border: 3px solid #333;
+            border-radius: 8px;
+            position: relative;
+            height: 350px;
+            margin-bottom: 15px;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Controles */
+        .control-group {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.85em;
+            color: #bbb;
+            margin-bottom: 5px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--accent);
+        }
+
+        .value-display {
+            float: right;
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        /* Capas Guía */
+        .layer {
+            font-size: 0.85em;
+            margin-bottom: 8px;
+            padding: 5px;
+            border-left: 3px solid transparent;
+        }
+        .l1 { border-color: #e74c3c; } /* Rojo Alimentación */
+        .l2 { border-color: #3498db; } /* Azul Temporización */
+        .l3 { border-color: #f1c40f; } /* Amarillo Moduladora */
+        .l4 { border-color: #9b59b6; } /* Púrpura Salida */
+
+        .status-led {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+            background: #27ae60;
+            box-shadow: 0 0 5px #27ae60;
+        }
+
+        .formula {
+            font-family: monospace;
+            background: #000;
+            padding: 10px;
+            color: #2ecc71;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Visualización: Modulación de Frecuencia (FM)</h1>
+
+    <div class="container">
+        <!-- Panel Izquierdo: Configuración -->
+        <div class="panel">
+            <h2>Configuración del VCO (555)</h2>
+            
+            <div class="control-group">
+                <label>Frecuencia Moduladora (Señal Pin 5)
+                    <span class="value-display" id="fm-val">1 Hz</span>
+                </label>
+                <input type="range" id="fm-slider" min="0.1" max="5" step="0.1" value="1">
+                
+                <label style="margin-top:15px;">Amplitud de Modulación (Vpp)
+                    <span class="value-display" id="am-val">2.0 V</span>
+                </label>
+                <input type="range" id="am-slider" min="0.1" max="4" step="0.1" value="2">
+            </div>
+
+            <div class="formula">
+                FM: f(t) = f_base + k * V_control(t)
+            </div>
+
+            <div style="margin-top:20px;">
+                <div class="layer l1">🔴 <strong>Capa 1:</strong> VCC (Pin 8) y Reset (Pin 4) a 5V.</div>
+                <div class="layer l2">🔵 <strong>Capa 2:</strong> Astable (R1=10k, R2=1k, C=10nF).</div>
+                <div class="layer l3">🟡 <strong>Capa 3:</strong> Moduladora entrando por Pin 5.</div>
+                <div class="layer l4">🟣 <strong>Capa 4:</strong> Osciloscopio leyendo Pin 3.</div>
+            </div>
+        </div>
+
+        <!-- Panel Derecho: Osciloscopio -->
+        <div class="panel">
+            <div style="display:flex; justify-content: space-between; align-items: center;">
+                <h2>Osciloscopio Digital</h2>
+                <div style="font-size: 0.8em; color: #888;">
+                    <span class="status-led"></span> SIMULACIÓN EN TIEMPO REAL
+                </div>
+            </div>
+            
+            <div class="scope-box">
+                <canvas id="scopeCanvas"></canvas>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div class="control-group" style="margin-bottom:0; background: #1a1a1a;">
+                    <label>Trazo Amarillo: Moduladora (Pin 5)</label>
+                    <label>Trazo Cian: Salida FM (Pin 3)</label>
+                </div>
+                <div class="control-group" style="margin-bottom:0; background: #1a1a1a;">
+                    <label>Zoom Horizontal (Tiempo/Div)</label>
+                    <input type="range" id="zoom-slider" min="10" max="100" value="50">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('scopeCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Parámetros de simulación
+        let modFreq = 1.0;
+        let modAmp = 2.0;
+        let timeScale = 50;
+        let time = 0;
+
+        // Inputs
+        document.getElementById('fm-slider').oninput = function() {
+            modFreq = parseFloat(this.value);
+            document.getElementById('fm-val').innerText = this.value + " Hz";
+        }
+        document.getElementById('am-slider').oninput = function() {
+            modAmp = parseFloat(this.value);
+            document.getElementById('am-val').innerText = this.value + " V";
+        }
+        document.getElementById('zoom-slider').oninput = function() {
+            timeScale = parseInt(this.value);
+        }
+
+        function drawGrid() {
+            ctx.strokeStyle = '#222';
+            ctx.lineWidth = 1;
+            for(let x=0; x<canvas.width; x+=40) {
+                ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke();
+            }
+            for(let y=0; y<canvas.height; y+=40) {
+                ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke();
+            }
+        }
+
+        let phase = 0; // Fase acumulada para FM
+
+        function animate() {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            
+            ctx.clearRect(0,0, canvas.width, canvas.height);
+            drawGrid();
+
+            const centerY_Mod = canvas.height * 0.25;
+            const centerY_Out = canvas.height * 0.7;
+            
+            ctx.lineWidth = 2;
+
+            // Dibujar Moduladora (Pin 5) - Amarillo
+            ctx.beginPath();
+            ctx.strokeStyle = '#f1c40f';
+            for(let x=0; x<canvas.width; x++) {
+                let t = time + (x / (timeScale * 10));
+                let vMod = Math.sin(2 * Math.PI * modFreq * t) * (modAmp * 15);
+                if(x===0) ctx.moveTo(x, centerY_Mod - vMod);
+                else ctx.lineTo(x, centerY_Mod - vMod);
+            }
+            ctx.stroke();
+
+            // Dibujar Salida FM (Pin 3) - Cian
+            // En FM, la frecuencia instantánea f(t) varía. 
+            // La fase es la integral de la frecuencia.
+            ctx.beginPath();
+            ctx.strokeStyle = '#00f2ff';
+            
+            let localPhase = phase;
+            const baseFreq = 20; // Frecuencia base de la portadora para visualización
+            
+            for(let x=0; x<canvas.width; x++) {
+                let t = time + (x / (timeScale * 10));
+                
+                // El voltaje en Pin 5 afecta inversamente la frecuencia en un 555 
+                // (Más voltaje = condensador tarda más en cargar = menos frecuencia)
+                let vControl = Math.sin(2 * Math.PI * modFreq * t);
+                let instFreq = baseFreq - (vControl * modAmp * 4); 
+                
+                localPhase += instFreq * 0.02; // Integración simple
+                
+                // Generar onda cuadrada basada en la fase
+                let yVal = Math.sin(localPhase) > 0 ? 30 : -30;
+                
+                if(x===0) ctx.moveTo(x, centerY_Out - yVal);
+                else {
+                    // Dibujar flancos rectos de la onda cuadrada
+                    let prevV = Math.sin(localPhase - instFreq * 0.02) > 0 ? 30 : -30;
+                    if(prevV !== yVal) ctx.lineTo(x, centerY_Out - prevV);
+                    ctx.lineTo(x, centerY_Out - yVal);
+                }
+            }
+            ctx.stroke();
+
+            // Avanzar el tiempo real
+            time += 0.005;
+            phase += (baseFreq - (Math.sin(2 * Math.PI * modFreq * time) * modAmp * 4)) * 0.02;
+
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
