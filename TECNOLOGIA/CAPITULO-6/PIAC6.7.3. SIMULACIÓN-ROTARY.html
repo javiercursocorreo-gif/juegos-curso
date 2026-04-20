@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Apex Industrial: Rotary Central Exchange</title>
+    <style>
+        body { margin: 0; background-color: #3a3a3a; overflow: hidden; font-family: 'Segoe UI', sans-serif; }
+        #ui { position: absolute; top: 30px; left: 30px; color: #fff; pointer-events: none; z-index: 10; }
+        .glass-ui { 
+            background: rgba(255, 255, 255, 0.1); 
+            backdrop-filter: blur(15px); 
+            padding: 25px; border-radius: 15px; 
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            color: #ffffff;
+            width: 350px;
+        }
+        .label { color: #00f2ff; font-size: 10px; text-transform: uppercase; letter-spacing: 2px; font-weight: bold; margin-bottom: 5px; }
+        .status { font-size: 18px; font-weight: 800; font-family: monospace; color: #fff; margin-bottom: 15px; }
+        .step { font-size: 12px; color: #bbb; margin-bottom: 10px; padding-left: 10px; border-left: 2px solid #0055ff; }
+        .active-step { border-left-color: #00ff44; color: #fff; font-weight: bold; }
+        button {
+            pointer-events: auto; background: #0055ff; color: white; border: none;
+            padding: 12px; font-weight: 800; cursor: pointer; border-radius: 8px;
+            width: 100%; text-transform: uppercase; letter-spacing: 1px; transition: 0.3s;
+        }
+        button:hover { background: #00f2ff; color: #000; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+
+<div id="ui">
+    <div class="glass-ui">
+        <div class="label">Apex Systems // Rotary Central</div>
+        <div id="main-status" class="status">SISTEMA: IDLE</div>
+        
+        <div id="step1" class="step">1. RELÉ: Esperando descolgar...</div>
+        <div id="step2" class="step">2. BUSCADOR: Localizando abonado...</div>
+        <div id="step3" class="step">3. IMPULSOS: Marcando número...</div>
+        <div id="step4" class="step">4. SELECTOR: Conectando destino...</div>
+
+        <button id="action-btn">DESCOLGAR TELÉFONO</button>
+    </div>
+</div>
+
+<script type="importmap">
+    { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+</script>
+
+<script type="module">
+    import * as THREE from 'three';
+
+    // --- CONFIGURACIÓN DE ESTUDIO APEX ---
+    const scene = new THREE.Scene();
+    const studioColor = 0x3a3a3a; 
+    scene.background = new THREE.Color(studioColor); 
+    scene.fog = new THREE.Fog(studioColor, 15, 60);
+
+    const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 1, 1000);
+    camera.position.set(12, 10, 18);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping; 
+    renderer.toneMappingExposure = 1.6; 
+    document.body.appendChild(renderer.domElement);
+
+    // --- ILUMINACIÓN CINEMÁTICA ---
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x666666, 3.5);
+    scene.add(hemiLight);
+
+    const mainLight = new THREE.DirectionalLight(0xffffff, 4);
+    mainLight.position.set(10, 20, 10);
+    mainLight.castShadow = true;
+    scene.add(mainLight);
+
+    const fillLight = new THREE.PointLight(0x00f2ff, 60); 
+    fillLight.position.set(-10, 10, 5);
+    scene.add(fillLight);
+
+    // --- ESCENARIO ---
+    const ground = new THREE.Mesh(
+        new THREE.PlaneGeometry(200, 200),
+        new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.8 })
+    );
+    ground.rotation.x = -Math.PI / 2;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    const grid = new THREE.GridHelper(100, 40, 0x444444, 0x222222);
+    grid.position.y = 0.01;
+    scene.add(grid);
+
+    // --- MATERIALES PREMIUM APEX ---
+    const matBody = new THREE.MeshPhysicalMaterial({ 
+        color: 0x0044ff, metalness: 0.8, roughness: 0.1, clearcoat: 1.0 
+    });
+    const matGold = new THREE.MeshPhysicalMaterial({ 
+        color: 0xffcc00, metalness: 1.0, roughness: 0.2 
+    });
+    const matChrome = new THREE.MeshPhysicalMaterial({ 
+        color: 0xffffff, metalness: 1.0, roughness: 0.05 
+    });
+    const matClutch = new THREE.MeshStandardMaterial({ color: 0xff0000 }); // Embrague
+
+    // --- CONSTRUCCIÓN DE LA CENTRAL ---
+    
+    // 1. Eje Motor Central (El Músculo)
+    const engineShaft = new THREE.Group();
+    const shaftRod = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 15, 32), matChrome);
+    engineShaft.add(shaftRod);
+
+    const disks = [];
+    for(let i = -6; i <= 6; i += 3) {
+        const disk = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 0.2, 64), matChrome);
+        disk.position.y = i;
+        engineShaft.add(disk);
+        disks.push(disk);
+    }
+    scene.add(engineShaft);
+
+    // 2. Bancos de Contactos (La Pared de Números)
+    const createBank = (yPos) => {
+        const bank = new THREE.Group();
+        bank.position.y = yPos;
+        for(let i = 0; i <= 40; i++) {
+            const angle = (i / 40) * Math.PI - Math.PI/2;
+            const contact = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.1, 0.2), matGold);
+            contact.position.set(Math.cos(angle) * 8, 0, Math.sin(angle) * 8);
+            contact.rotation.y = -angle;
+            bank.add(contact);
+        }
+        return bank;
+    };
+    const bankFinder = createBank(-3);
+    const bankSelector = createBank(3);
+    scene.add(bankFinder, bankSelector);
+
+    // 3. Los Robots (Buscador y Selector)
+    const createRobotArm = (yPos) => {
+        const armGroup = new THREE.Group();
+        armGroup.position.y = yPos;
+        armGroup.rotation.y = -Math.PI/2;
+
+        const body = new THREE.Mesh(new THREE.BoxGeometry(7, 0.2, 0.4), matBody);
+        body.position.x = 3.5;
+        armGroup.add(body);
+
+        const clutch = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), matClutch);
+        clutch.position.x = 1.8; // Cerca del disco
+        armGroup.add(clutch);
+
+        const wiper = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.6, 16), matChrome);
+        wiper.position.x = 8;
+        armGroup.add(wiper);
+
+        return { group: armGroup, clutch: clutch };
+    };
+
+    const finder = createRobotArm(-3);
+    const selector = createRobotArm(3);
+    scene.add(finder.group, selector.group);
+
+    // --- LÓGICA DE LA CENTRAL (ESTADOS) ---
+    let state = "IDLE";
+    let timer = 0;
+    let finderAngle = -Math.PI/2;
+    let selectorAngle = -Math.PI/2;
+    let targetFinder = -Math.PI/2 + Math.random() * Math.PI;
+    let targetSelector = -Math.PI/2;
+
+    const btn = document.getElementById('action-btn');
+    const statusTxt = document.getElementById('main-status');
+    const steps = [
+        document.getElementById('step1'),
+        document.getElementById('step2'),
+        document.getElementById('step3'),
+        document.getElementById('step4')
+    ];
+
+    function setStep(idx) {
+        steps.forEach((s, i) => s.className = i === idx ? "step active-step" : "step");
+    }
+
+    btn.onclick = () => {
+        if(state === "IDLE") {
+            state = "RELAY";
+            timer = 0;
+            setStep(0);
+            statusTxt.innerText = "SISTEMA: RELÉ ACTIVO";
+            btn.style.display = "none";
+        }
+    };
+
+    const clock = new THREE.Clock();
+
+    function animate() {
+        requestAnimationFrame(animate);
+        const dt = clock.getDelta();
+
+        // El Eje Motor siempre gira
+        engineShaft.rotation.y += 2 * dt;
+
+        if (state === "RELAY") {
+            timer += dt;
+            if(timer > 1.5) {
+                state = "FINDING";
+                setStep(1);
+                statusTxt.innerText = "SISTEMA: BUSCANDO LÍNEA";
+                finder.clutch.position.x = 1.2; // Embraga al disco
+            }
+        }
+
+        if (state === "FINDING") {
+            if (finderAngle < targetFinder) {
+                finderAngle += 1.2 * dt;
+                finder.group.rotation.y = finderAngle;
+            } else {
+                state = "DIALING";
+                finder.clutch.position.x = 1.8; // Suelta disco
+                setStep(2);
+                statusTxt.innerText = "SISTEMA: RECIBIENDO IMPULSOS";
+                timer = 0;
+            }
+        }
+
+        if (state === "DIALING") {
+            timer += dt;
+            // Simulamos 3 "clics" (impulsos)
+            if(timer > 2) {
+                state = "SELECTING";
+                setStep(3);
+                statusTxt.innerText = "SISTEMA: SELECTOR BUSCANDO DESTINO";
+                selector.clutch.position.x = 1.2; // Embraga
+                targetSelector = -Math.PI/2 + (Math.PI * 0.6); // Posición 3 aprox
+            }
+        }
+
+        if (state === "SELECTING") {
+            if (selectorAngle < targetSelector) {
+                selectorAngle += 0.8 * dt;
+                selector.group.rotation.y = selectorAngle;
+            } else {
+                state = "CONNECTED";
+                selector.clutch.position.x = 1.8; // Suelta disco
+                statusTxt.innerText = "SISTEMA: LLAMADA CONECTADA";
+                statusTxt.style.color = "#00ff44";
+                
+                setTimeout(() => {
+                    location.reload(); // Reiniciar simulación
+                }, 5000);
+            }
+        }
+
+        // Cámara sigue suavemente el centro de acción
+        camera.lookAt(0, 0, 0);
+        renderer.render(scene, camera);
+    }
+
+    animate();
+
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight; 
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+</script>
+</body>
+</html>

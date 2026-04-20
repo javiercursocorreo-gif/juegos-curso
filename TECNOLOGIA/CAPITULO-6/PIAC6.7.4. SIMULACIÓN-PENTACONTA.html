@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Pentaconta: El Punto de Cruce</title>
+    <style>
+        body { margin: 0; background-color: #f0f0f0; overflow: hidden; font-family: 'Segoe UI', sans-serif; }
+        #ui { position: absolute; top: 20px; left: 20px; width: 380px; pointer-events: none; z-index: 100; }
+        .solid-card { 
+            background: #111; padding: 20px; border-radius: 12px; 
+            border: 2px solid #00f2ff; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            color: #fff; pointer-events: auto;
+        }
+        .label { color: #ffaa00; font-size: 10px; text-transform: uppercase; font-weight: bold; letter-spacing: 2px; }
+        .status { font-family: monospace; color: #00ff44; font-size: 16px; margin: 10px 0; }
+        button {
+            background: #0055ff; color: white; border: none; padding: 15px; 
+            font-weight: bold; cursor: pointer; border-radius: 6px; width: 100%; 
+            text-transform: uppercase; transition: 0.2s;
+        }
+        button:hover { background: #00f2ff; color: #000; }
+    </style>
+</head>
+<body>
+
+<div id="ui">
+    <div class="solid-card">
+        <div class="label">Mecánica de Barras Cruzadas</div>
+        <div id="status" class="status">> SISTEMA EN ESPERA</div>
+        <p style="font-size: 12px; color: #ccc;">
+            Observa cómo la <b>Barra Horizontal</b> gira y la <b>Vertical</b> presiona para cerrar el contacto en el cruce.
+        </p>
+        <button id="btn-cruce">REALIZAR CONEXIÓN (CLACK)</button>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"></script>
+
+<script>
+// --- CONFIGURACIÓN DE ESCENA (MUCHA LUZ) ---
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x333333); // Fondo gris oscuro para contraste
+
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.set(8, 6, 10);
+camera.lookAt(0, 0, 0);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 2.0; // Exposición alta para evitar oscuridad
+document.body.appendChild(renderer.domElement);
+
+// --- LUCES POTENTES ---
+const ambient = new THREE.HemisphereLight(0xffffff, 0x444444, 3);
+scene.add(ambient);
+
+const sun = new THREE.DirectionalLight(0xffffff, 4);
+sun.position.set(5, 10, 7);
+scene.add(sun);
+
+const point = new THREE.PointLight(0x00f2ff, 50);
+point.position.set(-5, 5, 5);
+scene.add(point);
+
+// --- MATERIALES ---
+const matMetalH = new THREE.MeshStandardMaterial({ color: 0xaaaaaa, metalness: 0.8, roughness: 0.2 });
+const matMetalV = new THREE.MeshStandardMaterial({ color: 0x444444, metalness: 0.9, roughness: 0.1 });
+const matFleje = new THREE.MeshStandardMaterial({ color: 0xffcc00 }); // Uña de contacto
+const matSilver = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x444444 });
+const matActive = new THREE.MeshStandardMaterial({ color: 0x00ff44, emissive: 0x00ff44, emissiveIntensity: 5 });
+
+// --- CONSTRUCCIÓN DEL MULTISELECTOR ---
+const multiselector = new THREE.Group();
+scene.add(multiselector);
+
+const horizontales = [];
+const verticales = [];
+const contactos = [];
+
+// Crear 5 Barras Horizontales con sus "Flejes" (Uñas)
+for(let i = 0; i < 5; i++) {
+    const barGroup = new THREE.Group();
+    barGroup.position.y = i * 1.5 - 3;
+    
+    // El eje horizontal
+    const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 10, 16), matMetalH);
+    rod.rotation.z = Math.PI / 2;
+    barGroup.add(rod);
+    
+    // Los Flejes (las uñas que se cruzan)
+    const fingers = [];
+    for(let j = 0; j < 5; j++) {
+        const finger = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.6, 0.1), matFleje);
+        finger.position.x = j * 2 - 4;
+        finger.position.z = 0.3;
+        barGroup.add(finger);
+        fingers.push(finger);
+    }
+    
+    multiselector.add(barGroup);
+    horizontales.push({ group: barGroup, fingers: fingers });
+}
+
+// Crear 5 Barras Verticales (Atrás)
+for(let i = 0; i < 5; i++) {
+    const vBar = new THREE.Mesh(new THREE.BoxGeometry(0.3, 8, 0.4), matMetalV);
+    vBar.position.set(i * 2 - 4, 0, 0.8);
+    multiselector.add(vBar);
+    verticales.push(vBar);
+}
+
+// Crear Puntos de Contacto (Plata)
+for(let i = 0; i < 5; i++) {
+    contactos[i] = [];
+    for(let j = 0; j < 5; j++) {
+        const dot = new THREE.Mesh(new THREE.SphereGeometry(0.15), matSilver);
+        dot.position.set(j * 2 - 4, i * 1.5 - 3, 0.7);
+        multiselector.add(dot);
+        contactos[i][j] = dot;
+    }
+}
+
+// --- LÓGICA DE CONEXIÓN ---
+let estado = "IDLE";
+let timer = 0;
+let selH = 0;
+let selV = 0;
+const statusTxt = document.getElementById('status');
+
+document.getElementById('btn-cruce').onclick = () => {
+    if(estado === "IDLE") {
+        selH = Math.floor(Math.random() * 5);
+        selV = Math.floor(Math.random() * 5);
+        estado = "SELECCIONANDO";
+        timer = 0;
+        statusTxt.innerText = "GIRANDO BARRA HORIZONTAL...";
+        statusTxt.style.color = "#ffaa00";
+    }
+};
+
+const clock = new THREE.Clock();
+
+function animate() {
+    requestAnimationFrame(animate);
+    const dt = clock.getDelta();
+
+    if (estado === "SELECCIONANDO") {
+        timer += dt;
+        // La barra horizontal GIRA para poner el fleje en posición
+        horizontales[selH].group.rotation.x = THREE.MathUtils.lerp(horizontales[selH].group.rotation.x, 0.8, 0.1);
+        
+        if (timer > 1) {
+            estado = "CONECTANDO";
+            timer = 0;
+            statusTxt.innerText = "PRESIONANDO BARRA VERTICAL...";
+        }
+    }
+
+    if (estado === "CONECTANDO") {
+        timer += dt;
+        // La barra vertical AVANZA para atrapar el fleje
+        verticales[selV].position.z = THREE.MathUtils.lerp(verticales[selV].position.z, 0.45, 0.1);
+        
+        if (timer > 0.5) {
+            contactos[selH][selV].material = matActive;
+            statusTxt.innerText = "¡CONEXIÓN CERRADA (CLACK)!";
+            statusTxt.style.color = "#00ff44";
+        }
+
+        if (timer > 3) {
+            // Liberar y volver al inicio
+            estado = "IDLE";
+            horizontales[selH].group.rotation.x = 0;
+            verticales[selV].position.z = 0.8;
+            contactos[selH][selV].material = matSilver;
+            statusTxt.innerText = "SISTEMA EN ESPERA";
+            statusTxt.style.color = "#00ff44";
+        }
+    }
+
+    renderer.render(scene, camera);
+}
+
+animate();
+
+// Ajuste ventana
+window.onresize = () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+};
+</script>
+</body>
+</html>
